@@ -11,7 +11,7 @@ using bloom::u32;
 
 const double rate = 44100.0, pi = 3.14159265358979323846;
 const i32 full = 0x7fffffff;
-const i32 half_scale = 1073741824;   // definition.json outputPeakQ31
+const i32 half_scale = 335544320;    // definition.json outputPeakQ31
 int failures = 0;
 
 void check(bool ok, const char* what) {
@@ -172,7 +172,7 @@ int main() {
                 if (peak > worst) worst = peak;
             }
         }
-        check(worst <= half_scale, "output above half scale");
+        check(worst <= half_scale, "output above its declared peak");
         check(worst > half_scale / 2, "output much quieter than its declared peak");
         check(sounding, "silent at some setting");
         std::printf("peak %.3f of full scale\n", worst / 2147483648.0);
@@ -195,7 +195,7 @@ int main() {
         harmonics(hollow, h);
         double even = 0;
         for (int k = 2; k <= 16; k += 2) even = h[k] > even ? h[k] : even;
-        check(h[1] > 0.1 && h[3] > h[1] * 0.05 && even < h[1] * 1e-3, "odd does not remove the even partials");
+        check(h[1] > 0.03 && h[3] > h[1] * 0.05 && even < h[1] * 1e-3, "odd does not remove the even partials");
         s.v[1] = 0;
         Note full_note(s, f0);
         full_note.run(8);
@@ -305,7 +305,7 @@ int main() {
             worst = a > worst ? a : worst;
         }
         double kept = amplitude(x, window, 5 * hz);
-        check(fundamental > 0.01 && kept > fundamental * 0.5 && worst < fundamental * 1e-3, "aliasing partials above Nyquist");
+        check(fundamental > 0.003 && kept > fundamental * 0.5 && worst < fundamental * 1e-3, "aliasing partials above Nyquist");
         std::printf("3 kHz note, all partials, bright: worst alias %.1f dB below the fundamental\n",
                     20 * std::log10(fundamental / (worst + 1e-12)));
         // The spectrum itself never gives a level to a partial at or above the cutoff,

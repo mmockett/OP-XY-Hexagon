@@ -75,8 +75,9 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         p.amplitude = to_p;
         q.amplitude = to_q;
     }
-    // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level): Q31.
-    for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = mix[i] * 2;
+    // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level),
+    // at 0.625: a voice sits low enough that a chord of eight peaks near 0.6.
+    for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = (mix[i] >> 1) + (mix[i] >> 3);
 }
 
 }  // namespace bloom

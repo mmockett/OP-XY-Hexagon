@@ -238,7 +238,7 @@ for k in range(DUST_COUNT):
     x, y, r = 2 + hash01(k + 50) * 96, 2 + hash01(k + 80) * 60, 0.22 + hash01(k + 7) * 0.3
     out.append(circle(X(x), Y(y), r * S, "#8c8c8c", "none", None, DUST + k))
 
-# Palette (display.h): the stripes' greys by age, the tape and its dropout,
+# Palette (display.h): the stripes' greys by age, the tape (15 is spare),
 # the needles and pivots lit and unlit. Parked off screen.
 palette = [("#000000", 0.3), ("#d9d9d9", 0.3), ("#9a9a9a", 0.3), ("#5c5c5c", 0.3), ("#a6a6a6", 0.3),
            ("#808080", 0.3), ("#575757", 0.3), ("#6b6b6b", 0.3), ("#5e5e5e", 0.3), ("#4f4f4f", 0.3),

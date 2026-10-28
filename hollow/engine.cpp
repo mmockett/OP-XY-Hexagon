@@ -63,38 +63,34 @@ inline Push plan(i32 log2_loss, i32 bow, i32 breath) {
     return p;
 }
 
+// Sounds a mode into acc over a block, its amplitudes ramping from (a, b) by
+// (da, db) a sample, and returns its phase. Kept lean for the Blackfin: one
+// table pointer for both reads, and amplitudes within +-4095 (clamp_amplitude),
+// so their top halves multiply as they are.
+inline u32 sound(i32* acc, u32 phase, u32 increment, i32 a, i32 b, i32 da, i32 db) {
+    for (i32* out = acc; out != acc + opxy::block_frames; ++out) {
+        a += da;
+        b += db;
+        const opxy::i16* const at = kSine + (phase >> 22);
+        *out += at[0] * (a >> 16) + at[256] * (b >> 16);
+        phase += increment;
+    }
+    return phase;
+}
+
 // One block of a mode: update its amplitude, then sound it, ramped, into acc.
 inline void ring(Mode& m, const Push& p, u32 increment, u32& seed, i32* acc) {
     const i32 a0 = m.a, b0 = m.b;
     const i32 a1 = clamp_amplitude(multiply(a0 - p.bow, p.decay) + p.bow + noise15(seed) * p.noise * 2);
     const i32 b1 = clamp_amplitude(multiply(b0, p.decay) + noise15(seed) * p.noise * 2);
-    i32 a = a0, b = b0;
-    const i32 da = (a1 - a0) >> 6, db = (b1 - b0) >> 6;
-    u32 phase = m.phase;
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
-        a += da;
-        b += db;
-        const u32 at = phase >> 22;
-        acc[i] += kSine[at] * static_cast<opxy::i16>(a >> 16) + kSine[at + 256] * static_cast<opxy::i16>(b >> 16);
-        phase += increment;
-    }
-    m.phase = phase;
+    m.phase = sound(acc, m.phase, increment, a0, b0, (a1 - a0) >> 6, (b1 - b0) >> 6);
     m.a = a1;
     m.b = b1;
 }
 
 // A mode's last block: undriven and faded to silence, then cleared.
 inline void release(Mode& m, u32 increment, i32* acc) {
-    i32 a = m.a, b = m.b;
-    const i32 da = a >> 6, db = b >> 6;
-    u32 phase = m.phase;
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
-        a -= da;
-        b -= db;
-        const u32 at = phase >> 22;
-        acc[i] += kSine[at] * static_cast<opxy::i16>(a >> 16) + kSine[at + 256] * static_cast<opxy::i16>(b >> 16);
-        phase += increment;
-    }
+    sound(acc, m.phase, increment, m.a, m.b, -(m.a >> 6), -(m.b >> 6));
     m.phase = 0;
     m.a = m.b = 0;
 }
@@ -152,9 +148,11 @@ const u32 kSpreadSet[kModes] = {0, 1, 0, 1, 1, 0, 1, 0};
 const i32 kBowHiss = 2600;
 // Amplitudes at full drive (0..4095): the bow's and the breath's; the
 // sympathetic modes' level at full Sympathy (Q15 of the fundamental's); the
-// output gain (Q10) and Air at full (Q15).
+// output gain (Q10) and Air at full (Q15). The output and Air sit 3 dB down
+// so eight notes keep headroom: a full chord peaks near 0.6 of full scale,
+// and about 1.0 with Breath and Air at full.
 const i32 kBowAmplitude = 3000, kBreathAmplitude = 750, kSympathy = 14000;
-const i32 kOutput = 6400, kAir = 32767;
+const i32 kOutput = 4525, kAir = 23170;
 // log2 (Q16) of the modes' steady power the output gain holds.
 const i32 kPower = 1343488;  // 2^20.5: the voice at its defaults
 }

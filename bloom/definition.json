@@ -127,7 +127,7 @@
     "voiceAlignment": 4,
     "voiceCapacity": 8,
     "sharedBytes": 12,
-    "outputPeakQ31": 1073741824,
+    "outputPeakQ31": 335544320,
     "display": {
       "stateBytes": 68,
       "stateAlignment": 4,

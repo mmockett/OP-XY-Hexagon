@@ -25,8 +25,8 @@ inline void caption_cents(char* out, opxy::i32 octaves) {
 }
 inline const char* shape_name(opxy::i32 control) {
     const opxy::i32 s = control < 0 ? 0 : control >> 16;
-    return s < 2621 ? "tri" : s < 13763 ? "t/saw" : s < 19005 ? "saw"
-         : s < 25559 ? "s/sq" : s < 26870 ? "sq" : "pulse";
+    return s < 1311 ? "sine" : s < 6881 ? "s/tri" : s < 9503 ? "tri" : s < 15073 ? "t/saw"
+         : s < 19005 ? "saw" : s < 25559 ? "s/sq" : s < 26870 ? "sq" : "pulse";
 }
 
 // The screen below the header: a compact cassette between the oscillator and a
@@ -40,9 +40,9 @@ using opxy::i32;
 using opxy::u32;
 
 // Palette entries (panel.svg.fragment): the label's stripes at each age, the
-// tape and its dropout, the needles and pivots lit and unlit.
+// tape, the needles and pivots lit and unlit.
 const u32 stripe_shades[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-const u32 needle_dim = 10, needle_lit = 11, pivot_lit = 12, pivot_dim = 13, tape_bright = 14, tape_dark = 15;
+const u32 needle_dim = 10, needle_lit = 11, pivot_lit = 12, pivot_dim = 13, tape_bright = 14;
 
 // Geometry in Q10 pixels (tools/make_panel.py --tables).
 const i32 hub_x[2] = {186573, 304947}, hub_y = 118825;
@@ -87,12 +87,17 @@ inline u32 root(u32 value) {
     return result;
 }
 
-// The oscillator, Q15, at phase p (Q16): triangle to saw over the first half of
-// shape, saw to square to 80%, then the square narrowing to a 15% pulse.
+// The oscillator, Q15, at phase p (Q16): sine to triangle over the first
+// quarter of shape, triangle to saw to half, saw to square to 80%, then the
+// square narrowing to a 15% pulse. The sine is drawn at full height.
 inline i32 wave(i32 shape, i32 p) {
     const i32 tri = p < 32768 ? (4 * p - 65536) >> 1 : (196608 - 4 * p) >> 1;
     const i32 saw = p - 32768, square = p < 32768 ? tape::one : -tape::one;
-    if (shape < controls::shape_saw) return tri + ((saw - tri) * (shape * 2) >> 15);
+    if (shape < controls::shape_triangle) {
+        const i32 sine = tape::sine((static_cast<u32>(p) << 16) - 0x40000000u);
+        return sine + ((tri - sine) * (shape * 4) >> 15);
+    }
+    if (shape < controls::shape_saw) return tri + ((saw - tri) * ((shape - controls::shape_triangle) * 4) >> 15);
     if (shape < controls::shape_square) {
         const i32 w = (shape - controls::shape_saw) * 10 / 3;   // over 9830: 0..32767
         return saw + ((square - saw) * w >> 15);
@@ -296,8 +301,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const u32 worn = age < 11141 ? 0 : age < 21955 ? 1 : 2;
     for (u32 i = 0; i < 3; ++i) place(frame, node::stripe + i, 0, 0, unit, stripe_shades[worn][i], fill_and_stroke);
 
-    // The tape at the head, its recent speed travelling along it; past 40% age
-    // it now and then dims for a dropout while notes play.
+    // The tape at the head, its recent speed travelling along it.
     {
         const bool still = !amounts.wow && !amounts.flutter && !amounts.sag;
         const u32 key = (still ? 1u : tape::hash(now ^ static_cast<u32>(amounts.wow) << 1 ^
@@ -307,11 +311,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             tape_ribbon(frame, state, amounts);
             frame.paths[node::tape].key = frame.paths[node::tape + 1].key = key;
         }
-        const bool dropout = lit && moving && age > 13107 &&
-            static_cast<i32>(tape::hash(tape::seed ^ 0xd209u ^ (now >> 8) * 0x9e3779b9u) >> 17) <
-                ((age - 13107) * 9830 >> 15);   // up to 18% of the time
-        for (u32 h = 0; h < 2; ++h)
-            place(frame, node::tape + h, tape_x[h], tape_y, unit, dropout ? tape_dark : tape_bright, stroke);
+        for (u32 h = 0; h < 2; ++h) place(frame, node::tape + h, tape_x[h], tape_y, unit, tape_bright, stroke);
     }
 
     // Dust, more with age, shivering with hiss while notes play.

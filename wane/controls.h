@@ -14,9 +14,9 @@ enum { SHAPE, DETUNE, DRIFT, WARMTH, WOW, FLUTTER, SAG, AGE };
 const i32 detune_most = 50 * 65536 / 1200;
 const i32 drift_most = 20 * 65536 / 1200;
 
-// The shape control's regions, Q15: triangle to saw, saw to square, then the
-// square narrowing to a 15% pulse.
-const i32 shape_saw = 16384, shape_square = 26214;
+// The shape control's regions, Q15: sine to triangle, triangle to saw, saw to
+// square, then the square narrowing to a 15% pulse.
+const i32 shape_triangle = 8192, shape_saw = 16384, shape_square = 26214;
 
 // Q16 octaves in tenths of a cent, rounded, for captions.
 inline u32 cent_tenths(i32 octaves) {

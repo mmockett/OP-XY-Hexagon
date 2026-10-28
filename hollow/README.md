@@ -47,7 +47,9 @@ exponentials, damping and gains are planned once per block.
 
 The output gain holds the body's steady power, so bodies, vowels, Bright and
 the keyboard's range all sound about equally loud (the gain stays within
-−6 dB to +12 dB). A soft limit keeps every sample within half scale.
+−6 dB to +12 dB). A soft limit keeps every sample within half scale. The
+output sits low enough that eight notes keep headroom: a full chord peaks
+near 0.6 of full scale, and about 1.0 with Breath and Air both at 100.
 
 ### Sympathy and `Shared`
 
@@ -118,8 +120,8 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
-The host estimate (`sdk.py test`) is about 7,300 to 7,500 Blackfin
-instructions per voice block at the heaviest setting, for a single voice. A
-voice that also carries its four sympathetic modes (a chord of five or more
-notes, sympathy up) measures about 10,000. These are host-timed estimates,
-not device measurements.
+The host estimate (`sdk.py test`) is about 9,000 Blackfin instructions per
+voice block at the heaviest setting. Each mode's sample loop compiles to 17
+Blackfin instructions in a zero-overhead hardware loop, so twelve modes (eight
+body modes and four sympathetic ones) cost about 13,000 instructions a block
+before the per-block planning. These are estimates, not device measurements.

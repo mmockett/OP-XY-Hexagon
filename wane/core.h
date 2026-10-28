@@ -34,6 +34,5 @@ struct Shared {
     u32 sag_start;    // the clock at the last note start
     i32 sag_from;     // the sag left at that moment, Q15
     i32 bend;         // the transport's pitch this block, Q16 octaves (sag included)
-    i32 gain;         // dropout gain this block, Q15
 };
 }

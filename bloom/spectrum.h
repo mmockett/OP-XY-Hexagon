@@ -21,7 +21,7 @@ const u32 partial_count = 24;
 // 31 is Nyquist) and fades out over the quarter octave below (from 16.7 kHz).
 const i32 log2_cutoff = 30 * 65536 + 55706;
 const i32 log2_fade = 30 * 65536 + 39322;
-// The levels of a note sum to at most peak_level (output stays under half
+// The levels of a note sum to at most peak_level (their sum stays under half
 // scale whatever the phases), and their root-sum-square is at most loud_level
 // (a pure sine's amplitude), which keeps loudness even as the tilt changes.
 const i32 peak_level = 15000;

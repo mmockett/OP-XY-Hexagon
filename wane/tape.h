@@ -106,23 +106,6 @@ inline i32 stretch(u32 clock, u32 stream = seed) {
     else return 0;
     return (shape * depth) >> 15;
 }
-// Dropout gain, 0..32767: the oxide is thin in places. Every 2^9 blocks
-// (0.74 s) may hold one brief dip, more often with age (at full age, one
-// stretch in four; none at zero): 17 to 108 ms deep, with 4 ms edges.
-inline i32 dropout(u32 clock, i32 age_q15, u32 stream = seed) {
-    if (age_q15 <= 0) return one;
-    const u32 chance = static_cast<u32>((age_q15 * age_q15) >> 15) * 65536u / 4u;   // of 2^31
-    const u32 r = hash(stream ^ 0x6u ^ ((clock >> 9) * 0xc2b2ae35u));
-    if ((r >> 1) >= chance) return one;
-    const u32 s = hash(r);
-    const u32 offset = s & 255u, length = 12u + ((s >> 8) & 63u);
-    const i32 floor = 2621 + static_cast<i32>(((s >> 14) & 255u) * 52u);   // 0.08 .. 0.48
-    const u32 at = clock & 511u;
-    if (at < offset || at >= offset + length + 6u) return one;
-    const u32 t = at - offset;
-    const u32 edge = t < 3u ? t : t >= length + 3u ? length + 6u - t : 3u;   // 0..3
-    return one - static_cast<i32>(((one - floor) * static_cast<i32>(edge)) / 3);
-}
 // The start sag, 0..32767: as a note starts the tape catches up. It rises
 // from what was left of the last sag (`from`) over 12 ms, then halves every
 // 93 ms. `since` counts blocks from the start.

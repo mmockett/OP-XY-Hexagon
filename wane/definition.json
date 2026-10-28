@@ -118,7 +118,7 @@
       "age": 0.45
     },
     "Attic": {
-      "shape": 0.2,
+      "shape": 0.35,
       "detune": 0.5,
       "drift": 0.6,
       "warmth": 0.7,
@@ -142,8 +142,8 @@
     "voiceBytes": 76,
     "voiceAlignment": 4,
     "voiceCapacity": 8,
-    "sharedBytes": 28,
-    "outputPeakQ31": 1073741824,
+    "sharedBytes": 24,
+    "outputPeakQ31": 402653184,
     "display": {
       "stateBytes": 116,
       "stateAlignment": 4,

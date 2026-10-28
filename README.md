@@ -13,7 +13,7 @@ been estimated on a computer.
 
 Detuned, morphing oscillators heard through one worn, shared cassette. Every
 note plays through the same tape, so a chord wows, flutters, drags and sags
-together. Age dulls the highs and adds hiss and the odd dropout.
+together. Age dulls the highs and adds saturation and hiss.
 
 | Clean | Worn, three notes held |
 | --- | --- |
@@ -69,6 +69,10 @@ envelopes, LFOs, filter and effects apply as for any instrument.
 All the notes of one machine share one state across tracks, so Wane's tape,
 Bloom's weather and Hollow's sympathy also join notes on different tracks that
 use the same machine.
+
+Each voice sits low enough that a chord of eight notes keeps headroom: most
+presets' eight-note chords peak between 0.4 and 0.8 of full scale, before the
+OP-XY's own envelope, filter and effects.
 
 ## Building
 

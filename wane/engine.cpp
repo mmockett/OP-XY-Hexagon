@@ -4,7 +4,7 @@
 
 // Wane: an analogue-style polysynth heard through a worn, shared tape.
 //
-// Each voice runs two oscillators that morph triangle -> saw -> pulse
+// Each voice runs two oscillators that morph sine -> triangle -> saw -> pulse
 // (PolyBLEP saws; the pulse is the difference of two), a triangle sub an
 // octave down and a breath of noise, detuned apart, through a gentle two-pole
 // low-pass into soft saturation, then the tape head's high-frequency loss and
@@ -18,7 +18,9 @@ namespace engine {
 using opxy::q31::multiply;
 using namespace controls;
 const i32 one = opxy::q31::maximum;
-const i32 half_scale = 0x40000000;
+// The output's ceiling, 0.1875 of full scale: a voice sits low enough that a
+// chord of eight peaks near 0.6.
+const i32 ceiling = 0x18000000;
 const u32 fastest = 0x40000000u;                 // increments capped at a quarter of the sample rate
 
 // A control word as Q15, 0..32767.
@@ -92,20 +94,34 @@ inline i32 saw(u32 phase, u32 step, u32 reciprocal) {
     return s;
 }
 
-// How the shape control mixes each oscillator, Q15: triangle, saw, and the
-// second saw subtracted to make a pulse of `width`.
+// A sine in phase with the triangle (lowest at phase 0), Q15: tape.h's
+// parabola refined once, 0.775 p + 0.225 p|p|, its harmonics below -50 dB.
+inline i32 sine_wave(u32 phase) {
+    const i32 p = tape::sine(phase - 0x40000000u);
+    return p + m15(m15(p, p < 0 ? -p : p) - p, 7373);
+}
+
+// How the shape control mixes each oscillator, Q15: sine, triangle, saw, and
+// the second saw subtracted to make a pulse of `width`.
 struct Shape {
-    i32 triangle, saw, pulse;
+    i32 sine, triangle, saw, pulse;
     u32 width;
 };
 inline Shape shape_of(i32 control) {
     const i32 s = q15(control);
     Shape m;
     m.width = 0x80000000u;
-    if (s < shape_saw) {
+    m.sine = 0;
+    if (s < shape_triangle) {
+        // Sine to triangle, in phase: the sine at 0.82 has the triangle's level.
+        const i32 b = s * 4;
+        m.sine = m15(32767 - b, 26870);
+        m.triangle = b;
+        m.saw = m.pulse = 0;
+    } else if (s < shape_saw) {
         // Triangle to saw: equally loud apart, and nearly uncorrelated, so the
         // middle of the fade is lifted 2 dB to keep most of its level.
-        const i32 b = s * 2, a = 32767 - b;
+        const i32 b = (s - shape_triangle) * 4, a = 32767 - b;
         const i32 lift = 32768 + ((a * b) >> 15);                  // 1 .. 1.25
         m.saw = (b * lift) >> 15;
         m.triangle = clamp((a * lift) >> 15, 0, 32767);
@@ -128,8 +144,9 @@ inline Shape shape_of(i32 control) {
 }
 
 // One oscillator over a block, added into `out`: its increment glides from the
-// last block's to `target`. Triangle and Pulse say which parts the shape uses.
-template <bool Triangle, bool Pulse>
+// last block's to `target`. Sine, Triangle, Saw and Pulse say which parts the
+// shape uses.
+template <bool Sine, bool Triangle, bool Saw, bool Pulse>
 inline void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 target, const Shape& m) {
     u32 phase = phase_state, increment = increment_state;
     const i32 slope = (static_cast<i32>(target) - static_cast<i32>(increment)) / 64;
@@ -139,7 +156,9 @@ inline void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 targ
         const u32 step = increment;
         increment += static_cast<u32>(slope);
         phase += step;
-        i32 value = m15(saw(phase, step, reciprocal), m.saw);
+        i32 value = 0;
+        if (Saw) value += m15(saw(phase, step, reciprocal), m.saw);
+        if (Sine) value += m15(sine_wave(phase), m.sine);
         if (Triangle) {
             const u32 folded = phase >> 16;
             value += m15(2 * static_cast<i32>(folded < 32768u ? folded : 65535u - folded) - 32767, m.triangle);
@@ -151,23 +170,23 @@ inline void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 targ
     increment_state = target;
 }
 inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Shape& m) {
-    if (m.pulse) oscillate<false, true>(out, phase, increment, target, m);
-    else if (m.triangle) oscillate<true, false>(out, phase, increment, target, m);
-    else oscillate<false, false>(out, phase, increment, target, m);
+    if (m.pulse) oscillate<false, false, true, true>(out, phase, increment, target, m);
+    else if (m.sine) oscillate<true, true, false, false>(out, phase, increment, target, m);
+    else if (m.triangle) oscillate<false, true, true, false>(out, phase, increment, target, m);
+    else oscillate<false, false, true, false>(out, phase, increment, target, m);
 }
 
 // x (Q31, |x| < 2^31 / 3) times c (Q15) with one 16 x 16 multiply; the low
 // 16 bits of x are dropped (-90 dB), which these filters never hear.
 inline i32 m31(i32 x, i32 c) { return static_cast<i32>(static_cast<opxy::i16>(x >> 16)) * static_cast<opxy::i16>(c) * 2; }
 
-// The tape's next block: its pitch (with the start sag) and dropout gain.
+// The tape's next block: its pitch, with the start sag.
 inline void advance(Shared& shared, opxy::Parameters p) {
     ++shared.clock;
     const tape::Depths d = tape::depths(p[WOW], p[FLUTTER], p[SAG]);
     i32 bend = tape::bend(shared.clock, d);
     if (shared.sagging && d.sag) bend += tape::sag_bend(shared.clock - shared.sag_start, shared.sag_from, d);
     shared.bend = bend;
-    shared.gain = tape::dropout(shared.clock, q15(p[AGE]));
 }
 }
 
@@ -187,7 +206,6 @@ inline void initialize(Voice& voice, Shared& shared, u32 owner) {
     voice.level = 0;
     voice.offset[0] = voice.offset[1] = 0;
     voice.cycle = shared.cycle - 1;   // not yet counted in this cycle
-    if (!shared.gain) shared.gain = tape::one;   // a tape threaded before any block
 }
 
 inline void start(Voice& voice, Shared& shared, u32) {
@@ -249,10 +267,10 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     const i32 octaves = (heat * 4506) >> 10;                        // drive 0 .. 2.2 octaves
     const i32 drive = power2_q28(octaves) >> 16;                    // Q12, 1 .. 4.6
     const i32 makeup = clamp(power2_q28(-octaves) >> 13, 0, 32767); // 1 / drive, Q15
-    // Age: the head's loss (open down to 2.6 kHz), hiss, and the tape's dropouts.
+    // Age: the head's loss (open down to 2.6 kHz) and hiss.
     const i32 head = pole(11 * 65536 - age * 8) >> 16;              // Q15
     const i32 hiss = (((age * age) >> 15) * 524) >> 15;             // up to 0.012 of full scale, after x 3
-    const i32 level = (makeup * shared.gain) >> 15;                 // Q15
+    const i32 level = makeup;                                       // Q15
     const i32 level_step = (level - voice.level) / 64;
 
     u32 sub_phase = voice.phase[2], sub_step = sub_increment, noise = voice.noise;
@@ -269,7 +287,7 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         low_1 += m31(x - low_1, low);
         low_2 += m31(low_1 - low_2, low);
         // Soft saturation: driven into x - x^3 / 3 (the cube at 16 bits), then
-        // levelled back down by `gain`, which also carries the dropouts.
+        // levelled back down by `gain`.
         const i32 u = clamp((low_2 >> 16) * drive, -0x07ffffff, 0x07ffffff) * 16;
         const i32 u15 = u >> 16;
         const i32 warm = u - m15(m15(m15(u15, u15), u15), 10923) * 65536;
@@ -279,7 +297,8 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         // Hiss: the noise's first difference, bright, under the music.
         const i32 hissing = (white - last) * hiss;
         last = white;
-        output[i] = clamp((heard + hissing) * 3, -half_scale, half_scale);
+        const i32 out = heard + hissing;
+        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
     }
     voice.phase[2] = sub_phase;
     voice.noise = noise;

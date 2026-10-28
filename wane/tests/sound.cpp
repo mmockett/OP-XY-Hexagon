@@ -13,7 +13,7 @@ using wane::i32;
 using wane::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
-const i32 half = 0x40000000;
+const i32 half = 0x18000000;   // definition.json outputPeakQ31
 const double cent = 65536.0 / 1200.0;   // Q16 octaves per cent
 int failures = 0;
 
@@ -157,7 +157,7 @@ void extremes() {
 }
 
 // With every colouring control at zero the sound is clean: no wobble, sag,
-// drift, dropouts or hiss, wherever on the tape a note is played.
+// drift or hiss, wherever on the tape a note is played.
 void defaults_clean() {
     rig = Rig(330);
     Controls c;
@@ -168,7 +168,7 @@ void defaults_clean() {
         if (b % 700 == 350) wane::start(rig.voices[b % 4], rig.shared, b % 4 + 1);
         for (unsigned v = 0; v < 4; ++v) {
             rig.render(v, c);
-            still = still && rig.shared.bend == 0 && rig.shared.gain == wane::tape::one
+            still = still && rig.shared.bend == 0
                  && rig.voices[v].offset[0] == -spread && rig.voices[v].offset[1] == spread;
         }
     }
@@ -292,20 +292,9 @@ void tape_character() {
         sinking = sinking && stretch(t) >= 0 && stretch(t) <= one;
         drags += stretch(t) > 0 && stretch(t - 1) == 0;
     }
-    std::printf("%u drags", drags);
+    std::printf("%u drags in %u s\n", drags, seconds);
     check(sinking, "stretch: out of range");
     check(drags >= seconds / 15 && drags <= seconds / 4, "stretch: drags are not occasional");
-    // Dropouts: none without age, rare with it, more with more age.
-    unsigned none = 0, some = 0, many = 0;
-    for (u32 t = 1; t < blocks; ++t) {
-        none += dropout(t, 0) < one && dropout(t - 1, 0) == one;
-        some += dropout(t, 13107) < one && dropout(t - 1, 13107) == one;
-        many += dropout(t, one) < one && dropout(t - 1, one) == one;
-    }
-    std::printf(" and %u / %u dropouts in %u s\n", some, many, seconds);
-    check(none == 0, "dropout: dropouts with age at zero");
-    check(many >= seconds / 8 && many <= seconds, "dropout: full age's dropouts are not rare and brief");
-    check(some < many, "dropout: less age does not mean fewer dropouts");
     // Pure: the same clock always gives the same tape.
     const Depths d = depths(full, full, full);
     check(bend(98765, d) == bend(98765, d) && wow(5) == wow(5), "tape: not a pure function of the clock");
@@ -385,12 +374,16 @@ void detune_and_drift() {
     check(high - low > 10 && low > -36 && high < 36, "drift: the voice does not wander, or wanders too far");
 }
 
-// Shape: triangle, saw, square and pulse, band-limited.
+// Shape: sine, triangle, saw, square and pulse, band-limited.
 void shapes() {
     Controls c;
     c.set(wane::controls::DETUNE, 0).set(wane::controls::WARMTH, 0);
     const double f = 441;
     unsigned n = capture(c.set(wane::controls::SHAPE, 0), f, 1024, true);
+    const double sine1 = amplitude(sound, n, f), sine2 = amplitude(sound, n, 2 * f), sine3 = amplitude(sound, n, 3 * f);
+    n = capture(c.set(wane::controls::SHAPE, 0.125), f, 1024, true);
+    const double between1 = amplitude(sound, n, f);
+    n = capture(c.set(wane::controls::SHAPE, 0.25), f, 1024, true);
     const double tri1 = amplitude(sound, n, f), tri2 = amplitude(sound, n, 2 * f), tri3 = amplitude(sound, n, 3 * f);
     const double tri_bright = brightness(sound, n);
     n = capture(c.set(wane::controls::SHAPE, 0.5), f, 1024, true);
@@ -400,9 +393,14 @@ void shapes() {
     const double square1 = amplitude(sound, n, f), square2 = amplitude(sound, n, 2 * f), square3 = amplitude(sound, n, 3 * f);
     n = capture(c.set(wane::controls::SHAPE, 1), f, 1024, true);
     const double pulse1 = amplitude(sound, n, f), pulse2 = amplitude(sound, n, 2 * f);
-    std::printf("shape: triangle h3 %.3f, saw h2 %.3f h3 %.3f, square h2 %.3f h3 %.3f, pulse h2 %.3f\n",
+    std::printf("shape: sine h2 %.4f h3 %.4f, sine/tri level %.3f %.3f, triangle h3 %.3f, saw h2 %.3f h3 %.3f, "
+                "square h2 %.3f h3 %.3f, pulse h2 %.3f\n", sine2 / sine1, sine3 / sine1, sine1 / tri1, between1 / tri1,
                 tri3 / tri1, saw2 / saw1, saw3 / saw1, square2 / square1, square3 / square1, pulse2 / pulse1);
-    check(tri2 < 0.02 * tri1 && std::fabs(tri3 / tri1 - 1 / 9.0) < 0.03, "shape: 0 is not a triangle");
+    // The sine's own harmonics (the warm filter and saturation add a little).
+    check(sine2 < 0.01 * sine1 && sine3 < 0.01 * sine1, "shape: 0 is not a sine");
+    // In phase with the triangle and as loud: no dip on the way between them.
+    check(std::fabs(sine1 / tri1 - 1) < 0.1 && std::fabs(between1 / tri1 - 1) < 0.1, "shape: sine to triangle changes level");
+    check(tri2 < 0.02 * tri1 && std::fabs(tri3 / tri1 - 1 / 9.0) < 0.03, "shape: 0.25 is not a triangle");
     check(std::fabs(saw2 / saw1 - 0.5) < 0.05 && std::fabs(saw3 / saw1 - 1 / 3.0) < 0.05, "shape: 0.5 is not a saw");
     check(square2 < 0.03 * square1 && std::fabs(square3 / square1 - 1 / 3.0) < 0.05, "shape: 0.8 is not a square");
     check(pulse2 > 0.5 * pulse1, "shape: 1 is not a narrow pulse");
@@ -473,7 +471,8 @@ void captions() {
     }
     wane::caption_cents(text, wane::tape::depths(full, 0, 0).wow);
     check(std::strcmp(text, "40c") == 0, "caption: full wow is not 40c");
-    check(std::strcmp(wane::shape_name(0), "tri") == 0 && std::strcmp(wane::shape_name(word(0.5)), "saw") == 0 &&
+    check(std::strcmp(wane::shape_name(0), "sine") == 0 && std::strcmp(wane::shape_name(word(0.125)), "s/tri") == 0 &&
+          std::strcmp(wane::shape_name(word(0.25)), "tri") == 0 && std::strcmp(wane::shape_name(word(0.5)), "saw") == 0 &&
           std::strcmp(wane::shape_name(word(0.8)), "sq") == 0 && std::strcmp(wane::shape_name(full), "pulse") == 0,
           "caption: shape names");
 }
