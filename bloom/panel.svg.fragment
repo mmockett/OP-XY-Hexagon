@@ -1,14 +1,14 @@
 <g id="bloom_panel">
 <!-- SDK two-page header: keep this block before machine artwork below y=38. -->
 <path d="M0,0 L480,0 L480,38 L0,38 Z" fill="#000000"/>
-<path id="bloom_node_0" transform="matrix(1 0 0 1 0 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_1" transform="matrix(1 0 0 1 60 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#323232" stroke="#323232" stroke-width="0.5"/>
-<path id="bloom_node_2" transform="matrix(1 0 0 1 120 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#4B4B4B" stroke="#4B4B4B" stroke-width="0.5"/>
-<path id="bloom_node_3" transform="matrix(1 0 0 1 180 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#646464" stroke="#646464" stroke-width="0.5"/>
-<path id="bloom_node_4" transform="matrix(1 0 0 1 240 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#7D7D7D" stroke="#7D7D7D" stroke-width="0.5"/>
-<path id="bloom_node_5" transform="matrix(1 0 0 1 300 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#969696" stroke="#969696" stroke-width="0.5"/>
-<path id="bloom_node_6" transform="matrix(1 0 0 1 360 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#AFAFAF" stroke="#AFAFAF" stroke-width="0.5"/>
-<path id="bloom_node_7" transform="matrix(1 0 0 1 420 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#CDCDCD" stroke="#CDCDCD" stroke-width="0.5"/>
+<path id="bloom_node_2" transform="matrix(1 0 0 1 0 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="bloom_node_3" transform="matrix(1 0 0 1 60 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#323232" stroke="#323232" stroke-width="0.5"/>
+<path id="bloom_node_4" transform="matrix(1 0 0 1 120 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#4B4B4B" stroke="#4B4B4B" stroke-width="0.5"/>
+<path id="bloom_node_5" transform="matrix(1 0 0 1 180 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#646464" stroke="#646464" stroke-width="0.5"/>
+<path id="bloom_node_6" transform="matrix(1 0 0 1 240 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#7D7D7D" stroke="#7D7D7D" stroke-width="0.5"/>
+<path id="bloom_node_7" transform="matrix(1 0 0 1 300 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#969696" stroke="#969696" stroke-width="0.5"/>
+<path id="bloom_node_8" transform="matrix(1 0 0 1 360 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#AFAFAF" stroke="#AFAFAF" stroke-width="0.5"/>
+<path id="bloom_node_9" transform="matrix(1 0 0 1 420 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#CDCDCD" stroke="#CDCDCD" stroke-width="0.5"/>
 <text id="bloom_text_0" transform="matrix(1 0 0 1 5 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
 <text id="bloom_text_1" transform="matrix(1 0 0 1 125 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
 <text id="bloom_text_2" transform="matrix(1 0 0 1 245 10)" fill="#000000" font-family="UniversNextPro-Light" font-size="10px">-</text>
@@ -25,99 +25,125 @@
 <text id="bloom_text_13" transform="matrix(1 0 0 1 185 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
 <text id="bloom_text_14" transform="matrix(1 0 0 1 305 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
 <text id="bloom_text_15" transform="matrix(1 0 0 1 425 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
-<circle id="bloom_node_8" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="35.75" fill="#2e2e2e" stroke="#2e2e2e" stroke-width="0.5"/>
-<path id="bloom_node_9" transform="matrix(1 0 0 1 640 320)" d="M-39.75,6.25 L39.75,6.25 L39.75,7.35 L-39.75,7.35 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_10" transform="matrix(1 0 0 1 640 320)" d="M-39.75,14.25 L39.75,14.25 L39.75,15.95 L-39.75,15.95 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_11" transform="matrix(1 0 0 1 640 320)" d="M-39.75,21.25 L39.75,21.25 L39.75,23.55 L-39.75,23.55 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_12" transform="matrix(1 0 0 1 640 320)" d="M-39.75,27.25 L39.75,27.25 L39.75,30.15 L-39.75,30.15 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_13" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_14" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_15" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_16" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_17" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_10" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="35.75" fill="#2e2e2e" stroke="#2e2e2e" stroke-width="0.5"/>
+<path id="bloom_node_11" transform="matrix(1 0 0 1 640 320)" d="M-39.75,6.25 L39.75,6.25 L39.75,7.35 L-39.75,7.35 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="bloom_node_12" transform="matrix(1 0 0 1 640 320)" d="M-39.75,14.25 L39.75,14.25 L39.75,15.95 L-39.75,15.95 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="bloom_node_13" transform="matrix(1 0 0 1 640 320)" d="M-39.75,21.25 L39.75,21.25 L39.75,23.55 L-39.75,23.55 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="bloom_node_14" transform="matrix(1 0 0 1 640 320)" d="M-39.75,27.25 L39.75,27.25 L39.75,30.15 L-39.75,30.15 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="bloom_node_0" transform="matrix(1 0 0 1 640 320)" d="M-34,-0.3 L-32.8852,-0.3 L-31.7705,-0.3 L-30.6557,-0.3 L-29.541,-0.3 L-28.4262,-0.3 L-27.3115,-0.3 L-26.1967,-0.3 L-25.082,-0.3 L-23.9672,-0.3 L-22.8525,-0.3 L-21.7377,-0.3 L-20.623,-0.3 L-19.5082,-0.3 L-18.3934,-0.3 L-17.2787,-0.3 L-16.1639,-0.3 L-15.0492,-0.3 L-13.9344,-0.3 L-12.8197,-0.3 L-11.7049,-0.3 L-10.5902,-0.3 L-9.4754,-0.3 L-8.3607,-0.3 L-7.2459,-0.3 L-6.1311,-0.3 L-5.0164,-0.3 L-3.9016,-0.3 L-2.7869,-0.3 L-1.6721,-0.3 L-0.5574,-0.3 L0.5574,-0.3 L1.6721,-0.3 L2.7869,-0.3 L3.9016,-0.3 L5.0164,-0.3 L6.1311,-0.3 L7.2459,-0.3 L8.3607,-0.3 L9.4754,-0.3 L10.5902,-0.3 L11.7049,-0.3 L12.8197,-0.3 L13.9344,-0.3 L15.0492,-0.3 L16.1639,-0.3 L17.2787,-0.3 L18.3934,-0.3 L19.5082,-0.3 L20.623,-0.3 L21.7377,-0.3 L22.8525,-0.3 L23.9672,-0.3 L25.082,-0.3 L26.1967,-0.3 L27.3115,-0.3 L28.4262,-0.3 L29.541,-0.3 L30.6557,-0.3 L31.7705,-0.3 L32.8852,-0.3 L34,-0.3 L34,0.4 L-34,0.4 Z" fill="none" stroke="#3a3a3a" stroke-width="0.8"/>
+<path id="bloom_node_1" transform="matrix(1 0 0 1 640 320)" d="M-34,-0.3 L-32.8852,-0.3 L-31.7705,-0.3 L-30.6557,-0.3 L-29.541,-0.3 L-28.4262,-0.3 L-27.3115,-0.3 L-26.1967,-0.3 L-25.082,-0.3 L-23.9672,-0.3 L-22.8525,-0.3 L-21.7377,-0.3 L-20.623,-0.3 L-19.5082,-0.3 L-18.3934,-0.3 L-17.2787,-0.3 L-16.1639,-0.3 L-15.0492,-0.3 L-13.9344,-0.3 L-12.8197,-0.3 L-11.7049,-0.3 L-10.5902,-0.3 L-9.4754,-0.3 L-8.3607,-0.3 L-7.2459,-0.3 L-6.1311,-0.3 L-5.0164,-0.3 L-3.9016,-0.3 L-2.7869,-0.3 L-1.6721,-0.3 L-0.5574,-0.3 L0.5574,-0.3 L1.6721,-0.3 L2.7869,-0.3 L3.9016,-0.3 L5.0164,-0.3 L6.1311,-0.3 L7.2459,-0.3 L8.3607,-0.3 L9.4754,-0.3 L10.5902,-0.3 L11.7049,-0.3 L12.8197,-0.3 L13.9344,-0.3 L15.0492,-0.3 L16.1639,-0.3 L17.2787,-0.3 L18.3934,-0.3 L19.5082,-0.3 L20.623,-0.3 L21.7377,-0.3 L22.8525,-0.3 L23.9672,-0.3 L25.082,-0.3 L26.1967,-0.3 L27.3115,-0.3 L28.4262,-0.3 L29.541,-0.3 L30.6557,-0.3 L31.7705,-0.3 L32.8852,-0.3 L34,-0.3 L34,0.4 L-34,0.4 Z" fill="none" stroke="#3a3a3a" stroke-width="0.8"/>
+<path id="bloom_node_15" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_16" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_17" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_18" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_19" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_20" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_21" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_22" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_23" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_24" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_25" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_26" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_27" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_28" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_29" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_22" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_23" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_24" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_25" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_26" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_27" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_28" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_29" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_30" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_31" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_32" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_33" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_34" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_35" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_36" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_37" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_38" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_39" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_40" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_41" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_34" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_35" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_36" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_37" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_38" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_39" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_40" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_41" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_42" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_43" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_44" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_45" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_46" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_47" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_48" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_49" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_50" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_51" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_52" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_53" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_46" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_47" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_48" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_49" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_50" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_51" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_52" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_53" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_54" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_55" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_56" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_57" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_58" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_59" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_60" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_61" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_62" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_63" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_64" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_65" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_58" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_59" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_60" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_61" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_62" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_63" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_64" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_65" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_66" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_67" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_68" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_69" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_70" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_71" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_72" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_73" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_74" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_75" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_76" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_77" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_70" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_71" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_72" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_73" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_74" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_75" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_76" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_77" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <circle id="bloom_node_78" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
 <path id="bloom_node_79" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
 <circle id="bloom_node_80" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
 <circle id="bloom_node_81" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<path id="bloom_node_82" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
-<circle id="bloom_node_83" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
-<circle id="bloom_node_84" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
-<circle id="bloom_node_85" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_86" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_87" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_88" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_89" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_90" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_91" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_92" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_93" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_94" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_95" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_96" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_97" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
-<circle id="bloom_node_98" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_82" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_83" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_84" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_85" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_86" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_87" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_88" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_89" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_90" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_91" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_92" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_93" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_94" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_95" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_96" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_97" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_98" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_99" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_100" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_101" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_102" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_103" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_104" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_105" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_106" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<path id="bloom_node_107" transform="matrix(1 0 0 1 640 320)" d="M-0.25,0 L0.25,0 L0.25,150 L-0.25,150 Z" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.5"/>
+<circle id="bloom_node_108" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="12" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="bloom_node_109" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_110" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="4" fill="#4a4a4a" stroke="#4a4a4a" stroke-width="0.5"/>
+<circle id="bloom_node_111" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_112" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_113" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_114" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_115" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_116" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_117" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_118" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_119" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_120" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_121" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_122" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_123" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
+<circle id="bloom_node_124" transform="matrix(1 0 0 1 640 320)" cx="0" cy="0" r="0.55" fill="#cfcfcf" stroke="#cfcfcf" stroke-width="0.5"/>
 <path d="M0,206.5 L480,206.5 L480,220 L0,220 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
-<path id="bloom_node_99" transform="matrix(1 0 0 1 640 320)" d="M0.25,0.25 L447.75,0.25 L447.75,0.55 L0.25,0.55 Z" fill="#3a3a3a" stroke="#3a3a3a" stroke-width="0.5"/>
+<path id="bloom_node_125" transform="matrix(1 0 0 1 640 320)" d="M0.25,0.25 L447.75,0.25 L447.75,0.55 L0.25,0.55 Z" fill="#3a3a3a" stroke="#3a3a3a" stroke-width="0.5"/>
 <circle id="bloom_palette_0" cx="640" cy="0" r="1" fill="#000000" stroke="#000000" stroke-width="0.5"/>
 <circle id="bloom_palette_1" cx="640" cy="0" r="1" fill="#141414" stroke="#141414" stroke-width="0.5"/>
 <circle id="bloom_palette_2" cx="640" cy="0" r="1" fill="#262626" stroke="#262626" stroke-width="0.5"/>

@@ -19,9 +19,8 @@
       "label": "Detune",
       "default": 0.4,
       "mapping": {
-        "kind": "power",
-        "maximum": 50,
-        "exponent": 2
+        "kind": "anchors",
+        "values": [0, 3.5, 11, 30, 70]
       },
       "display": "percent"
     },
@@ -30,16 +29,15 @@
       "label": "Drift",
       "default": 0,
       "mapping": {
-        "kind": "power",
-        "maximum": 20,
-        "exponent": 2
+        "kind": "anchors",
+        "values": [0, 5, 12, 22, 35]
       },
       "display": "percent"
     },
     {
       "id": "warmth",
       "label": "Warmth",
-      "default": 0.35,
+      "default": 0.2,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -53,9 +51,8 @@
       "control": 0,
       "default": 0,
       "mapping": {
-        "kind": "power",
-        "maximum": 40,
-        "exponent": 2
+        "kind": "anchors",
+        "values": [0, 16, 42, 78, 120]
       },
       "display": "percent"
     },
@@ -65,9 +62,8 @@
       "control": 1,
       "default": 0,
       "mapping": {
-        "kind": "power",
-        "maximum": 12,
-        "exponent": 2
+        "kind": "anchors",
+        "values": [0, 8, 20, 34, 50]
       },
       "display": "percent"
     },
@@ -77,9 +73,8 @@
       "control": 2,
       "default": 0,
       "mapping": {
-        "kind": "power",
-        "maximum": 45,
-        "exponent": 2
+        "kind": "anchors",
+        "values": [0, 30, 70, 120, 180]
       },
       "display": "percent"
     },
@@ -101,7 +96,7 @@
       "shape": 0.5,
       "detune": 0.4,
       "drift": 0,
-      "warmth": 0.35,
+      "warmth": 0.2,
       "wow": 0,
       "flutter": 0,
       "sag": 0,
@@ -110,39 +105,39 @@
     "Worn": {
       "shape": 0.5,
       "detune": 0.4,
-      "drift": 0.45,
-      "warmth": 0.55,
-      "wow": 0.45,
-      "flutter": 0.35,
+      "drift": 0.35,
+      "warmth": 0.4,
+      "wow": 0.35,
+      "flutter": 0.3,
       "sag": 0.4,
       "age": 0.45
     },
     "Attic": {
       "shape": 0.35,
       "detune": 0.5,
-      "drift": 0.6,
-      "warmth": 0.7,
-      "wow": 0.7,
-      "flutter": 0.5,
-      "sag": 0.55,
+      "drift": 0.5,
+      "warmth": 0.6,
+      "wow": 0.65,
+      "flutter": 0.45,
+      "sag": 0.6,
       "age": 0.8
     },
     "Glass": {
       "shape": 0.88,
       "detune": 0.3,
-      "drift": 0.3,
-      "warmth": 0.25,
-      "wow": 0.3,
-      "flutter": 0.25,
-      "sag": 0.2,
-      "age": 0.3
+      "drift": 0.25,
+      "warmth": 0.15,
+      "wow": 0.25,
+      "flutter": 0.3,
+      "sag": 0.3,
+      "age": 0.25
     }
   },
   "resources": {
-    "voiceBytes": 76,
+    "voiceBytes": 80,
     "voiceAlignment": 4,
     "voiceCapacity": 8,
-    "sharedBytes": 24,
+    "sharedBytes": 32,
     "outputPeakQ31": 402653184,
     "display": {
       "stateBytes": 116,

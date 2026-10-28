@@ -106,37 +106,51 @@ inline i32 stretch(u32 clock, u32 stream = seed) {
     else return 0;
     return (shape * depth) >> 15;
 }
-// The start sag, 0..32767: as a note starts the tape catches up. It rises
-// from what was left of the last sag (`from`) over 12 ms, then halves every
-// 93 ms. `since` counts blocks from the start.
-inline i32 sag(u32 since, i32 from) {
-    if (since < 8u) return from + (((one - from) * static_cast<i32>(since)) >> 3);
-    const u32 t = since - 8u, halvings = t >> 6;
+// The start sag, 0..32767: as a note starts the tape catches up. It eases
+// from what was left of the last sag (`from`) to its full depth over 23 ms,
+// then recovers, halving every 65536 / `rate` blocks (sag_rate: 116 ms with a
+// little sag, 348 ms at full, so a deep sag takes over a second to settle).
+// `since` counts blocks from the start.
+inline i32 sag(u32 since, i32 from, u32 rate) {
+    if (since < 16u) return from + (((one - from) * smoothstep(static_cast<i32>(since << 11))) >> 15);
+    const u32 t = since - 16u;
+    if (t >= 16384u || !rate) return 0;
+    const u32 position = t * rate;                                  // Q16 halvings; rate < 2^18
+    const u32 halvings = position >> 16;
     if (halvings >= 15u) return 0;
     const i32 top = one >> halvings;
-    return top - (((top >> 1) * static_cast<i32>(t & 63u)) >> 6);
+    return top - static_cast<i32>((static_cast<u32>(top >> 1) * ((position & 0xffffu) >> 1)) >> 15);
 }
 
-// Depths in Q16 octaves, from the controls' Q31 words; each control is
-// squared, so a little is a little.
-const i32 wow_most = 40 * 65536 / 1200;       // +-40 cents
-const i32 stretch_most = 60 * 65536 / 1200;   // 60 cents flat
-const i32 flutter_most = 12 * 65536 / 1200;   // +-12 cents
-const i32 sag_most = 45 * 65536 / 1200;       // 45 cents flat
-inline i32 squared(i32 control) {
-    const i32 c = control < 0 ? 0 : control >> 16;
-    return (c * c) >> 15;
+// The controls' curves: Q16 octaves at 0, 25, 50, 75 and 100% of a turn,
+// straight between (definition.json's anchors, in cents). Gentler than a
+// square, so a quarter turn is already plainly heard and the top is drastic.
+struct Curve { i32 at[5]; };
+// Steps between anchors stay within +-2^19 (8 octaves) to keep the product in 32 bits.
+inline i32 along(i32 control, const Curve& curve) {
+    const i32 c = control < 0 ? 0 : control >> 16;                  // Q15
+    const i32 segment = c >> 13, f = (c & 8191) >> 1;               // Q12 along the segment
+    return curve.at[segment] + (((curve.at[segment + 1] - curve.at[segment]) * f) >> 12);
 }
-inline i32 depth(i32 control, i32 most) { return (squared(control) * most) >> 15; }
+const Curve wow_curve = {{0, 874, 2294, 4260, 6554}};       // 0, 16, 42, 78, +-120 cents
+const Curve flutter_curve = {{0, 437, 1092, 1857, 2731}};   // 0, 8, 20, 34, +-50 cents
+const Curve sag_curve = {{0, 1638, 3823, 6554, 9830}};      // 0, 30, 70, 120, 180 cents flat
 struct Depths {
     i32 wow, stretch, flutter, sag;
+    u32 sag_rate;   // the sag's recovery, Q16 halvings a block
 };
+inline u32 sag_rate(i32 sag_control) {
+    const i32 c = sag_control < 0 ? 0 : sag_control >> 16;
+    return 65536u / static_cast<u32>(80 + ((c * 160) >> 15));       // halving in 80 .. 240 blocks
+}
 inline Depths depths(i32 wow_control, i32 flutter_control, i32 sag_control) {
     Depths d;
-    d.wow = depth(wow_control, wow_most);
-    d.stretch = depth(wow_control, stretch_most);
-    d.flutter = depth(flutter_control, flutter_most);
-    d.sag = depth(sag_control, sag_most);
+    d.wow = along(wow_control, wow_curve);
+    // A drag sinks the tape by 1.25 times the wow's depth: 150 cents flat at full.
+    d.stretch = d.wow + (d.wow >> 2);
+    d.flutter = along(flutter_control, flutter_curve);
+    d.sag = along(sag_control, sag_curve);
+    d.sag_rate = sag_rate(sag_control);
     return d;
 }
 // The transport's pitch, Q16 octaves, at a block: wow and flutter about the
@@ -147,5 +161,5 @@ inline i32 bend(u32 clock, const Depths& d, u32 stream = seed) {
     if (d.flutter) total += (flutter(clock, stream) * d.flutter) >> 15;
     return total;
 }
-inline i32 sag_bend(u32 since, i32 from, const Depths& d) { return -((sag(since, from) * d.sag) >> 15); }
+inline i32 sag_bend(u32 since, i32 from, const Depths& d) { return -((sag(since, from, d.sag_rate) * d.sag) >> 15); }
 }}

@@ -15,8 +15,8 @@
       "display": "percent"
     },
     {
-      "id": "odd",
-      "label": "Odd",
+      "id": "shape",
+      "label": "Shape",
       "default": 0,
       "mapping": {
         "kind": "linear",
@@ -32,13 +32,13 @@
       "mapping": {
         "kind": "exponential",
         "minimum": 2,
-        "maximum": 2.8284
+        "maximum": 3
       },
       "display": "ratio"
     },
     {
-      "id": "breath",
-      "label": "Breath",
+      "id": "vowel",
+      "label": "Vowel",
       "default": 0,
       "mapping": {
         "kind": "linear",
@@ -48,14 +48,14 @@
       "display": "percent"
     },
     {
-      "id": "partials",
-      "label": "Partials",
+      "id": "breath",
+      "label": "Breath",
       "control": 0,
-      "default": 0.6522,
+      "default": 0,
       "mapping": {
         "kind": "linear",
-        "minimum": 1,
-        "maximum": 24
+        "minimum": 0,
+        "maximum": 1
       },
       "display": "percent"
     },
@@ -65,9 +65,9 @@
       "control": 1,
       "default": 0,
       "mapping": {
-        "kind": "linear",
-        "minimum": 0,
-        "maximum": 1
+        "kind": "power",
+        "maximum": 120,
+        "exponent": 1.5
       },
       "display": "percent"
     },
@@ -78,7 +78,7 @@
       "default": 0,
       "mapping": {
         "kind": "power",
-        "maximum": 30,
+        "maximum": 100,
         "exponent": 2
       },
       "display": "percent"
@@ -87,53 +87,65 @@
       "id": "time",
       "label": "Time",
       "control": 3,
-      "default": 0.68,
+      "default": 0.6,
       "mapping": {
         "kind": "exponential",
-        "minimum": 500,
+        "minimum": 30,
         "maximum": 30000
       },
       "display": "duration"
     }
   ],
   "presets": {
-    "Clean": {
-      "tilt": 0.5, "odd": 0, "stretch": 0, "breath": 0,
-      "partials": 0.6522, "blur": 0, "haze": 0, "time": 0.68
+    "Init": {
+      "tilt": 0.5, "shape": 0, "stretch": 0, "vowel": 0,
+      "breath": 0, "blur": 0, "haze": 0, "time": 0.6
     },
     "Bloom": {
-      "tilt": 0.45, "odd": 0, "stretch": 0, "breath": 0.6,
-      "partials": 0.6522, "blur": 0.4, "haze": 0.35, "time": 0.68
+      "tilt": 0.45, "shape": 0.2, "stretch": 0, "vowel": 0,
+      "breath": 0.5, "blur": 0.25, "haze": 0.4, "time": 0.6
     },
     "Tape Choir": {
-      "tilt": 0.4, "odd": 0.35, "stretch": 0, "breath": 0.45,
-      "partials": 0.5, "blur": 0.75, "haze": 0.6, "time": 0.6
+      "tilt": 0.45, "shape": 0.1, "stretch": 0, "vowel": 0.45,
+      "breath": 0.45, "blur": 0.35, "haze": 0.45, "time": 0.55
     },
-    "Hollow": {
-      "tilt": 0.55, "odd": 1, "stretch": 0, "breath": 0.5,
-      "partials": 0.7, "blur": 0.2, "haze": 0.25, "time": 0.75
+    "Juno Dusk": {
+      "tilt": 0.55, "shape": 0.72, "stretch": 0, "vowel": 0,
+      "breath": 0.7, "blur": 0.15, "haze": 0.35, "time": 0.5
     },
-    "Glass": {
-      "tilt": 0.62, "odd": 0, "stretch": 0.35, "breath": 0.7,
-      "partials": 1, "blur": 0, "haze": 0.2, "time": 0.5
+    "Glass Bells": {
+      "tilt": 0.62, "shape": 0, "stretch": 0.5, "vowel": 0,
+      "breath": 0.55, "blur": 0, "haze": 0.25, "time": 0.3
     },
-    "Still Air": {
-      "tilt": 0.75, "odd": 0.5, "stretch": 0.08, "breath": 0.8,
-      "partials": 0.35, "blur": 0.3, "haze": 0.3, "time": 1
+    "Frost": {
+      "tilt": 0.7, "shape": 0.3, "stretch": 0.12, "vowel": 0,
+      "breath": 0.8, "blur": 0.2, "haze": 0.2, "time": 0.08
+    },
+    "Fog": {
+      "tilt": 0.6, "shape": 0.35, "stretch": 0, "vowel": 0.15,
+      "breath": 0.35, "blur": 0.85, "haze": 0.3, "time": 0.65
+    },
+    "Seasick": {
+      "tilt": 0.5, "shape": 0.5, "stretch": 0, "vowel": 0.8,
+      "breath": 0.6, "blur": 0.4, "haze": 0.85, "time": 0.45
+    },
+    "Still Life": {
+      "tilt": 0.7, "shape": 0.6, "stretch": 0.08, "vowel": 0.6,
+      "breath": 0.8, "blur": 0.2, "haze": 0.3, "time": 1
     }
   },
   "resources": {
-    "voiceBytes": 208,
+    "voiceBytes": 788,
     "voiceAlignment": 4,
     "voiceCapacity": 8,
     "sharedBytes": 12,
-    "outputPeakQ31": 335544320,
+    "outputPeakQ31": 450600000,
     "display": {
       "stateBytes": 68,
       "stateAlignment": 4,
-      "paths": 0,
-      "points": 0,
-      "nodes": 100,
+      "paths": 2,
+      "points": 64,
+      "nodes": 126,
       "texts": 16,
       "palette": 16
     }

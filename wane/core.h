@@ -19,7 +19,7 @@ struct Voice {
     u32 phase[3];     // oscillator 1, oscillator 2, sub
     u32 increment[2]; // the oscillators' increments at the end of the last block
     i32 low[2];       // the warm two-pole low-pass
-    i32 head;         // the tape head's high-frequency loss
+    i32 head[2];      // the tape head's high-frequency loss, two poles
     i32 hiss;         // the last noise sample, for hiss's first difference
     i32 level;        // output gain at the end of the last block, Q31
     i32 offset[2];    // each oscillator's pitch offset this block, Q16 octaves
@@ -34,5 +34,7 @@ struct Shared {
     u32 sag_start;    // the clock at the last note start
     i32 sag_from;     // the sag left at that moment, Q15
     i32 bend;         // the transport's pitch this block, Q16 octaves (sag included)
+    u32 sag_rate;     // the sag's recovery this block (tape::sag_rate)
+    i32 contact;      // the worn head's contact this block, Q15: 0 touching, 32767 lifted most
 };
 }

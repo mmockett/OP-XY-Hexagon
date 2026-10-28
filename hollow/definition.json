@@ -39,11 +39,11 @@
     {
       "id": "ring",
       "label": "Ring",
-      "default": 0.5,
+      "default": 0.52,
       "mapping": {
         "kind": "exponential",
-        "minimum": 100,
-        "maximum": 20000
+        "minimum": 40,
+        "maximum": 40000
       },
       "display": "duration"
     },
@@ -77,9 +77,14 @@
       "control": 2,
       "default": 0,
       "mapping": {
-        "kind": "linear",
-        "minimum": 0,
-        "maximum": 15
+        "kind": "anchors",
+        "values": [
+          0,
+          4.125,
+          10.5,
+          19.125,
+          30
+        ]
       },
       "display": "percent"
     },
@@ -101,7 +106,7 @@
       "breath": 0.35,
       "body": 0,
       "bright": 0.45,
-      "ring": 0.5,
+      "ring": 0.52,
       "air": 0,
       "vowel": 0.5,
       "spread": 0,
@@ -111,28 +116,28 @@
       "breath": 0.55,
       "body": 0,
       "bright": 0.3,
-      "ring": 0.62,
-      "air": 0.25,
+      "ring": 0.61,
+      "air": 0.2,
       "vowel": 0.2,
-      "spread": 0.55,
+      "spread": 0.5,
       "sympathy": 0.6
     },
     "Bowed glass": {
       "breath": 0.15,
       "body": 1,
       "bright": 0.6,
-      "ring": 0.8,
+      "ring": 0.75,
       "air": 0,
       "vowel": 0.5,
       "spread": 0,
-      "sympathy": 0.45
+      "sympathy": 0.7
     },
     "Bottle": {
       "breath": 0.85,
       "body": 0.667,
       "bright": 0.35,
-      "ring": 0.4,
-      "air": 0.35,
+      "ring": 0.44,
+      "air": 0.3,
       "vowel": 0.25,
       "spread": 0,
       "sympathy": 0.3
@@ -140,16 +145,36 @@
     "Strings": {
       "breath": 0.2,
       "body": 0.333,
-      "bright": 0.55,
-      "ring": 0.7,
+      "bright": 0.6,
+      "ring": 0.67,
       "air": 0,
       "vowel": 0.5,
-      "spread": 0.35,
+      "spread": 0.65,
       "sympathy": 0.5
+    },
+    "Ensemble": {
+      "breath": 0.25,
+      "body": 0,
+      "bright": 0.55,
+      "ring": 0.58,
+      "air": 0.1,
+      "vowel": 0.6,
+      "spread": 1,
+      "sympathy": 0.45
+    },
+    "Whisper": {
+      "breath": 1,
+      "body": 0,
+      "bright": 0.7,
+      "ring": 0.3,
+      "air": 0.5,
+      "vowel": 0.8,
+      "spread": 0.3,
+      "sympathy": 0.2
     }
   },
   "resources": {
-    "voiceBytes": 228,
+    "voiceBytes": 448,
     "voiceAlignment": 4,
     "voiceCapacity": 8,
     "sharedBytes": 100,

@@ -3,13 +3,17 @@
 //   exp2_table[i]   = round(2^30 * 2^(i/256))          the mantissa of 2^x, Q30
 //   log2_table[i]   = round(65536 * log2(1 + i/256))   log2 of a mantissa, Q16
 //   log2_partial[k] = round(65536 * log2(k))           partial k's harmonic number, Q16
-//   blur_gain[i]    = Q12 gain restoring the spread of 24 independent drifts after
-//                     blur's two smoothing passes at coefficient 0.85 * i/16
+//   quarter_sine[i] = round(32767 * sin(pi/2 * i/64))   a quarter of a sine, Q15
+//   vowel_f1/f2[v]  = round(65536 * log2(F * 2^32 / 44100)) the first two formants
+//                     of oo, oh, ah, eh, ee (300/870, 480/860, 730/1090,
+//                     530/1840, 270/2290 Hz) as log2 phase increments, Q16
 #include <opxy/types.hpp>
 
 namespace bloom {
 using opxy::i32;
 using opxy::u32;
+using opxy::u16;
+using opxy::i16;
 
 static const u32 exp2_table[257] = {
     1073741824, 1076653033, 1079572136, 1082499153, 1085434106, 1088377016, 1091327906, 1094286796,
@@ -78,8 +82,14 @@ static const i32 log2_partial[25] = {
     273280, 278392, 283242, 287855, 292253, 296456, 300480,
 };
 
-static const i32 blur_gain[17] = {
-    4096, 4523, 4965, 5429, 5909, 6404, 6913, 7483, 8030,
-    8651, 9286, 9991, 10688, 11440, 12253, 12972, 13528,
+static const i32 quarter_sine[65] = {
+    0, 804, 1608, 2410, 3212, 4011, 4808, 5602, 6393, 7179, 7962, 8739, 9512,
+    10278, 11039, 11793, 12539, 13279, 14010, 14732, 15446, 16151, 16846, 17530, 18204, 18868,
+    19519, 20159, 20787, 21403, 22005, 22594, 23170, 23731, 24279, 24811, 25329, 25832, 26319,
+    26790, 27245, 27683, 28105, 28510, 28898, 29268, 29621, 29956, 30273, 30571, 30852, 31113,
+    31356, 31580, 31785, 31971, 32137, 32285, 32412, 32521, 32609, 32678, 32728, 32757, 32767,
 };
+
+static const i32 vowel_f1[5] = {1625314, 1669752, 1709393, 1679121, 1615353};
+static const i32 vowel_f2[5] = {1725981, 1724888, 1747296, 1796800, 1817486};
 }

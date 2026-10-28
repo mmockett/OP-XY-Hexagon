@@ -30,7 +30,7 @@ u32 increment(double hz) { return static_cast<u32>(hz / 44100.0 * 4294967296.0);
 struct Controls {
     i32 p[8];
     Controls() {
-        const double defaults[8] = {0.5, 0.4, 0, 0.35, 0, 0, 0, 0};
+        const double defaults[8] = {0.5, 0.4, 0, 0.2, 0, 0, 0, 0};
         for (unsigned i = 0; i < 8; ++i) p[i] = word(defaults[i]);
     }
     Controls& set(unsigned slot, double value) { p[slot] = word(value); return *this; }
@@ -163,7 +163,7 @@ void defaults_clean() {
     Controls c;
     for (unsigned v = 0; v < 4; ++v) rig.play(v);
     bool still = true;
-    const i32 spread = wane::tape::depth(c.p[wane::controls::DETUNE], wane::controls::detune_most) / 2;
+    const i32 spread = wane::tape::along(c.p[wane::controls::DETUNE], wane::controls::detune_curve) >> 1;
     for (unsigned b = 0; b < 4000; ++b) {
         if (b % 700 == 350) wane::start(rig.voices[b % 4], rig.shared, b % 4 + 1);
         for (unsigned v = 0; v < 4; ++v) {
@@ -212,7 +212,9 @@ void shared_tape() {
     check(correlation(first, third, blocks) > 0.9, "tape: two oscillators' deviations are not correlated");
     double low = 0, high = 0;
     for (unsigned b = 0; b < blocks; ++b) { low = std::fmin(low, first[b]); high = std::fmax(high, first[b]); }
-    check(high - low > 40 && low > -120 && high < 60, "tape: full wow and flutter swing the wrong amount");
+    char swing[96];
+    std::snprintf(swing, sizeof swing, "tape: full wow and flutter swing %.0f to %.0f cents", low, high);
+    check(high - low > 250 && low > -380 && high < 230, swing);
     // Without drift, every voice follows the tape exactly.
     c.set(wane::controls::DRIFT, 0);
     bool exact = true;
@@ -305,27 +307,41 @@ void tape_character() {
     check(clock.blocks == 689, "tape: the display clock does not keep audio time");
 }
 
-// The start sag: each note pulls the tape flat by the sag's depth, and it
-// catches up within a second; with sag at zero nothing moves.
+// The start sag: each note pulls the tape (every held note with it) flat by
+// the sag's depth, and it catches up over a second or two, slower the deeper
+// it is; with sag at zero nothing moves.
 void start_sag() {
+    const double settings[3] = {0.25, 0.5, 1}, depth[3] = {30, 70, 180}, settle[3] = {0.6, 1.1, 2.1};
+    double half_way[3];
+    for (unsigned k = 0; k < 3; ++k) {
+        rig = Rig(220);
+        Controls c;
+        c.set(wane::controls::SAG, settings[k]).set(wane::controls::DETUNE, 0);
+        rig.play(0);
+        for (unsigned b = 0; b < 2000; ++b) rig.render(0, c);
+        rig.play(1);   // the second note sags the first one too
+        double lowest = 0, settled = 0;
+        half_way[k] = 0;
+        for (unsigned b = 0; b < 3000; ++b) {
+            rig.render(0, c);
+            rig.render(1, c);
+            const double now = rig.voices[0].offset[0] / cent;
+            lowest = std::fmin(lowest, now);
+            if (now < -3) settled = b / 689.0625;
+            if (now < -depth[k] / 2) half_way[k] = b / 689.0625;
+        }
+        char what[112];
+        std::snprintf(what, sizeof what, "sag: %.2f sags a held note %.1f cents, not about %.0f", settings[k], lowest, depth[k]);
+        check(lowest < -0.97 * depth[k] && lowest > -1.03 * depth[k] - 0.5, what);
+        std::snprintf(what, sizeof what, "sag: %.2f settles within 3 cents after %.2f s, not about %.1f s", settings[k], settled, settle[k]);
+        check(settled > 0.7 * settle[k] && settled < 1.3 * settle[k], what);
+    }
+    check(half_way[0] < half_way[1] && half_way[1] < half_way[2], "sag: a deeper sag does not recover more slowly");
+    std::printf("sag: half recovered after %.0f, %.0f and %.0f ms at 25, 50 and 100%%\n",
+                half_way[0] * 1000, half_way[1] * 1000, half_way[2] * 1000);
     rig = Rig(220);
     Controls c;
-    c.set(wane::controls::SAG, 1).set(wane::controls::DETUNE, 0);
     rig.play(0);
-    for (unsigned b = 0; b < 1000; ++b) rig.render(0, c);
-    rig.play(1);   // the second note sags the first one too
-    double lowest = 0, first = 0;
-    for (unsigned b = 0; b < 700; ++b) {
-        rig.render(0, c);
-        rig.render(1, c);
-        lowest = std::fmin(lowest, rig.voices[0].offset[0] / cent);
-        first = rig.voices[0].offset[0] / cent;
-    }
-    char what[96];
-    std::snprintf(what, sizeof what, "sag: a note start sags the tape %.1f cents, not about 45", lowest);
-    check(lowest < -40 && lowest > -50, what);
-    check(std::fabs(first) < 2, "sag: the tape has not caught up within a second");
-    c.set(wane::controls::SAG, 0);
     wane::start(rig.voices[0], rig.shared, 1);
     bool flat = true;
     for (unsigned b = 0; b < 100; ++b) { rig.render(0, c); flat = flat && rig.shared.bend == 0; }
@@ -335,8 +351,8 @@ void start_sag() {
 // Detune spreads the oscillators by its depth in cents; drift moves each note
 // and voice on its own; at zero both are exact.
 void detune_and_drift() {
-    const double settings[3] = {0, 0.4, 1}, cents[3] = {0, 8, 50};
-    for (unsigned k = 0; k < 3; ++k) {
+    const double settings[4] = {0, 0.4, 0.5, 1}, cents[4] = {0, 8, 11, 70};
+    for (unsigned k = 0; k < 4; ++k) {
         rig = Rig(440);
         Controls c;
         c.set(wane::controls::DETUNE, settings[k]);
@@ -370,8 +386,8 @@ void detune_and_drift() {
     }
     double s_low = 1e9, s_high = -1e9;
     for (unsigned n = 0; n < 12; ++n) { s_low = std::fmin(s_low, starts[n]); s_high = std::fmax(s_high, starts[n]); }
-    check(s_high - s_low > 8, "drift: notes do not start their own distance off pitch");
-    check(high - low > 10 && low > -36 && high < 36, "drift: the voice does not wander, or wanders too far");
+    check(s_high - s_low > 15, "drift: notes do not start their own distance off pitch");
+    check(high - low > 30 && low > -64 && high < 64, "drift: the voice does not wander, or wanders too far");
 }
 
 // Shape: sine, triangle, saw, square and pulse, band-limited.
@@ -428,13 +444,83 @@ void tone() {
     check(bright[0] > 1.5 * bright[1] && bright[1] > 1.5 * bright[2], "warmth: more warmth is not darker");
     Controls aged(c);
     aged.set(wane::controls::WARMTH, 0);
-    const unsigned n = capture(aged, 220, 512);
+    const unsigned n = capture(aged, 220.5, 512);
     const double clean = amplitude(sound, n, 15000.5) / rms(sound, n);
-    const double clear = brightness(sound, n);
-    const unsigned m = capture(aged.set(wane::controls::AGE, 1), 220, 512);
+    const double clear = amplitude(sound, n, 4410) / amplitude(sound, n, 220.5);
+    const unsigned m = capture(aged.set(wane::controls::AGE, 1), 220.5, 512);
     const double hissy = amplitude(sound, m, 15000.5) / rms(sound, m);
     check(hissy > 3 * clean, "age: no hiss");
-    check(brightness(sound, m) < clear, "age: no high-frequency loss");
+    check(amplitude(sound, m, 4410) / amplitude(sound, m, 220.5) < 0.1 * clear, "age: no high-frequency loss");
+}
+
+// Every control is plainly heard at a quarter turn and keeps growing to the
+// top: the pitch controls in cents, warmth and age in the harmonics' level.
+void sweeps() {
+    const double quarters[5] = {0, 0.25, 0.5, 0.75, 1};
+    // The swing of the tape (wow, flutter) and of one voice's drift over 20 s, in cents.
+    double wow[5], flutter[5], drift[5];
+    for (unsigned q = 0; q < 5; ++q) {
+        double* into[3] = {wow, flutter, drift};
+        const unsigned slots[3] = {wane::controls::WOW, wane::controls::FLUTTER, wane::controls::DRIFT};
+        for (unsigned k = 0; k < 3; ++k) {
+            rig = Rig(220);
+            Controls c;
+            c.set(wane::controls::DETUNE, 0).set(slots[k], quarters[q]);
+            rig.play(0);
+            double low = 0, high = 0;
+            for (unsigned b = 0; b < 20 * 689; ++b) {
+                if (k == 2 && b % 2756 == 0) wane::start(rig.voices[0], rig.shared, 1);   // drift: a new note each 4 s
+                rig.render(0, c);
+                const double now = rig.voices[0].offset[0] / cent;
+                low = std::fmin(low, now);
+                high = std::fmax(high, now);
+            }
+            into[k][q] = high - low;
+        }
+    }
+    std::printf("sweeps: swing in cents at 0/25/50/75/100%%: wow %.0f %.0f %.0f %.0f %.0f, flutter %.0f %.0f %.0f %.0f %.0f, "
+                "drift %.0f %.0f %.0f %.0f %.0f\n", wow[0], wow[1], wow[2], wow[3], wow[4], flutter[0], flutter[1],
+                flutter[2], flutter[3], flutter[4], drift[0], drift[1], drift[2], drift[3], drift[4]);
+    const double first[3] = {20, 10, 6};   // the least swing a quarter turn must make
+    const double* swings[3] = {wow, flutter, drift};
+    const char* names[3] = {"wow", "flutter", "drift"};
+    for (unsigned k = 0; k < 3; ++k) {
+        char what[96];
+        std::snprintf(what, sizeof what, "sweeps: %s at zero moves the pitch", names[k]);
+        check(swings[k][0] == 0, what);
+        std::snprintf(what, sizeof what, "sweeps: a quarter of %s swings %.1f cents, under %.0f", names[k], swings[k][1], first[k]);
+        check(swings[k][1] >= first[k], what);
+        for (unsigned q = 2; q < 5; ++q) {
+            std::snprintf(what, sizeof what, "sweeps: %s grows too little from %u%% to %u%%", names[k], 25 * (q - 1), 25 * q);
+            check(swings[k][q] > 1.4 * swings[k][q - 1], what);
+        }
+    }
+    // Warmth and age: the twentieth harmonic of a 220 Hz saw against the
+    // fundamental, falling at every quarter; age's hiss rising.
+    double warm[5], aged[5], hiss[5];
+    for (unsigned q = 0; q < 5; ++q) {
+        Controls c;
+        c.set(wane::controls::DETUNE, 0).set(wane::controls::WARMTH, quarters[q]);
+        unsigned n = capture(c, 220.5, 1024, true);
+        warm[q] = 20 * std::log10(amplitude(sound, n, 4410) / amplitude(sound, n, 220.5));
+        Controls a;
+        a.set(wane::controls::DETUNE, 0).set(wane::controls::WARMTH, 0).set(wane::controls::AGE, quarters[q]);
+        n = capture(a, 220.5, 1024, true);
+        aged[q] = 20 * std::log10(amplitude(sound, n, 4410) / amplitude(sound, n, 220.5));
+        hiss[q] = 20 * std::log10(amplitude(sound, n, 15104) / rms(sound, n) + 1e-12);
+    }
+    std::printf("sweeps: 20th harmonic re the fundamental, dB: warmth %.1f %.1f %.1f %.1f %.1f, age %.1f %.1f %.1f %.1f %.1f; "
+                "hiss at 15 kHz %.0f %.0f %.0f %.0f %.0f dB\n", warm[0], warm[1], warm[2], warm[3], warm[4], aged[0], aged[1],
+                aged[2], aged[3], aged[4], hiss[0], hiss[1], hiss[2], hiss[3], hiss[4]);
+    for (unsigned q = 1; q < 5; ++q) {
+        char what[96];
+        std::snprintf(what, sizeof what, "sweeps: warmth darkens only %.1f dB from %u%% to %u%%", warm[q - 1] - warm[q], 25 * (q - 1), 25 * q);
+        check(warm[q] < warm[q - 1] - 3, what);
+        std::snprintf(what, sizeof what, "sweeps: age dulls only %.1f dB from %u%% to %u%%", aged[q - 1] - aged[q], 25 * (q - 1), 25 * q);
+        check(aged[q] < aged[q - 1] - 3, what);
+        std::snprintf(what, sizeof what, "sweeps: age's hiss grows only %.1f dB from %u%% to %u%%", hiss[q] - hiss[q - 1], 25 * (q - 1), 25 * q);
+        check(hiss[q] > hiss[q - 1] + 3, what);
+    }
 }
 
 // No integer equivalent of NaN: a minute at the harshest settings keeps
@@ -455,26 +541,79 @@ void long_run() {
     }
     const double level = std::sqrt(power / (689.0 * frames));
     check(sane && level > 0.03 && level < 0.4, "long run: the voice decays, explodes or pins");
-    check(std::abs(rig.voices[0].low[1]) < half && std::abs(rig.voices[0].head) < half, "long run: filter state ran away");
+    check(std::abs(rig.voices[0].low[1]) < half && std::abs(rig.voices[0].head[0]) < half && std::abs(rig.voices[0].head[1]) < half, "long run: filter state ran away");
 }
 }
 
 // The header's captions read in the controls' units.
 void captions() {
     char text[opxy::draw::header_capacity];
-    const struct { double value; const char* text; } detune[4] = {{0, "0c"}, {0.4, "8.0c"}, {0.5, "13c"}, {1, "50c"}};
-    for (unsigned k = 0; k < 4; ++k) {
-        wane::caption_cents(text, wane::tape::depth(word(detune[k].value), wane::controls::detune_most));
+    const struct { double value; const char* text; } detune[5] = {{0, "0c"}, {0.25, "3.5c"}, {0.4, "8.0c"}, {0.5, "11c"}, {1, "70c"}};
+    for (unsigned k = 0; k < 5; ++k) {
+        wane::caption_cents(text, wane::tape::along(word(detune[k].value), wane::controls::detune_curve));
         char what[64];
         std::snprintf(what, sizeof what, "caption: detune %.1f reads %s, not %s", detune[k].value, text, detune[k].text);
         check(std::strcmp(text, detune[k].text) == 0, what);
     }
-    wane::caption_cents(text, wane::tape::depths(full, 0, 0).wow);
-    check(std::strcmp(text, "40c") == 0, "caption: full wow is not 40c");
+    const wane::tape::Depths most = wane::tape::depths(full, full, full);
+    wane::caption_cents(text, most.wow);
+    check(std::strcmp(text, "120c") == 0, "caption: full wow is not 120c");
+    wane::caption_cents(text, most.flutter);
+    check(std::strcmp(text, "50c") == 0, "caption: full flutter is not 50c");
+    wane::caption_cents(text, most.sag);
+    check(std::strcmp(text, "180c") == 0, "caption: full sag is not 180c");
+    wane::caption_cents(text, wane::tape::along(full, wane::controls::drift_curve));
+    check(std::strcmp(text, "35c") == 0, "caption: full drift is not 35c");
+    wane::caption_cents(text, wane::tape::depths(word(0.25), 0, 0).wow);
+    check(std::strcmp(text, "16c") == 0, "caption: a quarter of wow is not 16c");
     check(std::strcmp(wane::shape_name(0), "sine") == 0 && std::strcmp(wane::shape_name(word(0.125)), "s/tri") == 0 &&
           std::strcmp(wane::shape_name(word(0.25)), "tri") == 0 && std::strcmp(wane::shape_name(word(0.5)), "saw") == 0 &&
           std::strcmp(wane::shape_name(word(0.8)), "sq") == 0 && std::strcmp(wane::shape_name(full), "pulse") == 0,
           "caption: shape names");
+}
+
+// The screen at the extremes: every frame valid, the tape's ribbon within a
+// few pixels of its rest and moving more the more the tape wobbles, every
+// point distinct, and still with the tape controls at zero.
+double ribbon_swing(double tape_controls, bool* valid, bool* distinct) {
+    static wane::DisplayState state;
+    static wane::Frame frame;
+    std::memset(&state, 0, sizeof state);
+    std::memset(&frame, 0, sizeof frame);
+    wane::display_reset(state);
+    opxy::draw::Input input;
+    std::memset(&input, 0, sizeof input);
+    for (unsigned k = 0; k < 8; ++k) input.slots[k] = word(k >= 4 && k < 7 ? tape_controls : 1);
+    input.slots[wane::controls::DRIFT] = word(tape_controls);
+    input.track = 1;
+    double low = 0, high = 0;
+    for (unsigned f = 0; f < 3000; ++f) {
+        input.elapsed = 17;   // Q10 seconds: 60 frames a second
+        if (f % 20 == 5) { ++input.note_serial; input.held_notes = 1 + (f / 20) % 8; }
+        wane::display(state, input, frame);
+        *valid = *valid && opxy::draw::valid(frame);
+        for (unsigned h = 0; h < 2; ++h) {
+            const auto& path = frame.paths[wane::node::tape + h];
+            for (unsigned i = 0; i < 32; ++i) {
+                low = std::fmin(low, path.points[i].y / 1024.0);
+                high = std::fmax(high, path.points[i].y / 1024.0);
+            }
+            for (unsigned i = 0; i < 64; ++i)
+                for (unsigned j = i + 1; j < 64; ++j)
+                    *distinct = *distinct && (path.points[i].x != path.points[j].x || path.points[i].y != path.points[j].y);
+        }
+    }
+    return high - low;
+}
+void screen() {
+    bool valid = true, distinct = true;
+    const double still = ribbon_swing(0, &valid, &distinct), half_way = ribbon_swing(0.5, &valid, &distinct);
+    const double most = ribbon_swing(1, &valid, &distinct);
+    std::printf("screen: the tape's ribbon swings %.1f, %.1f and %.1f px with the tape controls at 0, 50 and 100%%\n",
+                still, half_way, most);
+    check(valid, "screen: a frame is invalid");
+    check(distinct, "screen: the tape's ribbon repeats a point");
+    check(still < 1.2 && half_way > still + 2 && most > half_way + 2 && most < 18, "screen: the ribbon's swing is wrong");
 }
 
 int main() {
@@ -488,7 +627,9 @@ int main() {
     detune_and_drift();
     shapes();
     tone();
+    sweeps();
     long_run();
+    screen();
     if (!failures) std::puts("PASS wane sound checks");
     return failures ? 1 : 0;
 }

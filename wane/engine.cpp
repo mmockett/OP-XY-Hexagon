@@ -180,14 +180,39 @@ inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Sh
 // 16 bits of x are dropped (-90 dB), which these filters never hear.
 inline i32 m31(i32 x, i32 c) { return static_cast<i32>(static_cast<opxy::i16>(x >> 16)) * static_cast<opxy::i16>(c) * 2; }
 
-// The tape's next block: its pitch, with the start sag.
+// The tape's next block: its pitch, with the start sag, and how well the
+// worn head touches it (a new random target every 0.19 s, eased).
 inline void advance(Shared& shared, opxy::Parameters p) {
     ++shared.clock;
     const tape::Depths d = tape::depths(p[WOW], p[FLUTTER], p[SAG]);
     i32 bend = tape::bend(shared.clock, d);
     if (shared.sagging && d.sag) bend += tape::sag_bend(shared.clock - shared.sag_start, shared.sag_from, d);
     shared.bend = bend;
+    shared.sag_rate = d.sag_rate;
+    shared.contact = q15(p[AGE]) ? (tape::smooth_noise(tape::seed ^ 0x6u, shared.clock, 7) + 32768) >> 1 : 0;
 }
+
+// log2 of a phase increment, Q16 octaves, straight between octaves (within
+// 0.09 of an octave): enough for the filter to follow the keyboard.
+inline i32 log2_q16(u32 x) {
+    if (!x) return 0;
+    u32 m = x;
+    i32 msb = 0;
+    if (m >> 16) { m >>= 16; msb += 16; }
+    if (m >> 8) { m >>= 8; msb += 8; }
+    if (m >> 4) { m >>= 4; msb += 4; }
+    if (m >> 2) { m >>= 2; msb += 2; }
+    if (m >> 1) msb += 1;
+    const u32 normal = msb >= 16 ? x >> (msb - 16) : x << (16 - msb);   // 1..2, Q16
+    return msb * 65536 + static_cast<i32>(normal - 65536u);
+}
+const u32 reference = 21426343u;                 // the increment of 220 Hz, where warmth's cutoffs are named
+// How far warmth closes the low-pass from 17.8 kHz, Q16 octaves: to 5.1, 2.1,
+// 0.9 and 0.37 kHz at 25, 50, 75 and 100%, an even step in brightness a quarter.
+const tape::Curve warmth_curve = {{0, 117965, 203162, 281805, 367002}};
+// The head's loss with age, Q16 octaves above 20 Hz: open, then 4.8, 2.6,
+// 1.7 and 1.1 kHz at 25, 50, 75 and 100% (two poles).
+const tape::Curve head_curve = {{720896, 517734, 458752, 419430, 380109}};
 }
 
 // Callbacks run serially per voice; owner is a stable nonzero voice ID.
@@ -202,7 +227,7 @@ inline void initialize(Voice& voice, Shared& shared, u32 owner) {
     for (unsigned k = 0; k < 3; ++k) voice.phase[k] = tape::hash(voice.seed + k + 1);
     voice.increment[0] = voice.increment[1] = 0;
     voice.low[0] = voice.low[1] = 0;
-    voice.head = voice.hiss = 0;
+    voice.head[0] = voice.head[1] = voice.hiss = 0;
     voice.level = 0;
     voice.offset[0] = voice.offset[1] = 0;
     voice.cycle = shared.cycle - 1;   // not yet counted in this cycle
@@ -210,7 +235,7 @@ inline void initialize(Voice& voice, Shared& shared, u32 owner) {
 
 inline void start(Voice& voice, Shared& shared, u32) {
     // The tape catches up: the sag restarts from whatever is left of the last.
-    const i32 left = shared.sagging ? tape::sag(shared.clock - shared.sag_start, shared.sag_from) : 0;
+    const i32 left = shared.sagging ? tape::sag(shared.clock - shared.sag_start, shared.sag_from, shared.sag_rate) : 0;
     shared.sag_from = left;
     shared.sag_start = shared.clock;
     shared.sagging = 1;
@@ -235,8 +260,8 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
 
     // Pitch: the tape, this note's slop and the voice's own wander, then the
     // oscillators detuned either side, oscillator 2 wandering a little apart.
-    const i32 drift = tape::depth(p[DRIFT], drift_most);
-    const i32 detune = tape::depth(p[DETUNE], detune_most) / 2;
+    const i32 drift = tape::along(p[DRIFT], drift_curve);
+    const i32 detune = tape::along(p[DETUNE], detune_curve) >> 1;
     const i32 wander = (tape::smooth_noise(voice.seed ^ 0x11u, voice.clock, 10) * drift) >> 15;
     const i32 apart = (tape::smooth_noise(voice.seed ^ 0x12u, voice.clock, 9) * (drift >> 1)) >> 15;
     const i32 common = shared.bend + ((voice.slop * ((drift * 3) >> 2)) >> 15) + wander;
@@ -257,24 +282,31 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     oscillate(mix, voice.phase[0], voice.increment[0], target[0], shape);
     oscillate(mix, voice.phase[1], voice.increment[1], target[1], shape);
 
-    // Warmth: a darker low-pass (17.8 kHz down to 0.9 kHz), more sub, a breath
-    // of noise, and with age a harder drive into the saturation.
+    // Warmth: a darker low-pass (17.8 kHz down to 370 Hz at 220 Hz, following
+    // the keyboard by up to half as it closes), more sub, a breath of noise,
+    // and with age a harder drive into the saturation.
     const i32 warmth = q15(p[WARMTH]), age = q15(p[AGE]);
-    const i32 sub = (warmth * 19661) >> 15;                         // up to 0.6
-    const i32 breath = (((warmth * warmth) >> 15) * 1638) >> 15;    // up to 0.05
-    const i32 low = pole(642253 - ((warmth * 8806) >> 10)) >> 16;   // Q15: 9.8 - 4.3 x warmth octaves
-    const i32 heat = clamp(((warmth * 19661) >> 15) + ((age * 13107) >> 15), 0, 32767);   // 0.6 w + 0.4 a
-    const i32 octaves = (heat * 4506) >> 10;                        // drive 0 .. 2.2 octaves
-    const i32 drive = power2_q28(octaves) >> 16;                    // Q12, 1 .. 4.6
-    const i32 makeup = clamp(power2_q28(-octaves) >> 13, 0, 32767); // 1 / drive, Q15
-    // Age: the head's loss (open down to 2.6 kHz) and hiss.
-    const i32 head = pole(11 * 65536 - age * 8) >> 16;              // Q15
-    const i32 hiss = (((age * age) >> 15) * 524) >> 15;             // up to 0.012 of full scale, after x 3
+    const i32 warmth_2 = (warmth * warmth) >> 15;
+    const i32 sub = (warmth * 24576) >> 15;                         // up to 0.75
+    const i32 breath = (warmth_2 * 2621) >> 15;                     // up to 0.08
+    const i32 darker = tape::along(p[WARMTH], warmth_curve);
+    const i32 follow = (((log2_q16(pitch[0]) - log2_q16(reference)) >> 4) * (warmth >> 1)) >> 11;
+    const i32 low = pole(642253 - darker + follow) >> 16;           // Q15: 9.8 octaves above 20 Hz, less darker
+    const i32 heat = clamp(((warmth * 19661) >> 15) + ((age * 26214) >> 15), 0, 32767);   // 0.6 w + 0.8 a
+    const i32 octaves = (heat * 5939) >> 10;                        // drive 0 .. 2.9 octaves
+    const i32 drive = power2_q28(octaves) >> 16;                    // Q12, 1 .. 7.5
+    const i32 makeup = clamp(power2_q28(-((octaves * 3) >> 2)) >> 13, 0, 32767);   // drive^-0.75, Q15
+    // Age: the head's loss (two poles, open down to 1.3 kHz), its worn
+    // contact dulling it further now and then (up to an octave at full), and hiss.
+    const i32 lift = (((age * age) >> 15) * 65536) >> 15;           // Q16 octaves, up to 1
+    const i32 head = pole(tape::along(p[AGE], head_curve) - (((shared.contact >> 1) * lift) >> 14)) >> 16;   // Q15
+    const i32 hiss = ((((age * age) >> 15) + age) * 450) >> 15;     // up to 0.021 of full scale, after x 3
     const i32 level = makeup;                                       // Q15
     const i32 level_step = (level - voice.level) / 64;
 
     u32 sub_phase = voice.phase[2], sub_step = sub_increment, noise = voice.noise;
-    i32 low_1 = voice.low[0], low_2 = voice.low[1], heard = voice.head, last = voice.hiss, gain = voice.level;
+    i32 low_1 = voice.low[0], low_2 = voice.low[1], worn = voice.head[0], heard = voice.head[1];
+    i32 last = voice.hiss, gain = voice.level;
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         sub_phase += sub_step;
         sub_step += static_cast<u32>(sub_slope);
@@ -284,15 +316,17 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         const i32 white = static_cast<i32>(noise >> 17) - 16384;   // Q15, +-0.5
         // The voice in Q31, peaking near a third of full scale.
         const i32 x = (mix[i] + m15(sub_wave, sub) + m15(white, breath)) * 8192;
-        low_1 += m31(x - low_1, low);
-        low_2 += m31(low_1 - low_2, low);
         // Soft saturation: driven into x - x^3 / 3 (the cube at 16 bits), then
-        // levelled back down by `gain`.
-        const i32 u = clamp((low_2 >> 16) * drive, -0x07ffffff, 0x07ffffff) * 16;
+        // levelled back down by `gain` and halved, ahead of the filters so
+        // they darken what it adds.
+        const i32 u = clamp((x >> 16) * drive, -0x07ffffff, 0x07ffffff) * 16;
         const i32 u15 = u >> 16;
-        const i32 warm = u - m15(m15(m15(u15, u15), u15), 10923) * 65536;
-        // The head's loss runs at half level, then the voice is tripled: 1.5 x.
-        heard += m31(m31(warm, gain) / 2 - heard, head);
+        const i32 warm = m31(u - m15(m15(m15(u15, u15), u15), 10923) * 65536, gain) / 2;
+        low_1 += m31(warm - low_1, low);
+        low_2 += m31(low_1 - low_2, low);
+        // The head's loss, then the voice is tripled: 1.5 x.
+        worn += m31(low_2 - worn, head);
+        heard += m31(worn - heard, head);
         gain += level_step;
         // Hiss: the noise's first difference, bright, under the music.
         const i32 hissing = (white - last) * hiss;
@@ -304,7 +338,8 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     voice.noise = noise;
     voice.low[0] = low_1;
     voice.low[1] = low_2;
-    voice.head = heard;
+    voice.head[0] = worn;
+    voice.head[1] = heard;
     voice.hiss = last;
     voice.level = level;
 }

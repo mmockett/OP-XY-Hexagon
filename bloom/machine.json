@@ -2,7 +2,7 @@
   "schema": 1,
   "sdk": "1.4",
   "kind": "synth",
-  "description": "Breathing additive pads: sine partials that slowly drift in level and pitch on their own.",
+  "description": "Breathing additive pads: 24 sine partials shaped by tilt, shape, stretch and a sung vowel, drifting, beating in detuned pairs and blurring into breath.",
   "identity": {
     "engine": 60,
     "page": 108

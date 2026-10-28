@@ -18,9 +18,15 @@ const u32 kFresh = 3 * kNotes;
 // times 65536, at most 4095 * 65536. Each block the amplitude moves like a
 // damped resonator's driven at its own frequency: it decays by the mode's
 // ring and is pushed by the bow (steadily) and the breath (noise).
-struct Mode { u32 phase; i32 a, b; };
+// Spread's ensemble sounds that amplitude as three copies: the mode itself and
+// a sharp and a flat copy, whose phases (up, down) run ahead of and behind the
+// mode's by their detunes. (sa, sb) is the amplitude last sounded, all three
+// copies summed, so the next block ramps on from it.
+struct Mode { u32 phase; i32 a, b; i32 sa, sb; u32 up, down; };
 // A sympathetic mode, ringing at another held note's pitch (owner 0: idle).
-struct Echo { u32 owner, increment; Mode mode; };
+// swell follows how far it has bloomed toward its steady power (Q31), so the
+// output gain makes room for it as it grows.
+struct Echo { u32 owner, increment; i32 swell; Mode mode; };
 
 struct Voice {
     Mode modes[kModes];
@@ -30,6 +36,9 @@ struct Voice {
     i32 controls[8];   // smoothed controls, 0..32767
     u32 primed;        // controls hold real values; the first block snaps them
     u32 slot;          // this voice's registry slot plus one: a hint, checked before use
+    u32 gain;          // the output gain last block (Q10): each block ramps on from it
+    u32 age;           // blocks rendered: the clock of Spread's sway
+    u32 sway;          // this voice's sway: its phases and how much faster it runs
 };
 
 // Every held note's pitch, so each voice can ring at the others'.

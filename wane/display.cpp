@@ -12,6 +12,7 @@ inline void caption_cents(char* out, opxy::i32 octaves) {
         text[at++] = '0';
     } else if (tenths >= 100) {
         const opxy::u32 whole = (tenths + 5) / 10;
+        if (whole >= 100) text[at++] = static_cast<char>('0' + whole / 100 % 10);
         if (whole >= 10) text[at++] = static_cast<char>('0' + whole / 10 % 10);
         text[at++] = static_cast<char>('0' + whole % 10);
     } else {
@@ -49,7 +50,7 @@ const i32 hub_x[2] = {186573, 304947}, hub_y = 118825;
 const i32 tape_x[2] = {197296, 294224}, tape_y = 214082;
 const i32 tape_first = -48464, tape_step = 3127;   // 63 places along the tape, 1.12 mm apart
 const u32 tape_delay = 3300;                       // blocks between places, Q8: the tape moves 60 mm a second
-const i32 tape_px = 2507;                          // 0.9 mm of wobble a unit, Q10 pixels
+const i32 tape_px = 2507;                          // 0.9 mm of wobble a unit (60 cents), Q10 pixels
 // The pad pressing the tape out at the head, 0.35 mm at its middle.
 const i32 head_bump[10] = {975, 901, 711, 480, 276, 136, 57, 21, 6, 2};
 const i32 wave_left = -39 * unit, wave_width = 78 * unit, wave_height = 28 * unit;
@@ -67,14 +68,6 @@ const u32 progress_start = 22938, wound_most = 41607659;   // the board starts 3
 const u32 long_ago = 0x40000000u;
 
 inline i32 amount(i32 control) { return control < 0 ? 0 : control >> 16; }   // Q15
-
-// Halves every `half` blocks, from 32767 at `since` 0.
-inline i32 decay(u32 since, u32 half) {
-    const u32 halvings = since / half;
-    if (halvings >= 15u) return 0;
-    const i32 top = tape::one >> halvings;
-    return top - static_cast<i32>(static_cast<u32>(top >> 1) * (since - halvings * half) / half);
-}
 
 inline u32 root(u32 value) {
     u32 result = 0, bit = 1u << 30;
@@ -125,26 +118,32 @@ inline void oscillator(Frame::path_type& path, i32 shape, i32 warmth, u32 phase)
         }
 }
 
-// What each tape control does to the tape's speed, Q15 (the board's weights on
-// the controls as turned): wow and its drags, flutter, and the sag at a start.
-struct Amounts { i32 wow, drag, flutter, sag; };
+// What each tape control does to the tape's speed: the depths the audio plays
+// (tape::depths, Q16 octaves), wow and its drags, flutter, and the sag at a
+// start with its recovery.
+typedef tape::Depths Amounts;
 
-// The sag at tape time c: it rises at each note start and dies away (halving
-// every 0.24 s); the last two starts cover the tape's second of history.
-inline i32 sag_at(const DisplayState& s, u32 c) {
-    if (static_cast<i32>(c - s.sag_last) >= 0) return decay(c - s.sag_last, 167);
-    if (static_cast<i32>(c - s.sag_before) >= 0) return decay(c - s.sag_before, 167);
+// The sag at tape time c, Q15: it rises at each note start and recovers as the
+// audio's does (tape::sag); the last two starts cover the tape's history.
+inline i32 sag_at(const DisplayState& s, const Amounts& a, u32 c) {
+    if (static_cast<i32>(c - s.sag_last) >= 0) {
+        const u32 gap = s.sag_last - s.sag_before;
+        const i32 from = gap < 0x10000000u ? tape::sag(gap, 0, a.sag_rate) : 0;
+        return tape::sag(c - s.sag_last, from, a.sag_rate);
+    }
+    if (static_cast<i32>(c - s.sag_before) >= 0) return tape::sag(c - s.sag_before, 0, a.sag_rate);
     return 0;
 }
 
-// The tape's speed off true at tape time c, Q15, about -1..1, using the same
-// motions the audio plays (tape.h).
+// The tape's speed off true at tape time c, Q15 units of 60 cents, using the
+// same motions and depths the audio plays (tape.h); held to -3..2.3 units, so
+// the tape rises no higher than the capstans and sinks no lower than the shell.
 inline i32 wobble(const DisplayState& s, const Amounts& a, u32 c) {
-    i32 w = 0;
-    if (a.wow) w += (tape::wow(c) * a.wow >> 15) - (tape::stretch(c) * a.drag >> 15);
+    i32 w = 0;   // Q16 octaves
+    if (a.wow) w += (tape::wow(c) * a.wow >> 15) - (tape::stretch(c) * a.stretch >> 15);
     if (a.flutter) w += tape::flutter(c) * a.flutter >> 15;
-    if (a.sag) w -= sag_at(s, c) * a.sag >> 15;
-    return clamp(w, -3 * tape::one, 3 * tape::one);
+    if (a.sag) w -= sag_at(s, a, c) * a.sag >> 15;
+    return clamp(w * 10, -3 * tape::one, 75366);   // 3277 is 60 cents
 }
 
 // The tape across the foot, in two halves of 32 points, out along its top and
@@ -183,8 +182,10 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     char values[8][header_capacity];
     const tape::Depths tape_depths = tape::depths(input.slots[WOW], input.slots[FLUTTER], input.slots[SAG]);
     copy(values[SHAPE], header_capacity, shape_name(input.slots[SHAPE]));
-    caption_cents(values[DETUNE], tape::depth(input.slots[DETUNE], detune_most));
-    caption_cents(values[DRIFT], tape::depth(input.slots[DRIFT], drift_most));
+    const i32 detune_depth = tape::along(input.slots[DETUNE], detune_curve);
+    const i32 drift_depth = tape::along(input.slots[DRIFT], drift_curve);
+    caption_cents(values[DETUNE], detune_depth);
+    caption_cents(values[DRIFT], drift_depth);
     header_amount(values[WARMTH], header_capacity, input.slots[WARMTH]);
     caption_cents(values[WOW], tape_depths.wow);
     caption_cents(values[FLUTTER], tape_depths.flutter);
@@ -193,11 +194,9 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const opxy::u8 slots[2][4] = {{0, 1, 2, 3}, {4, 5, 6, 7}};
     page_header(state.header, input, frame, titles, values, node::header, slots);
 
-    const i32 shape = amount(input.slots[SHAPE]), detune = amount(input.slots[DETUNE]);
-    const i32 drift = amount(input.slots[DRIFT]), warmth = amount(input.slots[WARMTH]);
-    const i32 sag = amount(input.slots[SAG]), age = amount(input.slots[AGE]);
-    const Amounts amounts = {amount(input.slots[WOW]), amount(input.slots[WOW]) * 29491 >> 15,
-                             amount(input.slots[FLUTTER]) * 11469 >> 15, sag * 39321 >> 15};
+    const i32 shape = amount(input.slots[SHAPE]), warmth = amount(input.slots[WARMTH]);
+    const i32 age = amount(input.slots[AGE]);
+    const Amounts& amounts = tape_depths;
 
     // Notes: a needle lights for each held pitch (up to eight); each start
     // kicks its needle and sags the tape. A reset or a new track only takes a
@@ -243,7 +242,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         state.clock.advance(run);
         const i32 rate = clamp(unit + (speed * 307 >> 15), 0, 2 * unit);   // the reels follow the wobble
         state.turn = (state.turn + static_cast<u32>(run * 1089 * rate >> 10)) % (3600u * unit);   // 1.9 rad/s
-        state.beat += static_cast<u32>(run * (6554 + (detune * 52429 >> 15))) << 6;   // 0.1 to 0.9 Hz
+        state.beat += static_cast<u32>(run * (655 + detune_depth * 15)) << 6;   // 0.01 Hz, and 0.9 Hz at 70 cents
         state.wound += static_cast<u32>(run) * 197u;                                  // 0.3% a second
         if (state.wound > wound_most) state.wound = wound_most;
     }
@@ -258,20 +257,22 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         Frame::path_type& twin = frame.paths[node::twin];
         const u32 twin_key = tape::hash(key ^ (state.beat >> 16) * 0x9e3779b9u) | 1u;
         if (fresh || twin.key != twin_key) { oscillator(twin, shape, warmth, state.beat >> 16); twin.key = twin_key; }
-        if (detune > 327) place(frame, node::twin, 51 * unit, 134 * unit, unit, 0, keep);
+        if (detune_depth) place(frame, node::twin, 51 * unit, 134 * unit, unit, 0, keep);
         else hide(frame, node::twin);
     }
 
-    // Right: the needles, lit for held notes, swaying with drift and kicking
-    // back as their notes start.
+    // Right: the needles, lit for held notes, swaying with drift's depth and
+    // kicking back as their notes start by the sag's, recovering as the tape does.
     for (u32 k = 0; k < 8; ++k) {
         const bool on = k < lit;
         i32 angle = 0;
         if (on && !reduced) {
             const i32 sway = (tape::sine(now * sway_rate[k] + sway_phase[k]) * 19661 +
                               tape::sine(now * sway_rate_2[k]) * 13107) >> 15;
-            angle = (sway * drift >> 15) * 183 >> 15;                          // 0.32 rad
-            angle -= (decay(now - state.starts[k], 143) * sag >> 15) * 200 >> 15;   // 0.35 rad, halving in 0.21 s
+            angle = (sway * drift_depth >> 15) * 49 >> 9;                      // tenths of a degree: 183 (0.32 rad) at 35 cents
+            const u32 since = now - state.starts[k];
+            const i32 kick = since < 0x10000000u ? tape::sag(since, 0, amounts.sag_rate) : 0;
+            angle -= (kick * tape_depths.sag >> 15) * 21 >> 10;               // 201 (0.35 rad) at 180 cents
         }
         const i32 x = needle_x + static_cast<i32>(k) * needle_step;
         place(frame, node::needle + k, x, needle_y, unit, on ? needle_lit : needle_dim, fill_and_stroke);
@@ -305,7 +306,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     {
         const bool still = !amounts.wow && !amounts.flutter && !amounts.sag;
         const u32 key = (still ? 1u : tape::hash(now ^ static_cast<u32>(amounts.wow) << 1 ^
-                         static_cast<u32>(amounts.flutter) << 11 ^ static_cast<u32>(sag) << 21 ^
+                         static_cast<u32>(amounts.flutter) << 11 ^ static_cast<u32>(amounts.sag) << 21 ^
                          state.sag_last * 0x85ebca6bu ^ state.sag_before * 0xc2b2ae35u) | 2u);
         if (fresh || frame.paths[node::tape].key != key || frame.paths[node::tape + 1].key != key) {
             tape_ribbon(frame, state, amounts);

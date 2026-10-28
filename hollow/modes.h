@@ -106,14 +106,15 @@ const i32 kLevel[kBodies][kModes] = {
 };
 // Per family: how much faster high modes fade than the fundamental (Q15: 0
 // keeps one decay time for every mode, 1 one Q; kLog2Fade holds its effect), log2 of its ring time over
-// Ring's base (Q16), how strongly the vowel shapes it (Q15), and its loudness
-// trim (Q12), which evens out the families' levels.
+// Ring's base (Q16), how strongly the vowel shapes it (Q12: 4096 takes the
+// formant curve as it is, more deepens it), and its loudness trim (Q12),
+// which evens out the families' levels.
 struct Traits { i32 tilt, ring_log2, vowel, trim; };
 const Traits kTraits[kBodies] = {
-    {19661, -33723, 32767, 2048},
-    {8192, 0, 9830, 2700},
-    {16384, -15366, 14746, 2900},
-    {4915, 38336, 4915, 2900},
+    {19661, -33723, 5325, 2048},   // vox: the formants deepened by 1.3
+    {8192, 0, 3072, 2700},         // str: 75%
+    {16384, -15366, 3482, 2900},   // pipe: 85%
+    {4915, 38336, 2253, 2900},     // glass: 55%
 };
 
 // Where Body sits: the family below it and the fraction (Q15) toward the next.
@@ -246,7 +247,8 @@ const u32 kTopIncrement = 633045066u, kFadeIncrement = 486957743u;
 inline i32 mode_level(const Shape& shape, const Traits& traits, i32 vowel, u32 increment, i32 log2_increment) {
     if (increment >= kTopIncrement) return 0;
     const i32 curve = vowel_curve_log2(vowel, log2_increment);  // Q12
-    const i32 colour = 4096 + ((curve - 4096) * (traits.vowel >> 3) >> 12);  // Q12, weighted by the family
+    i32 colour = 4096 + ((curve - 4096) * traits.vowel >> 12);  // Q12, weighted by the family
+    if (colour < 256) colour = 256;                               // a deepened trough bottoms out at -24 dB
     i32 level = (shape.level * colour >> 12) * traits.trim >> 12;
     if (level > 32767) level = 32767;
     if (increment > kFadeIncrement)  // 30106 is 2^30 over the fade's width in 4096ths
@@ -261,16 +263,44 @@ inline i32 mode_level(i32 body, i32 vowel, u32 k, u32 increment) {
 inline u32 mode_increment(i32 body, u32 k, u32 increment) { return times(increment, body_mode(body, k).ratio); }
 
 // ---------------------------------------------------------------------------
-// Ring: the fundamental's ring time (to -60 dB) runs from 0.1 s to 20 s,
+// Ring: the fundamental's ring time (to -60 dB) runs from 0.04 s to 40 s,
 // exponentially, before the body scales it (vox 0.7x, pipe 0.85x, glass 1.5x).
 // log2 of the seconds, Q16.
 inline i32 ring_log2_seconds(i32 ring, i32 body) {
     const i32 r = ring < 0 ? 0 : ring > 32767 ? 32767 : ring;
-    return -217706 + static_cast<i32>((static_cast<u32>(r) * 62619u) >> 12) + body_traits(body).ring_log2;  // log2 200 = 62619 / 8192
+    return -304340 + static_cast<i32>((static_cast<u32>(r) * 81639u) >> 12) + body_traits(body).ring_log2;  // log2 1000 = 81639 / 8192
 }
 
-// Spread: the most any mode is detuned, in cents (0..15).
-const i32 kSpreadCents = 15;
+// Breath widens the body's resonances: with more breath its noise rings in
+// wider, breathier bands (the bow's tone stays pure; it only blooms sooner).
+// log2 of the widening, Q16: none at Breath 0, 4 octaves (16x) at full, by Breath squared.
+inline i32 breath_widen_log2(i32 breath) {
+    const i32 b = breath < 0 ? 0 : breath > 32767 ? 32767 : breath;
+    return (b * b >> 15) * 8;
+}
+
+// Spread: an ensemble. Every mode also sounds as a sharp copy and a flat copy,
+// each swaying slowly about its own detune, as a section of players does.
+// The copies' detune, in cents either side of the note (Q8, before the sway):
+// 30c * s * (0.4 + 0.6 s), so 4c at a quarter, 10.5c at half and 30c at full.
+const i32 kSpreadCents = 30;
+inline i32 spread_cents_q8(i32 spread) {
+    const i32 s = spread < 0 ? 0 : spread > 32767 ? 32767 : spread;
+    const i32 shape = s * (13107 + (19661 * s >> 15)) >> 15;  // Q15
+    return shape * (kSpreadCents * 256) >> 15;
+}
+// The copies' share of the sound (Q15), split evenly between them: rising
+// with Spread to 60% (0.4 centre, 0.3 each copy) from 30% of the way up, so
+// the note itself stays the strongest voice of the three.
+inline i32 spread_wet(i32 spread) {
+    const i32 s = spread < 0 ? 0 : spread > 32767 ? 32767 : spread;
+    return s * 2 > 19661 ? 19661 : s * 2;
+}
+// The sway: each copy's detune moves by up to 35% at a slow rate and 8% at a
+// quick one (a string machine's two ensemble LFOs). Rates in Q16 hertz; each
+// voice runs them up to 12% faster, so a chord's notes never sway together.
+const i32 kSwaySlow = 11469, kSwayQuick = 2621;            // Q15 of the detune
+const u32 kSwayRates[4] = {15073, 20316, 281805, 373555};  // 0.23, 0.31 Hz; 4.3, 5.7 Hz
 
 // ---------------------------------------------------------------------------
 // Captions, at most five characters, for the page header.
@@ -294,13 +324,18 @@ inline void vowel_caption(char* out, u32 capacity, i32 vowel) {
     const i32 v = vowel < 0 ? 0 : vowel > 32767 ? 32767 : vowel;
     write_text(out, capacity, names[(v * static_cast<i32>(kVowels - 1) + 16384) >> 15]);
 }
-// Ring: seconds, "0.4s" below ten seconds and "14s" above.
+// Ring: "28ms" below a tenth of a second, "0.4s" below ten seconds and "14s" above.
 inline void ring_caption(char* out, u32 capacity, i32 ring, i32 body) {
     // Tenths of a second, rounded: 2^(log2 s + log2 10) + 0.5.
     const u32 tenths = (exp2_q16(ring_log2_seconds(ring, body) + 217706) + 32768) >> 16;
     char text[6];
     u32 n = 0;
-    if (tenths >= 100) {
+    const u32 ms = (exp2_q16(ring_log2_seconds(ring, body) + 653117) + 32768) >> 16;  // log2 1000
+    if (ms < 100) {
+        text[n++] = static_cast<char>('0' + ms / 10);
+        text[n++] = static_cast<char>('0' + ms % 10);
+        text[n++] = 'm';
+    } else if (tenths >= 100) {
         const u32 s = (tenths + 5) / 10;
         if (s >= 10) text[n++] = static_cast<char>('0' + s / 10 % 10);
         text[n++] = static_cast<char>('0' + s % 10);
@@ -313,10 +348,9 @@ inline void ring_caption(char* out, u32 capacity, i32 ring, i32 body) {
     text[n] = 0;
     write_text(out, capacity, text);
 }
-// Spread: cents, "0c" to "15c".
+// Spread: the copies' detune either side, in cents, "0c" to "30c".
 inline void spread_caption(char* out, u32 capacity, i32 spread) {
-    const i32 s = spread < 0 ? 0 : spread > 32767 ? 32767 : spread;
-    const u32 cents = static_cast<u32>((s * kSpreadCents + 16384) >> 15);
+    const u32 cents = static_cast<u32>((spread_cents_q8(spread) + 128) >> 8);
     char text[4];
     u32 n = 0;
     if (cents >= 10) text[n++] = static_cast<char>('0' + cents / 10);

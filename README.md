@@ -1,13 +1,14 @@
-# OP-XY Pads
+# OP-XY Hexagon
 
-Three pad synths for the OP-XY, built with the
-[Open-XY SDK](https://github.com/etcetc000/open-xy): a polysynth heard through
-worn tape, an additive voice whose partials drift on their own, and a choir of
-tuned resonators that ring into each other. Each one draws its own screen.
+Synths for the OP-XY, built with the
+[Open-XY SDK](https://github.com/etcetc000/open-xy), for pads and leads. Three
+are here so far, of six: a polysynth heard through worn tape, an additive voice
+whose partials drift on their own, and a choir of tuned resonators that ring
+into each other. Each one draws its own screen.
 
 **Status: experimental.** All three pass the SDK's tests and compile for the
-OP-XY, but none has been played on the device yet, and their CPU cost has only
-been estimated on a computer.
+OP-XY. They have been played on the device, but their CPU cost has only been
+estimated on a computer.
 
 ## Wane
 
@@ -15,9 +16,9 @@ Detuned, morphing oscillators heard through one worn, shared cassette. Every
 note plays through the same tape, so a chord wows, flutters, drags and sags
 together. Age dulls the highs and adds saturation and hiss.
 
-| Clean | Worn, three notes held |
+| Clean | Attic, three notes held |
 | --- | --- |
-| ![Wane's screen with the Clean preset: a C60 cassette, a saw wave and eight unlit needles](docs/screens/wane-clean.png) | ![Wane's screen with wow and age up and three notes held: the tape ribbon wobbles, dust on the shell, three needles lit](docs/screens/wane-worn.png) |
+| ![Wane's screen with the Clean preset: a C60 cassette, a saw wave and eight unlit needles](docs/screens/wane-clean.png) | ![Wane's screen with the Attic preset and three notes held: the tape ribbon wobbles, dust on the shell, three needles lit](docs/screens/wane-worn.png) |
 
 **shape · detune · drift · warmth** / **wow · flutter · sag · age**.
 The screen is a C60 cassette drawn to real proportions. Its reels turn while
@@ -27,19 +28,21 @@ held note, and dust gathers with age. [More about Wane](wane/README.md).
 
 ## Bloom
 
-Additive pads of up to 24 sine partials that drift slowly in level and pitch
-on their own, so a held chord keeps changing without the OP-XY's LFOs. A
-shared, slow "weather" gust leans the whole chord brighter or darker together.
+Additive pads of 24 sine partials, shaped like an analogue wave and sung
+through vowel formants, that drift, smear and beat on their own: from a clean
+saw through PWM strings and choirs to glittering bells and breathy fog.
 
-| Clean, at rest | Lush, three notes held |
+| Init, at rest | Tape Choir, three notes held |
 | --- | --- |
-| ![Bloom's screen at rest: sixteen partials as grey stems falling away under a low sun](docs/screens/bloom-clean.png) | ![Bloom's screen with three notes held: twenty-two partials open into bright blossoms with halos, pollen drifting](docs/screens/bloom-lush.png) |
+| ![Bloom's screen at rest: twenty-four partials as grey stems falling away under a low sun](docs/screens/bloom-clean.png) | ![Bloom's screen with the Tape Choir preset and three notes held: partials open into doubled blossoms, two formant hills behind them](docs/screens/bloom-lush.png) |
 
-**tilt · odd · stretch · breath** / **partials · blur · haze · time**.
-The screen is a meadow of partials, drawn from the engine's own levels and
-pitches. Tilt slopes it and raises the sun, odd shortens the even stems,
-stretch spreads them, and blossoms open while notes are held. At `hold` the
-scene turns white and still. [More about Bloom](bloom/README.md).
+**tilt · shape · stretch · vowel** / **breath · blur · haze · time**.
+Shape runs from saw through square to a narrow pulse; vowel sings oo to ee;
+breath makes the partials, pulse width and vowel wander, at a pace time sets
+from 30 ms glitter to 30 s, or `hold`; blur smears partials into noise bands
+and haze doubles each into a beating pair. The screen is a meadow of partials
+drawn from the engine's own levels and pitches, with the vowel's formants as
+hills behind it and haze's pairs as twin blossoms. [More about Bloom](bloom/README.md).
 
 ## Hollow
 
@@ -70,9 +73,13 @@ All the notes of one machine share one state across tracks, so Wane's tape,
 Bloom's weather and Hollow's sympathy also join notes on different tracks that
 use the same machine.
 
-Each voice sits low enough that a chord of eight notes keeps headroom: most
-presets' eight-note chords peak between 0.4 and 0.8 of full scale, before the
+Each voice sits low enough that a chord of eight notes keeps headroom: every
+preset's eight-note chord peaks between 0.4 and 0.8 of full scale, before the
 OP-XY's own envelope, filter and effects.
+
+Spread on Hollow is a chorus within each voice. Synth voices are mono in the
+Open-XY SDK, so it can't pan voices apart; the OP-XY's own chorus on a send
+adds width.
 
 ## Building
 

@@ -1,8 +1,9 @@
 // Hollow's screen: a shelf of eight vessels in the body's shape. Each held
 // note lights one, left to right; it swells as the note blooms (slower for a
-// long ring) and rings on for Ring's time once released. Ripples rise from a
-// ringing vessel's mouth, rounder for oo and flatter for ee, doubled as Spread
-// detunes; breath motes drift up from it, glass glints, sympathy arcs join
+// long ring, sooner with more breath) and rings on for Ring's time once
+// released. Ripples rise from a ringing vessel's mouth, rounder for oo and
+// flatter for ee; with Spread a fainter copy rises either side, as wide as the
+// ensemble's detune and swaying with it; breath motes drift up, glass glints, sympathy arcs join
 // vessels that ring together, and the air line along the top stirs with all
 // of it. Integer arithmetic only; nothing moves while nothing rings.
 #include "display.h"
@@ -123,10 +124,12 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             if (state.energy[k] < 9830) state.energy[k] = 9830;
         }
         // A vessel swells toward full while its note is held (more slowly with
-        // more breath and a longer ring, as a high-Q body blooms) and rings out
-        // over Ring's time once released: ring time from the engine's mapping.
+        // a longer ring, as a high-Q body blooms; sooner with more breath, which
+        // widens the resonances) and rings out over Ring's time once released:
+        // ring time and widening from the engine's mapping.
         const u32 seconds = exp2_q16(ring_log2_seconds(ring, body));   // Q16
-        const u32 swell = 13107u + static_cast<u32>(26214 * breath >> 15) + (seconds / 6 < 163840u ? seconds / 6 : 163840u);
+        const u32 blooms = exp2_q16(ring_log2_seconds(ring, body) - breath_widen_log2(breath)) / 6;
+        const u32 swell = 13107u + (blooms < 163840u ? blooms : 163840u);
         const i32 rise = decay(dt, swell), fall = decay(dt, seconds / 3);
         for (u32 k = 0; k < 8; ++k) {
             i32& e = state.energy[k];
@@ -187,16 +190,20 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         }
 
     // Ripples rising from each ringing mouth: slower and wider the longer it
-    // rings, fading as they rise and brighter with Bright, doubled and offset
-    // as Spread detunes half the modes. A pool holds 29 of the 48 a full
-    // chord with spread could show: the faintest go first.
-    Ripple ripples[48];
+    // rings, fading as they rise and brighter with Bright. With Spread, the
+    // ensemble's sharp and flat copies rise as fainter ripples to the right and
+    // left, 1.5 px out at the least and 7.6 px at 30 cents, each swaying with
+    // its copy's detune at the engine's slow rates. A pool holds 29 of the 72
+    // a full chord with spread could show: the faintest go first.
+    Ripple ripples[72];
     u32 count = 0;
     const u32 rate = 16384u + static_cast<u32>(36045 * (32767 - ring) >> 15);   // Q16 cycles a second
     const i32 reach = 8192 + (14336 * ring >> 15);                              // Q10 px
     const i32 lift = 14746 + (18022 * bright >> 15);
-    const bool doubled = spread > lit_floor;
-    const i32 offset = spread * 3072 >> 15;                                       // up to 3 px each way
+    const i32 wet = spread_wet(spread);
+    const bool ensemble = wet > lit_floor;
+    const i32 width = 1536 + (spread_cents_q8(spread) * 13 >> 4);                // Q10 px
+    const i32 copy = 16384 + (wet * 10 >> 4);                                     // the copies' shade, Q15 of the centre's
     for (u32 k = 0; k < 8; ++k) {
         const i32 e = state.energy[k];
         if (e < lit_floor) continue;
@@ -207,11 +214,14 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             const i32 level = (static_cast<i32>(65536 - p) >> 1) * strength >> 15;
             const i32 y = (mouth - 6) * unit - static_cast<i32>(p >> 2);
             const i32 x = vessel_x(k) * unit;
-            if (doubled) {
-                ripples[count++] = Ripple{x - offset, y, scale, static_cast<u32>(level * 4 >> 15)};
-                ripples[count++] = Ripple{x + offset, y, scale, static_cast<u32>((level * 22938 >> 15) * 4 >> 15)};
-            } else {
-                ripples[count++] = Ripple{x, y, scale, static_cast<u32>(level * 4 >> 15)};
+            ripples[count++] = Ripple{x, y, scale, static_cast<u32>(level * 4 >> 15)};
+            if (ensemble) {
+                const u32 phase = hash(k + 31) << 16;
+                const i32 up = width + (width * (kSwaySlow * wave(tau * kSwayRates[0] + phase) >> 10) >> 15);
+                const i32 down = width + (width * (kSwaySlow * wave(tau * kSwayRates[1] + phase * 3) >> 10) >> 15);
+                const u32 shade = static_cast<u32>((level * copy >> 15) * 4 >> 15);
+                ripples[count++] = Ripple{x + up, y, scale, shade};
+                ripples[count++] = Ripple{x - down, y, scale, shade};
             }
         }
     }
