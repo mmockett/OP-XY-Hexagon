@@ -1,14 +1,18 @@
 # OP-XY Hexagon
 
-Synths for the OP-XY, built with the
-[Open-XY SDK](https://github.com/etcetc000/open-xy), for pads and leads. Three
-are here so far, of six: a polysynth heard through worn tape, an additive voice
-whose partials drift on their own, and a choir of tuned resonators that ring
-into each other. Each one draws its own screen.
+Six synths for the OP-XY, built with the
+[Open-XY SDK](https://github.com/etcetc000/open-xy). Each one starts from an
+analog or acoustic way of making sound (tape, drifting partials, resonating
+bodies, vector mixing, phase distortion, a west-coast oscillator and
+lowpass gate) and rebuilds it the OP-XY way: eight controls on two pages, the
+OP-XY's own envelopes, filter, LFOs and effects on top, and a screen that
+shows what the sound is doing. They are meant to be used together, with
+matched levels and a shared layout, so they layer and swap cleanly within a
+project.
 
-**Status: experimental.** All three pass the SDK's tests and compile for the
-OP-XY. They have been played on the device, but their CPU cost has only been
-estimated on a computer.
+**Status: experimental.** All six pass the SDK's tests and compile for the
+OP-XY. Wane, Bloom and Hollow have been played on the device; Orbit, Bend and
+Moth are new. CPU use has only been estimated, not measured on the device.
 
 ## The synths
 
@@ -19,61 +23,128 @@ estimated on a computer.
 
 ### Wane
 
-**Tape-worn analogue polysynth.** Two detuned, morphing oscillators per note
-(sine through triangle and saw to a narrow pulse), a sub and a breath of
-noise, all played through one shared, worn cassette: a chord wows, flutters,
-drags and sags together, and age dulls, saturates and hisses.
+A polysynth played through a worn cassette. Each note has two detuned
+oscillators (sine through saw to a narrow pulse), a sub-oscillator and a
+little noise. Every note goes through the same tape, so wow, flutter and sag
+move the whole chord together. Age dulls the top end and adds hiss and
+saturation.
 
-**Page 1:** shape · detune · drift · warmth<br>
-**Page 2:** wow · flutter · sag · age
+**Page 1:** shape, detune, drift, warmth<br>
+**Page 2:** wow, flutter, sag, age
 
-The screen is a C60 drawn to real proportions. The reels turn and the tape
-past the head moves with the same wow and flutter the audio plays; a needle
-lights for each note and kicks back with sag. *Above: Attic, four notes
-joining, then wow swept up.* [More about Wane](wane/README.md)
+The screen is a C60 cassette. Its reels turn and its tape moves with the wow
+and flutter you hear, and a needle lights for each held note. Age leaves the
+cassette scratched, dusty and peeling. *Shown: Attic, four notes, then wow
+turned up.*
+[More about Wane](wane/README.md)
 
 </td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screens/bloom.gif" width="480" alt="Bloom's screen: a meadow of partials under a low sun, blossoms opening as a chord starts, formant hills sliding across as the vowel sweeps, then twin blossoms parting as haze rises"></td>
+<td width="50%"><img src="docs/screens/bloom.gif" width="480" alt="Bloom's screen: a field of partials under a low sun, blossoms opening as a chord starts, formant hills sliding across as the vowel sweeps, then twin blossoms parting as haze rises"></td>
 <td>
 
 ### Bloom
 
-**Breathing additive pads.** Twenty-four sine partials, shaped like an
-analogue wave and sung through vowel formants, that drift, smear and beat on
-their own: from a clean saw through PWM strings and choirs to glittering
-bells and breathy fog.
+An additive synth built from 24 sine partials. Shape sets the wave they add
+up to (saw, square or a narrow pulse) and vowel adds formants from oo to ee.
+Breath, blur and haze make the partials drift, smear into noise and beat
+against detuned copies; time sets how fast, from a fast shimmer to slow
+change, or frozen.
 
-**Page 1:** tilt · shape · stretch · vowel<br>
-**Page 2:** breath · blur · haze · time
+**Page 1:** tilt, shape, stretch, vowel<br>
+**Page 2:** breath, blur, haze, time
 
-The screen is a meadow of partials drawn from the engine's own levels and
-pitches, the vowel's formants as hills behind it and haze's detuned pairs as
-twin blossoms. *Above: Tape Choir, a chord held while the vowel sweeps oo to
-ee and haze rises.* [More about Bloom](bloom/README.md)
+The screen draws each partial as a stem at its pitch and level, with the
+vowel's formants as hills behind them. *Shown: Tape Choir, vowel swept from oo
+to ee, then haze turned up.* [More about Bloom](bloom/README.md)
 
 </td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screens/hollow.gif" width="480" alt="Hollow's screen: a shelf of eight vessels, four lighting as notes start with ripples rising and arcs joining them, the vessels morphing from urns through string bodies and organ pipes to wine glasses as body sweeps"></td>
+<td width="50%"><img src="docs/screens/hollow.gif" width="480" alt="Hollow's screen, an engraved acoustics plate: the body in section with its standing wave drawn inside, beside a row of Helmholtz resonators under flames, the body changing from a voice through a violin and organ pipes to wine glasses as body sweeps"></td>
 <td>
 
 ### Hollow
 
-**Resonator choir.** Breath and a soft bow drive tuned resonant bodies that
-morph from a sung vowel through a string and a stopped pipe to glass. Held
-notes ring sympathetically in one another, and spread turns every resonance
-into a swaying ensemble.
+A blown and bowed resonator. Breath and a soft bow drive eight tuned
+resonances shaped like a voice, a string instrument's body, an organ pipe or
+a glass. Notes held together resonate with each other (sympathy), and spread
+adds slowly drifting sharp and flat copies of each resonance, like an
+ensemble.
 
-**Page 1:** breath · body · bright · ring<br>
-**Page 2:** air · vowel · spread · sympathy
+**Page 1:** breath, body, bright, ring<br>
+**Page 2:** air, vowel, spread, sympathy
 
-The screen is a shelf of eight vessels in the body's shape. Each note lights
-one, which rings out for the ring time shown; ripples rise in the vowel's
-shape, spread doubles them and arcs join notes as sympathy rises. *Above:
-Ensemble, four notes joining, then body swept from voice to glass.*
-[More about Hollow](hollow/README.md)
+The screen is a 19th-century acoustics plate: the body in section (a voice,
+a violin, an organ pipe or wine glasses) with its standing wave drawn inside,
+and a row of resonators whose flames burn as high as each resonance rings.
+*Shown: Ensemble, four notes, then body swept from voice to glass.* [More about Hollow](hollow/README.md)
+
+</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screens/orbit.gif" width="480" alt="Orbit's screen: a diamond with a wave at each corner, points tracing a figure 8 inside it as notes start, the mixed wave drawn as stepped bars on a scope beside it"></td>
+<td>
+
+### Orbit
+
+A vector synth, after the Prophet VS. Four single-cycle waves from one of
+eight banks sit at the corners of a diamond, and a point inside it sets the
+mix. The point travels a path around a centre (circle, ellipse, figure 8 or
+steps from corner to corner), so the sound moves by itself. Grit plays it
+through an old DAC, down to 10 kHz and 8 bits.
+
+**Page 1:** bank, x, y, orbit<br>
+**Page 2:** rate, path, grit, detune
+
+The screen is the VS's joystick field: the corner waves, each note's point on
+its path with a trail, and the mixed wave on a scope. *Shown: Dusty, three
+notes, then orbit widened and path turned to steps.*
+[More about Orbit](orbit/README.md)
+
+</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screens/bend.gif" width="480" alt="Bend's screen: a phase-map plot beside a dot-matrix waveform, the map bending into steeper teeth as bend rises, small dials below for each note"></td>
+<td>
+
+### Bend
+
+Phase distortion, after the Casio CZ. Each note plays two lines that read a
+sine through a bent phase map. Bend straightens or bends the map, from a pure
+sine to saw, square, pulse or one of three resonant waves that sweep like a
+filter. Each note starts brighter and settles, so the resonant waves wah.
+Line 2 can sit at an interval, detuned or ring-modulated.
+
+**Page 1:** wave, bend, detune, ring<br>
+**Page 2:** interval, warp, noise, lofi
+
+The screen is drawn like the CZ manual: the phase map beside the waveform it
+makes, a dial per note showing its bend, and the eight waves. *Shown: Haze,
+three notes, then bend turned up.* [More about Bend](bend/README.md)
+
+</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screens/moth.gif" width="480" alt="Moth's screen: a moth whose wing edges are the folded waveform, beating and lighting up with each plucked note, the edges growing more scalloped as fold rises"></td>
+<td>
+
+### Moth
+
+A west-coast voice, after Buchla. A sine is frequency-modulated, folded, then
+sent through a vactrol lowpass gate that opens on each note and closes slowly.
+With strike up, every note is a pluck, a mallet or a bongo; with strike at 0
+it holds like a soft pad. Glow sets how slowly the gate closes, and mode
+whether it filters, fades or both.
+
+**Page 1:** fold, fm, ratio, strike<br>
+**Page 2:** glow, bias, mode, drift
+
+The screen is a moth on a specimen plate. Its wing edges are the folded
+waveform, and its body is the vactrol's LED and photocell, glowing with each
+strike. *Shown: Ping, a plucked line, then fold turned up.*
+[More about Moth](moth/README.md)
 
 </td>
 </tr>
@@ -81,24 +152,20 @@ Ensemble, four notes joining, then body swept from voice to glass.*
 
 ## Playing them
 
-Choose Wane, Bloom or Hollow on an instrument track. Each has eight controls on
-two pages: press any encoder to switch pages, and Shift + turn makes fine
-steps. The controls that colour the sound (Wane's tape, Bloom's breath,
-Hollow's sympathy) start at zero; each machine's presets, in its
-`definition.json`, turn them up. The OP-XY's own
-envelopes, LFOs, filter and effects apply as for any instrument.
+Choose a synth on an instrument track. Press any encoder to switch between
+the two pages; Shift + turn makes fine steps. Controls that colour the sound
+start at zero, and each synth's presets show what they do.
 
-All the notes of one machine share one state across tracks, so Wane's tape,
-Bloom's weather and Hollow's sympathy also join notes on different tracks that
-use the same machine.
+All notes of one synth share some state across tracks: Wane's tape, Bloom's
+slow drift and Hollow's sympathy. Two tracks using the same synth will move
+together.
 
-Each voice sits low enough that a chord of eight notes keeps headroom: every
-preset's eight-note chord peaks between 0.4 and 0.8 of full scale, before the
-OP-XY's own envelope, filter and effects.
+Levels are matched across the set. An eight-note chord on any preset peaks
+between 0.4 and 0.8 of full scale, leaving room for the OP-XY's own filter and
+effects.
 
-Spread on Hollow is a chorus within each voice. Synth voices are mono in the
-Open-XY SDK, so it can't pan voices apart; the OP-XY's own chorus on a send
-adds width.
+Synth voices are mono in the Open-XY SDK, so Hollow's spread thickens each
+voice rather than panning. For width, send it to the OP-XY's chorus.
 
 ## Building
 
@@ -108,8 +175,8 @@ this repository as `../open-xy`, fetch its toolchain
 (`python sdk.py toolchain fetch`), then:
 
 ```sh
-python ../open-xy/sdk.py test --machine wane --machine bloom --machine hollow
-python ../open-xy/sdk.py build --machine wane --machine bloom --machine hollow --stock-os <your stock-1.2.1>/os.ldr --layout <your last build's layout.json> --out <folder outside this checkout>
+python ../open-xy/sdk.py test --machine wane --machine bloom --machine hollow --machine orbit --machine bend --machine moth
+python ../open-xy/sdk.py build --machine wane --machine bloom --machine hollow --machine orbit --machine bend --machine moth --stock-os <your stock-1.2.1>/os.ldr --layout <your last build's layout.json> --out <folder outside this checkout>
 ```
 
 Then install the build's `candidate/` files as the SDK's
@@ -124,15 +191,18 @@ They ask for these numbers; a build gives them out when they're free:
 | Wane | 59 | 107 |
 | Bloom | 60 | 108 |
 | Hollow | 61 | 109 |
+| Orbit | 37 | 110 |
+| Bend | 38 | 111 |
+| Moth | 39 | 112 |
 
 ## Develop
 
-Each machine's folder holds its engine (`engine.cpp` and its headers), its
-screen (`display.cpp`, with the artwork `panel.svg.fragment` written by
-`tools/make_panel.py`) and its sound tests (`tests/sound.cpp`, run by
-`sdk.py test`). The animations in `docs/screens` are the machines' real
-display code, frame by frame, run through the SDK's browser preview along a
-scripted performance, with Helvetica Neue standing in for the OP-XY's Univers.
+Each synth's folder has its engine (`engine.cpp` and headers), its screen
+(`display.cpp`, with artwork in `panel.svg.fragment` generated by
+`tools/make_panel.py`) and its tests (`tests/sound.cpp`, run by `sdk.py
+test`). The animations in `docs/screens` are rendered from the real display
+code through the SDK's browser preview, with Helvetica Neue in place of the
+OP-XY's Univers.
 
 ## Licence
 

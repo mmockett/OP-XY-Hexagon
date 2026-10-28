@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "id": "bend",
+  "name": "Bend",
+  "parameters": [
+    {
+      "id": "wave",
+      "label": "Wave",
+      "default": 0.0625,
+      "mapping": {
+        "kind": "enum",
+        "labels": [
+          "saw",
+          "sq",
+          "pulse",
+          "dsine",
+          "sawpl",
+          "reso1",
+          "reso2",
+          "reso3"
+        ]
+      },
+      "display": "enum"
+    },
+    {
+      "id": "bend",
+      "label": "Bend",
+      "default": 0.25,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "detune",
+      "label": "Detune",
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 40,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "ring",
+      "label": "Ring",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "interval",
+      "label": "Interval",
+      "control": 0,
+      "default": 0.1875,
+      "mapping": {
+        "kind": "enum",
+        "labels": [
+          "-oct",
+          "uni",
+          "4th",
+          "5th",
+          "m7",
+          "oct",
+          "oct+5",
+          "2oct"
+        ]
+      },
+      "display": "enum"
+    },
+    {
+      "id": "warp",
+      "label": "Warp",
+      "control": 1,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "noise",
+      "label": "Noise",
+      "control": 2,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "lofi",
+      "label": "Lofi",
+      "control": 3,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    }
+  ],
+  "presets": {
+    "Clean": {
+      "wave": 0.0625,
+      "bend": 0.25,
+      "detune": 0,
+      "ring": 0,
+      "interval": 0.1875,
+      "warp": 0,
+      "noise": 0,
+      "lofi": 0
+    },
+    "Haze": {
+      "wave": 0.8125,
+      "bend": 0.35,
+      "detune": 0.5,
+      "ring": 0.2,
+      "interval": 0.6875,
+      "warp": 0.1,
+      "noise": 0.15,
+      "lofi": 0.3
+    },
+    "Brass 101": {
+      "wave": 0.0625,
+      "bend": 0.45,
+      "detune": 0.35,
+      "ring": 0,
+      "interval": 0.1875,
+      "warp": 0,
+      "noise": 0,
+      "lofi": 0
+    },
+    "Wah Bass": {
+      "wave": 0.6875,
+      "bend": 0.2,
+      "detune": 0.15,
+      "ring": 0,
+      "interval": 0.0625,
+      "warp": 0,
+      "noise": 0,
+      "lofi": 0
+    },
+    "Glass Ring": {
+      "wave": 0.4375,
+      "bend": 0.55,
+      "detune": 0.2,
+      "ring": 0.6,
+      "interval": 0.8125,
+      "warp": 0,
+      "noise": 0,
+      "lofi": 0
+    },
+    "Sync Lead": {
+      "wave": 0.1875,
+      "bend": 0.5,
+      "detune": 0.25,
+      "ring": 0,
+      "interval": 0.4375,
+      "warp": 0.6,
+      "noise": 0,
+      "lofi": 0
+    },
+    "Breath": {
+      "wave": 0.3125,
+      "bend": 0.3,
+      "detune": 0.4,
+      "ring": 0,
+      "interval": 0.6875,
+      "warp": 0,
+      "noise": 0.45,
+      "lofi": 0
+    },
+    "Toy DAC": {
+      "wave": 0.5625,
+      "bend": 0.6,
+      "detune": 0.1,
+      "ring": 0.3,
+      "interval": 0.6875,
+      "warp": 0.2,
+      "noise": 0,
+      "lofi": 0.8
+    }
+  },
+  "resources": {
+    "voiceBytes": 140,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 0,
+    "outputPeakQ31": 402653184,
+    "display": {
+      "stateBytes": 652,
+      "stateAlignment": 4,
+      "paths": 2,
+      "points": 64,
+      "nodes": 256,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

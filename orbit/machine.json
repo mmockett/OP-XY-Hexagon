@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "sdk": "1.4",
+  "kind": "synth",
+  "description": "A vector synth: four vintage digital waves at a diamond's corners, mixed by a point that orbits a centre, through an old DAC's grit.",
+  "identity": {
+    "engine": 37,
+    "page": 110
+  }
+}

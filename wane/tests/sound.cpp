@@ -605,7 +605,50 @@ double ribbon_swing(double tape_controls, bool* valid, bool* distinct) {
     }
     return high - low;
 }
+// Age's wear at one age: how many pieces show, and whether every piece stays
+// put while notes start, are held and the tape runs.
+unsigned wear_shown(double age, bool* still) {
+    static wane::DisplayState state;
+    static wane::Frame frame;
+    std::memset(&state, 0, sizeof state);
+    std::memset(&frame, 0, sizeof frame);
+    wane::display_reset(state);
+    opxy::draw::Input input;
+    std::memset(&input, 0, sizeof input);
+    for (unsigned k = 4; k < 7; ++k) input.slots[k] = word(1);
+    input.slots[wane::controls::AGE] = word(age);
+    input.track = 1;
+    i32 first[2 * wane::node::wears];
+    unsigned shown = 0;
+    for (unsigned f = 0; f < 600; ++f) {
+        input.elapsed = 17;
+        if (f % 20 == 5) { ++input.note_serial; input.held_notes = 1 + (f / 20) % 8; }
+        wane::display(state, input, frame);
+        for (unsigned k = 0; k < wane::node::wears; ++k) {
+            const opxy::draw::Node& n = frame.nodes[wane::node::wear + k];
+            if (!f) {
+                first[2 * k] = n.x;
+                first[2 * k + 1] = n.y;
+                shown += n.x != opxy::draw::hidden_x * opxy::draw::unit;
+            }
+            *still = *still && n.x == first[2 * k] && n.y == first[2 * k + 1] && n.scale == opxy::draw::unit &&
+                     n.cos == opxy::draw::unit && n.sin == 0;
+        }
+    }
+    return shown;
+}
 void screen() {
+    // Age: no wear when new, more at every quarter, and all of it still.
+    bool resting = true, more = true;
+    unsigned counts[5];
+    for (unsigned q = 0; q < 5; ++q) {
+        counts[q] = wear_shown(0.25 * q, &resting);
+        more = more && (q ? counts[q] > counts[q - 1] : counts[q] == 0);
+    }
+    std::printf("screen: age shows %u, %u, %u, %u and %u pieces of wear at 0, 25, 50, 75 and 100%%\n",
+                counts[0], counts[1], counts[2], counts[3], counts[4]);
+    check(more, "screen: age's wear does not grow from none");
+    check(resting, "screen: age's wear moves");
     bool valid = true, distinct = true;
     const double still = ribbon_swing(0, &valid, &distinct), half_way = ribbon_swing(0.5, &valid, &distinct);
     const double most = ribbon_swing(1, &valid, &distinct);

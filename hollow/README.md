@@ -114,39 +114,70 @@ tracks also ring into each other.
 
 ## Screen
 
-A shelf of eight vessels in the body's shape: an urn (vox), a tall string
-body with its peg (str), an organ pipe with its mouth (pipe) or a wine glass
-(glass), whichever family Body is nearest. Each held note lights one vessel,
-left to right. A lit vessel swells as its note blooms, more slowly with a
-longer ring and sooner with more breath (which widens the resonances), and
-glows brighter as it fills. Once released, it
-rings out over Ring's time, as the engine maps it (`ring_log2_seconds`).
+An engraved plate of acoustics, in the manner of Helmholtz and Tyndall.
 
-From each ringing mouth:
+Fig. 1 is the body Body is nearest, drawn in section to real proportion:
 
-- Ripples rise and fade. They are slower and wider the longer the ring, and
-  brighter with Bright. Vowel sets their shape, round for oo and flat for ee.
-  With Spread, the ensemble's sharp and flat copies rise as fainter ripples to
-  the right and left, from 1.5 px out up to 7.6 px at 30 cents, each swaying
-  with its copy's detune at the engine's slow rates.
-- Breath motes drift up: none to three, by Breath.
-- On glass, glints catch on the bowl: none to two, by Bright.
+- vox: the organs of voice, cut down the middle: the nasal cavity and its
+  conchae, the palate and raised velum, the tongue, the pharynx, the larynx
+  with its folds, and the cervical spine behind. The airways are cut out of
+  the tissue in black.
+- str: a violin from the front (593 mm long at 0.47 px/mm), with its
+  purfling, arching, f-holes, bridge, strings, pegs and scroll, and the bow
+  across the strings.
+- pipe: a stopped wooden pipe in section (walls hatched as cut wood, the
+  block, cap, flue, mouth and leathered stopper), the same pipe from the
+  front, and a smaller pipe a fifth above, on the wind chest.
+- glass: two wine glasses with a little water, the second smaller.
 
-Sympathy arcs join vessels that ring together, within three of each other,
-and pulse slowly. They brighten as both vessels ring and as Sympathy rises.
-The air line along the top stirs with everything that sounds, more with Air.
-The two-page header shows each body's family, the ring time as the body
-scales it, the nearest vowel and the spread in cents.
+Inside it the body's standing wave is drawn as one bright line: along the
+vocal tract from glottis to lips, along the D string from nut to bridge,
+up the pipe's air column from mouth to stopper, or round the glass's rim.
+It is the sum of the engine's eight modes, each in its own shape (the
+string's harmonics, the stopped pipe's odd quarter-waves, the rim's bending
+modes with two, three, four, five and six waves round it) and each as strong
+as the engine makes it for an A3: the body's level coloured by the vowel's
+formants (`mode_level`), tilted by Bright and shared between the bow and
+the breath as `engine.cpp` drives them. Each mode turns at a slowed rate in
+its true ratio, so the picture is a stroboscope of the sound: a bright,
+jagged wave with Bright up, a smooth one with it down, a different shape for
+each vowel, the glass's beating pairs slowly turning its rim.
 
-The screen cannot hear the voices, so it lights vessels by the held-note
-count. A note played and released between frames still lights the next
-vessel briefly. When nothing rings the screen is still. Reduced motion, a
-reset and a track change show the end state at once.
+Fig. 2 is Koenig's analyser: a Helmholtz resonator for each mode, hung from
+its capsule under a rail of burners. Each resonator is as large as its
+mode's pitch needs (its radius by the ratio to the -2/3, as for a fixed
+neck), so Body visibly retunes the set: harmonic for vox and str, the odd
+harmonics' fast-shrinking row for pipe, matched pairs for glass. Each
+flame burns as high as its mode rings, a pilot flame when it is still.
 
-`tools/make_panel.py` writes `panel.svg.fragment` with the node numbers
-`display.h` names. It uses 253 nodes and 2 paths of 64 points. Each vowel
-has its own pool of 29 ripples, because nodes scale only uniformly. A full
-chord with Spread up could show 72, so the faintest are left out.
+What each control does:
+
+| Control | On screen |
+| --- | --- |
+| breath | The bow's steady drive gives way to the breath's noise: each mode's part of the wave wanders, faster as the resonances widen; motes of breath leave the lips, the bow, the pipe's mouth or the rim (none to 24, by the breath's share); the flames flicker; the pipes' wind sheets flutter; and the bow on the violin dims once its share falls below half (Breath above about 70). |
+| body | Which body is drawn; the modes' shapes and rates; the resonators' sizes (between families they morph with the engine's ratios). |
+| bright | The modes' levels by the bow's slope and the breath's low-pass: a smooth wave and one tall flame closed, a jagged wave and a row of flames open. |
+| ring | How fast each mode blooms while a note is held and how long it rings out after (each mode by its own ring time, high modes first, from `ring_log2_seconds` and the body's fade), and how slowly the breath's part wanders. |
+| air | Streaks of hiss spraying from the same place, faster than the breath (none to 16). |
+| vowel | The formants: the levels of every body's modes, so the wave's shape and the flames. On vox the tongue moves (high and back for oo, low for ah, high and front for ee), the lips round or part, and the tract over the tongue follows it. |
+| spread | The ensemble: two fainter copies of the wave either side (1 px out and 4 px at 30 cents on the string and pipe, closer in the vocal tract, and only a hair off the glass's rim, where the wave itself stays on the rim), each beating ahead of or behind the note at a rate set by the detune and swaying at the engine's slow rates. |
+| sympathy | With two or more notes held, the partner rings: the nasal cavity, the open G string, the neighbouring pipe's air column or the second glass's rim, blooming slowly and ringing up to 2.8 times longer, louder with Sympathy and with more notes. |
+
+Notes: the screen cannot hear the voices, so the modes bloom while any
+note is held and ring out once all are released; a note played and released
+between frames still rings briefly. The clock runs only while something
+rings, slowing as it fades, so the screen is still when nothing sounds.
+Reduced motion, a reset and a track change show the end state at once (a
+still picture of the wave). Controls ease within about 0.15 s.
+
+`tools/make_panel.py` draws the artwork from the bodies' real proportions
+and writes `panel.svg.fragment` (about 60 KB) and the generated block of
+`display.h` (node numbers, the strands' rest lines and the modes' shapes).
+The frame uses 4 outlines of 64 points (the wave, the partner and the
+ensemble's two copies), 207 nodes including the header's 8, all 16 text
+slots for the two-page header, and 16 palette entries. Figure nodes keep
+their authored paint; the palette shades the strands, flames, resonators,
+motes, streaks and bow.
 
 ## For the screen
 

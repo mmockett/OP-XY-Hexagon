@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "id": "orbit",
+  "name": "Orbit",
+  "parameters": [
+    {
+      "id": "bank",
+      "label": "Bank",
+      "default": 0.0625,
+      "mapping": {
+        "kind": "enum",
+        "labels": ["glass", "vox", "organ", "reed", "bell", "pluck", "wire", "dusk"]
+      },
+      "display": "enum"
+    },
+    {
+      "id": "x",
+      "label": "X",
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": -1,
+        "maximum": 1
+      },
+      "display": "bipolar"
+    },
+    {
+      "id": "y",
+      "label": "Y",
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": -1,
+        "maximum": 1
+      },
+      "display": "bipolar"
+    },
+    {
+      "id": "orbit",
+      "label": "Orbit",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "rate",
+      "label": "Rate",
+      "control": 0,
+      "default": 0.5,
+      "mapping": {
+        "kind": "exponential",
+        "minimum": 0.02,
+        "maximum": 8
+      },
+      "display": "ratio"
+    },
+    {
+      "id": "path",
+      "label": "Path",
+      "control": 1,
+      "default": 0,
+      "mapping": {
+        "kind": "anchors",
+        "values": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "display": "ratio"
+    },
+    {
+      "id": "grit",
+      "label": "Grit",
+      "control": 2,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "detune",
+      "label": "Detune",
+      "control": 3,
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 30,
+        "exponent": 2
+      },
+      "display": "ratio"
+    }
+  ],
+  "presets": {
+    "Init": {
+      "bank": 0.0625, "x": 0.5, "y": 0.5, "orbit": 0,
+      "rate": 0.5, "path": 0, "grit": 0, "detune": 0
+    },
+    "Clean": {
+      "bank": 0.0625, "x": 0.5, "y": 0.5, "orbit": 0.45,
+      "rate": 0.5, "path": 0, "grit": 0, "detune": 0
+    },
+    "Dusty": {
+      "bank": 0.1875, "x": 0.4, "y": 0.58, "orbit": 0.7,
+      "rate": 0.62, "path": 0.67, "grit": 0.55, "detune": 0.55
+    },
+    "Drawbars": {
+      "bank": 0.3125, "x": 0.55, "y": 0.45, "orbit": 0.35,
+      "rate": 0.35, "path": 0.33, "grit": 0, "detune": 0.45
+    },
+    "Chimes": {
+      "bank": 0.5625, "x": 0.5, "y": 0.6, "orbit": 0.6,
+      "rate": 0.42, "path": 0, "grit": 0.2, "detune": 0.3
+    },
+    "Wave Seq": {
+      "bank": 0.6875, "x": 0.5, "y": 0.5, "orbit": 1,
+      "rate": 0.78, "path": 1, "grit": 0.35, "detune": 0.2
+    },
+    "Old DAC": {
+      "bank": 0.8125, "x": 0.35, "y": 0.6, "orbit": 0.55,
+      "rate": 0.3, "path": 0.2, "grit": 0.9, "detune": 0.35
+    },
+    "Dusk Pad": {
+      "bank": 0.9375, "x": 0.5, "y": 0.5, "orbit": 0.8,
+      "rate": 0.2, "path": 0.67, "grit": 0, "detune": 0.7
+    }
+  },
+  "resources": {
+    "voiceBytes": 312,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 0,
+    "outputPeakQ31": 436000000,
+    "display": {
+      "stateBytes": 232,
+      "stateAlignment": 4,
+      "paths": 3,
+      "points": 64,
+      "nodes": 252,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

@@ -34,7 +34,8 @@ inline const char* shape_name(opxy::i32 control) {
 // needle per held note (README, "Screen"; artwork from tools/make_panel.py).
 // The tape runs only while notes are held: its reels turn, its ribbon carries
 // wow, flutter, drags and sag past the head, the detuned twin slides along the
-// oscillator and the needles sway with drift. Integer arithmetic only.
+// oscillator and the needles sway with drift. Age wears the cassette, still.
+// Integer arithmetic only.
 namespace screen {
 using namespace opxy::draw;
 using opxy::i32;
@@ -66,6 +67,24 @@ const u32 sway_rate_2[8] = {2589680, 2476021, 2819492, 2775483, 2620226, 2632494
 const u32 hub_area = 7503217, tape_area = 7694;
 const u32 progress_start = 22938, wound_most = 41607659;   // the board starts 35% through; at most 97%
 const u32 long_ago = 0x40000000u;
+// Age's wear, in the order make_panel.py draws it (its --tables): each piece
+// shows while wear_from <= age < wear_until, age in percent as the header shows
+// it. Most stay once shown; the label's two peeling corners are drawn in stages
+// that replace one another.
+const opxy::u8 wear_from[node::wears] = {
+    46, 58, 68, 76, 84, 90, 95, 99, 52, 82, 52, 76, 68, 88, 74, 86, 54, 72, 88, 96,
+    78, 78, 92, 16, 16, 16, 16, 38, 38, 38, 38, 60, 60, 60, 60, 82, 82, 82, 82, 66,
+    66, 66, 66, 88, 88, 88, 88, 24, 44, 63, 80, 94, 12, 34, 50, 58, 70, 76, 86, 92,
+    42, 64, 74, 82, 56, 88, 97, 4, 7, 9, 12, 14, 17, 20, 22, 25, 28, 30, 33, 35,
+    38, 41, 43, 46, 48, 51, 54, 56, 59, 61, 64, 67, 69, 72, 74, 77, 80, 82, 85, 88,
+    90, 93, 95, 40, 55, 68, 78, 86, 95};
+const opxy::u8 wear_until[node::wears] = {
+    101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101,
+    101, 101, 101, 38, 38, 38, 38, 60, 60, 60, 60, 82, 82, 82, 82, 101, 101, 101, 101, 88,
+    88, 88, 88, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101,
+    101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101,
+    101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101, 101,
+    101, 101, 101, 101, 101, 101, 101, 101, 101};
 
 inline i32 amount(i32 control) { return control < 0 ? 0 : control >> 16; }   // Q15
 
@@ -315,13 +334,13 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         for (u32 h = 0; h < 2; ++h) place(frame, node::tape + h, tape_x[h], tape_y, unit, tape_bright, stroke);
     }
 
-    // Dust, more with age, shivering with hiss while notes play.
-    const u32 specks = static_cast<u32>(age * 16 + 16384) >> 15, tick = now / 83u;   // 0.12 s
-    for (u32 k = 0; k < node::specks; ++k) {
-        if (k >= specks) { hide(frame, node::dust + k); continue; }
-        const i32 jx = lit && moving ? tape::random(tape::seed ^ 0xd057u, tick * 31u + k) * 975 >> 15 : 0;
-        const i32 jy = lit && moving ? tape::random(tape::seed ^ 0xd058u, tick * 17u + k) * 975 >> 15 : 0;
-        place(frame, node::dust + k, jx, jy, unit, 0, keep);
+    // Age wears the cassette, still: dust and grime, scratches, scuffed and
+    // chipped edges, the label's print rubbed and torn and its corners peeling.
+    // Each piece is authored in place and shows or hides at once as age turns.
+    const u32 percent = input.slots[AGE] < 0 ? 0 : ((static_cast<u32>(input.slots[AGE]) >> 10) * 100 + (1u << 20)) >> 21;
+    for (u32 k = 0; k < node::wears; ++k) {
+        if (wear_from[k] <= percent && percent < wear_until[k]) place(frame, node::wear + k, 0, 0, unit, 0, keep);
+        else hide(frame, node::wear + k);
     }
 }
 }

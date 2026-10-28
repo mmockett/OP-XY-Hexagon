@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "sdk": "1.4",
+  "kind": "synth",
+  "description": "Phase distortion after the Casio CZ: two lines read a cosine through bent phase maps, from sine to saw, pulse and resonant sweeps.",
+  "identity": {
+    "engine": 38,
+    "page": 111
+  }
+}

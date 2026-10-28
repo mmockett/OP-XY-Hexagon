@@ -4,7 +4,7 @@
 
 namespace wane {
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
-using Frame = opxy::draw::Frame<4, 64, 79, 16, 16>;
+using Frame = opxy::draw::Frame<4, 64, 172, 16, 16>;
 
 // Nodes, as tools/make_panel.py writes them into panel.svg.fragment.
 namespace node {
@@ -15,7 +15,7 @@ const opxy::u32 twin = 0, wave = 1, tape = 2,   // the outlines: the oscillator'
                 tooth = 30, teeth = 7,          // per hub: six spline teeth, then the tape's clamp
                 stripe = 44,                    // the label's three stripes
                 needle = 47, pivot = 55,        // eight needles and their pivots
-                dust = 63, specks = 16;
+                wear = 63, wears = 109;         // age's wear: the label's, the window's, the shell's, then dust
 }
 
 struct DisplayState {

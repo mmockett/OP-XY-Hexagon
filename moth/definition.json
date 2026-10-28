@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "id": "moth",
+  "name": "Moth",
+  "parameters": [
+    {
+      "id": "fold",
+      "label": "Fold",
+      "default": 0.2,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "fm",
+      "label": "FM",
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 4,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "ratio",
+      "label": "Ratio",
+      "default": 0.0938,
+      "mapping": {
+        "kind": "enum",
+        "labels": [
+          "0.50",
+          "1.00",
+          "1.01",
+          "1.41",
+          "1.50",
+          "2.00",
+          "2.02",
+          "2.50",
+          "2.76",
+          "3.00",
+          "3.50",
+          "4.00",
+          "4.70",
+          "5.00",
+          "6.00",
+          "7.00"
+        ]
+      },
+      "display": "enum"
+    },
+    {
+      "id": "strike",
+      "label": "Strike",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "glow",
+      "label": "Glow",
+      "control": 0,
+      "default": 0.7,
+      "mapping": {
+        "kind": "exponential",
+        "minimum": 40,
+        "maximum": 6000
+      },
+      "display": "duration"
+    },
+    {
+      "id": "bias",
+      "label": "Bias",
+      "control": 1,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "mode",
+      "label": "Mode",
+      "control": 2,
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "drift",
+      "label": "Drift",
+      "control": 3,
+      "default": 0,
+      "mapping": {
+        "kind": "anchors",
+        "values": [
+          0,
+          3.906,
+          9.375,
+          16.406,
+          25
+        ]
+      },
+      "display": "percent"
+    }
+  ],
+  "presets": {
+    "Clean": {
+      "fold": 0.2,
+      "fm": 0,
+      "ratio": 0.0938,
+      "strike": 0,
+      "glow": 0.7,
+      "bias": 0,
+      "mode": 0.5,
+      "drift": 0
+    },
+    "Ping": {
+      "fold": 0.55,
+      "fm": 0.3,
+      "ratio": 0.6562,
+      "strike": 0.85,
+      "glow": 0.3,
+      "bias": 0.2,
+      "mode": 0.5,
+      "drift": 0.25
+    },
+    "Bongo": {
+      "fold": 0.3,
+      "fm": 0.45,
+      "ratio": 0.5312,
+      "strike": 1.0,
+      "glow": 0.18,
+      "bias": 0.35,
+      "mode": 0.5,
+      "drift": 0.1
+    },
+    "Marimba": {
+      "fold": 0.4,
+      "fm": 0.2,
+      "ratio": 0.7188,
+      "strike": 1.0,
+      "glow": 0.42,
+      "bias": 0,
+      "mode": 0.3,
+      "drift": 0.05
+    },
+    "Bell": {
+      "fold": 0.25,
+      "fm": 0.55,
+      "ratio": 0.2188,
+      "strike": 1.0,
+      "glow": 0.9,
+      "bias": 0.1,
+      "mode": 0.75,
+      "drift": 0.15
+    },
+    "Lantern": {
+      "fold": 0.45,
+      "fm": 0.15,
+      "ratio": 0.4062,
+      "strike": 0,
+      "glow": 0.95,
+      "bias": 0.3,
+      "mode": 0,
+      "drift": 0.4
+    },
+    "Dusk": {
+      "fold": 0.7,
+      "fm": 0.12,
+      "ratio": 0.1562,
+      "strike": 0.25,
+      "glow": 0.85,
+      "bias": 0.5,
+      "mode": 0.5,
+      "drift": 0.6
+    },
+    "Wingbeat": {
+      "fold": 0.85,
+      "fm": 0.35,
+      "ratio": 0.0312,
+      "strike": 0.6,
+      "glow": 0.6,
+      "bias": 0.6,
+      "mode": 0.2,
+      "drift": 0.3
+    }
+  },
+  "resources": {
+    "voiceBytes": 124,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 0,
+    "outputPeakQ31": 579820584,
+    "display": {
+      "stateBytes": 848,
+      "stateAlignment": 4,
+      "paths": 4,
+      "points": 64,
+      "nodes": 256,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

@@ -1,0 +1,294 @@
+<g id="moth_panel">
+<circle id="moth_node_12" cx="0" cy="0" r="154" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_13" cx="0" cy="0" r="132" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_14" cx="0" cy="0" r="110" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_15" cx="0" cy="0" r="88" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_16" cx="0" cy="0" r="66" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_17" cx="0" cy="0" r="44" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_18" cx="0" cy="0" r="22" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<circle id="moth_node_19" cx="0" cy="0" r="22" fill="#000000" stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 240 108)"/>
+<!-- SDK two-page header: keep this block before machine artwork below y=38. -->
+<path d="M0,0 L480,0 L480,38 L0,38 Z" fill="#000000"/>
+<path id="moth_node_4" transform="matrix(1 0 0 1 0 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="moth_node_5" transform="matrix(1 0 0 1 60 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#323232" stroke="#323232" stroke-width="0.5"/>
+<path id="moth_node_6" transform="matrix(1 0 0 1 120 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#4B4B4B" stroke="#4B4B4B" stroke-width="0.5"/>
+<path id="moth_node_7" transform="matrix(1 0 0 1 180 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#646464" stroke="#646464" stroke-width="0.5"/>
+<path id="moth_node_8" transform="matrix(1 0 0 1 240 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#7D7D7D" stroke="#7D7D7D" stroke-width="0.5"/>
+<path id="moth_node_9" transform="matrix(1 0 0 1 300 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#969696" stroke="#969696" stroke-width="0.5"/>
+<path id="moth_node_10" transform="matrix(1 0 0 1 360 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#AFAFAF" stroke="#AFAFAF" stroke-width="0.5"/>
+<path id="moth_node_11" transform="matrix(1 0 0 1 420 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#CDCDCD" stroke="#CDCDCD" stroke-width="0.5"/>
+<text id="moth_text_0" transform="matrix(1 0 0 1 5 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_1" transform="matrix(1 0 0 1 125 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_2" transform="matrix(1 0 0 1 245 10)" fill="#000000" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_3" transform="matrix(1 0 0 1 365 10)" fill="#000000" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_4" transform="matrix(1 0 0 1 65 17.4)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="moth_text_5" transform="matrix(1 0 0 1 185 17.4)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="moth_text_6" transform="matrix(1 0 0 1 305 17.4)" fill="#000000" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="moth_text_7" transform="matrix(1 0 0 1 425 17.4)" fill="#000000" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="moth_text_8" transform="matrix(1 0 0 1 5 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_9" transform="matrix(1 0 0 1 125 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_10" transform="matrix(1 0 0 1 245 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_11" transform="matrix(1 0 0 1 365 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="moth_text_12" transform="matrix(1 0 0 1 65 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="moth_text_13" transform="matrix(1 0 0 1 185 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="moth_text_14" transform="matrix(1 0 0 1 305 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="moth_text_15" transform="matrix(1 0 0 1 425 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<path id="moth_node_20" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-3.47,-12.36 L-15.23,-26.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_21" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-14.07,-25.22 L-27.75,-37.35 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_22" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-26.43,-36.35 L-41.93,-46.11 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_23" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-40.5,-45.27 L-56.64,-53.94 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_24" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-55.14,-53.2 L-71.83,-60.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_25" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-70.28,-60.16 L-87.56,-66.26 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_26" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-85.97,-65.76 L-103.62,-70.69 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_27" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-102,-70.28 L-119.85,-74.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_28" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-118.22,-74.08 L-136.27,-77.24 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_29" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-134.62,-77.01 L-152.84,-78.9 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_30" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-151.19,-78.85 L-169.43,-78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_31" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-168.13,-78.62 L-178.55,-65.83 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_32" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-178.34,-67.2 L-172.51,-49.93 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_33" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-173.2,-51.43 L-163.98,-35.6 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_34" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-164.91,-36.99 L-153.82,-22.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_35" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-155.19,-23.98 L-136.15,-4.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_36" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-137.65,-5.6 L-123.69,6.22 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_37" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-124.24,4.93 L-126.18,21.45 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_38" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-125.89,19.91 L-130.39,37.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_39" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-130.41,35.69 L-125.56,53.15 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_40" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-126.34,51.75 L-113.89,65.07 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_41" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-115.17,64.04 L-99.39,73.25 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_42" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-100.9,72.58 L-83.45,78.09 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_43" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-85.07,77.78 L-66.85,79.05 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_44" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-68.49,79.15 L-50.52,75.81 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_45" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-52.08,76.33 L-35.68,68.31 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_46" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-37.06,69.21 L-23.14,57.35 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_47" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-24.26,58.56 L-13.49,43.8 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_48" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-14.33,45.23 L-6.68,28.6 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_49" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-7.18,30.17 L-3.85,12.18 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_50" transform="matrix(1 0 0 1 240 124)" d="M3,0 L3.47,-12.36 L15.23,-26.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_51" transform="matrix(1 0 0 1 240 124)" d="M3,0 L14.07,-25.22 L27.75,-37.35 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_52" transform="matrix(1 0 0 1 240 124)" d="M3,0 L26.43,-36.35 L41.93,-46.11 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_53" transform="matrix(1 0 0 1 240 124)" d="M3,0 L40.5,-45.27 L56.64,-53.94 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_54" transform="matrix(1 0 0 1 240 124)" d="M3,0 L55.14,-53.2 L71.83,-60.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_55" transform="matrix(1 0 0 1 240 124)" d="M3,0 L70.28,-60.16 L87.56,-66.26 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_56" transform="matrix(1 0 0 1 240 124)" d="M3,0 L85.97,-65.76 L103.62,-70.69 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_57" transform="matrix(1 0 0 1 240 124)" d="M3,0 L102,-70.28 L119.85,-74.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_58" transform="matrix(1 0 0 1 240 124)" d="M3,0 L118.22,-74.08 L136.27,-77.24 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_59" transform="matrix(1 0 0 1 240 124)" d="M3,0 L134.62,-77.01 L152.84,-78.9 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_60" transform="matrix(1 0 0 1 240 124)" d="M3,0 L151.19,-78.85 L169.43,-78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_61" transform="matrix(1 0 0 1 240 124)" d="M3,0 L168.13,-78.62 L178.55,-65.83 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_62" transform="matrix(1 0 0 1 240 124)" d="M3,0 L178.34,-67.2 L172.51,-49.93 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_63" transform="matrix(1 0 0 1 240 124)" d="M3,0 L173.2,-51.43 L163.98,-35.6 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_64" transform="matrix(1 0 0 1 240 124)" d="M3,0 L164.91,-36.99 L153.82,-22.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_65" transform="matrix(1 0 0 1 240 124)" d="M3,0 L155.19,-23.98 L136.15,-4.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_66" transform="matrix(1 0 0 1 240 124)" d="M3,0 L137.65,-5.6 L123.69,6.22 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_67" transform="matrix(1 0 0 1 240 124)" d="M3,0 L124.24,4.93 L126.18,21.45 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_68" transform="matrix(1 0 0 1 240 124)" d="M3,0 L125.89,19.91 L130.39,37.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_69" transform="matrix(1 0 0 1 240 124)" d="M3,0 L130.41,35.69 L125.56,53.15 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_70" transform="matrix(1 0 0 1 240 124)" d="M3,0 L126.34,51.75 L113.89,65.07 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_71" transform="matrix(1 0 0 1 240 124)" d="M3,0 L115.17,64.04 L99.39,73.25 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_72" transform="matrix(1 0 0 1 240 124)" d="M3,0 L100.9,72.58 L83.45,78.09 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_73" transform="matrix(1 0 0 1 240 124)" d="M3,0 L85.07,77.78 L66.85,79.05 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_74" transform="matrix(1 0 0 1 240 124)" d="M3,0 L68.49,79.15 L50.52,75.81 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_75" transform="matrix(1 0 0 1 240 124)" d="M3,0 L52.08,76.33 L35.68,68.31 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_76" transform="matrix(1 0 0 1 240 124)" d="M3,0 L37.06,69.21 L23.14,57.35 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_77" transform="matrix(1 0 0 1 240 124)" d="M3,0 L24.26,58.56 L13.49,43.8 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_78" transform="matrix(1 0 0 1 240 124)" d="M3,0 L14.33,45.23 L6.68,28.6 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_79" transform="matrix(1 0 0 1 240 124)" d="M3,0 L7.18,30.17 L3.85,12.18 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_80" transform="matrix(1 0 0 1 236 111)" d="M0,0 L-10.7,-12.77 L-15.65,-5.71 L-7.82,3.64 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_81" transform="matrix(1 0 0 1 225.3 98.23)" d="M0,0 L-12.44,-11.03 L-16.59,-2.73 L-7.74,5.11 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_82" transform="matrix(1 0 0 1 212.87 87.21)" d="M0,0 L-14.1,-8.87 L-20.21,10.9 L-15.18,14.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_83" transform="matrix(1 0 0 1 198.77 78.34)" d="M0,0 L-14.67,-7.88 L-19.42,12.26 L-14.18,15.07 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_84" transform="matrix(1 0 0 1 184.1 70.45)" d="M0,0 L-15.17,-6.89 L-18.55,13.53 L-13.14,15.98 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_85" transform="matrix(1 0 0 1 168.93 63.57)" d="M0,0 L-15.7,-5.55 L-17.31,15.08 L-11.71,17.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_86" transform="matrix(1 0 0 1 153.23 58.02)" d="M0,0 L-16.04,-4.48 L-16.26,16.21 L-10.54,17.81 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_87" transform="matrix(1 0 0 1 137.19 53.54)" d="M0,0 L-16.23,-3.76 L-15.52,16.93 L-9.73,18.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_88" transform="matrix(1 0 0 1 120.96 49.78)" d="M0,0 L-16.41,-2.88 L-14.59,17.73 L-8.73,18.76 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_89" transform="matrix(1 0 0 1 104.55 46.9)" d="M0,0 L-16.57,-1.71 L-13.29,18.72 L-7.38,19.33 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_90" transform="matrix(1 0 0 1 87.98 45.19)" d="M0,0 L-16.59,0.77 L-10.33,20.43 L-4.41,20.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_91" transform="matrix(1 0 0 1 71.39 45.96)" d="M0,0 L-9.47,11.63 L-0.35,15.72 L5.85,8.1 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_92" transform="matrix(1 0 0 1 61.93 57.59)" d="M0,0 L5.3,15.7 L18.97,6.59 L16.4,-1.04 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_93" transform="matrix(1 0 0 1 67.22 73.29)" d="M0,0 L8.37,14.39 L22.23,0.44 L18.97,-5.15 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_94" transform="matrix(1 0 0 1 75.6 87.68)" d="M0,0 L10.08,13.25 L22.73,-3.1 L19.14,-7.83 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_95" transform="matrix(1 0 0 1 85.67 100.92)" d="M0,0 L17.31,18.02 L33.37,-8.55 L27.19,-14.98 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_96" transform="matrix(1 0 0 1 102.98 118.94)" d="M0,0 L12.69,10.74 L21.5,-7.94 L16.97,-11.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_97" transform="matrix(1 0 0 1 115.68 129.68)" d="M0,0 L-1.77,15.02 L7.35,13.69 L8.56,3.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_98" transform="matrix(1 0 0 1 113.91 144.7)" d="M0,0 L-4.1,15.78 L8.87,15.68 L11.28,6.39 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_99" transform="matrix(1 0 0 1 109.81 160.49)" d="M0,0 L4.41,15.87 L11.77,11.53 L8.54,-0.08 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_100" transform="matrix(1 0 0 1 114.22 176.36)" d="M0,0 L11.32,12.1 L17.1,2.83 L9.64,-5.14 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_101" transform="matrix(1 0 0 1 125.55 188.46)" d="M0,0 L14.35,8.37 L17.81,-4.34 L9.35,-9.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_102" transform="matrix(1 0 0 1 139.9 196.83)" d="M0,0 L15.86,5.01 L16.51,-9.8 L7.97,-12.5 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_103" transform="matrix(1 0 0 1 155.76 201.84)" d="M0,0 L16.57,1.16 L13.3,-15.62 L5.56,-16.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_104" transform="matrix(1 0 0 1 172.32 203)" d="M0,0 L16.34,-3.03 L7.49,-21.57 L1.61,-20.48 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_105" transform="matrix(1 0 0 1 188.66 199.97)" d="M0,0 L14.91,-7.29 L1.37,-22.84 L-3.96,-20.23 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_106" transform="matrix(1 0 0 1 203.57 192.67)" d="M0,0 L12.66,-10.78 L-4.35,-22.51 L-8.87,-18.66 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_107" transform="matrix(1 0 0 1 216.23 181.89)" d="M0,0 L9.79,-13.42 L-9.46,-20.85 L-12.95,-16.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_108" transform="matrix(1 0 0 1 226.02 168.48)" d="M0,0 L6.95,-15.12 L-1.54,-16.57 L-6.63,-5.5 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_109" transform="matrix(1 0 0 1 232.97 153.36)" d="M0,0 L3.03,-16.36 L-5.56,-15.68 L-7.77,-3.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_110" transform="matrix(1 0 0 1 244 111)" d="M0,0 L10.7,-12.77 L15.65,-5.71 L7.82,3.64 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_111" transform="matrix(1 0 0 1 254.7 98.23)" d="M0,0 L12.44,-11.03 L16.59,-2.73 L7.74,5.11 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_112" transform="matrix(1 0 0 1 267.13 87.21)" d="M0,0 L14.1,-8.87 L20.21,10.9 L15.18,14.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_113" transform="matrix(1 0 0 1 281.23 78.34)" d="M0,0 L14.67,-7.88 L19.42,12.26 L14.18,15.07 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_114" transform="matrix(1 0 0 1 295.9 70.45)" d="M0,0 L15.17,-6.89 L18.55,13.53 L13.14,15.98 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_115" transform="matrix(1 0 0 1 311.07 63.57)" d="M0,0 L15.7,-5.55 L17.31,15.08 L11.71,17.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_116" transform="matrix(1 0 0 1 326.77 58.02)" d="M0,0 L16.04,-4.48 L16.26,16.21 L10.54,17.81 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_117" transform="matrix(1 0 0 1 342.81 53.54)" d="M0,0 L16.23,-3.76 L15.52,16.93 L9.73,18.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_118" transform="matrix(1 0 0 1 359.04 49.78)" d="M0,0 L16.41,-2.88 L14.59,17.73 L8.73,18.76 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_119" transform="matrix(1 0 0 1 375.45 46.9)" d="M0,0 L16.57,-1.71 L13.29,18.72 L7.38,19.33 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_120" transform="matrix(1 0 0 1 392.02 45.19)" d="M0,0 L16.59,0.77 L10.33,20.43 L4.41,20.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_121" transform="matrix(1 0 0 1 408.61 45.96)" d="M0,0 L9.47,11.63 L0.35,15.72 L-5.85,8.1 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_122" transform="matrix(1 0 0 1 418.07 57.59)" d="M0,0 L-5.3,15.7 L-18.97,6.59 L-16.4,-1.04 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_123" transform="matrix(1 0 0 1 412.78 73.29)" d="M0,0 L-8.37,14.39 L-22.23,0.44 L-18.97,-5.15 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_124" transform="matrix(1 0 0 1 404.4 87.68)" d="M0,0 L-10.08,13.25 L-22.73,-3.1 L-19.14,-7.83 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_125" transform="matrix(1 0 0 1 394.33 100.92)" d="M0,0 L-17.31,18.02 L-33.37,-8.55 L-27.19,-14.98 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_126" transform="matrix(1 0 0 1 377.02 118.94)" d="M0,0 L-12.69,10.74 L-21.5,-7.94 L-16.97,-11.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_127" transform="matrix(1 0 0 1 364.32 129.68)" d="M0,0 L1.77,15.02 L-7.35,13.69 L-8.56,3.41 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_128" transform="matrix(1 0 0 1 366.09 144.7)" d="M0,0 L4.1,15.78 L-8.87,15.68 L-11.28,6.39 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_129" transform="matrix(1 0 0 1 370.19 160.49)" d="M0,0 L-4.41,15.87 L-11.77,11.53 L-8.54,-0.08 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_130" transform="matrix(1 0 0 1 365.78 176.36)" d="M0,0 L-11.32,12.1 L-17.1,2.83 L-9.64,-5.14 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_131" transform="matrix(1 0 0 1 354.45 188.46)" d="M0,0 L-14.35,8.37 L-17.81,-4.34 L-9.35,-9.27 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_132" transform="matrix(1 0 0 1 340.1 196.83)" d="M0,0 L-15.86,5.01 L-16.51,-9.8 L-7.97,-12.5 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_133" transform="matrix(1 0 0 1 324.24 201.84)" d="M0,0 L-16.57,1.16 L-13.3,-15.62 L-5.56,-16.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_134" transform="matrix(1 0 0 1 307.68 203)" d="M0,0 L-16.34,-3.03 L-7.49,-21.57 L-1.61,-20.48 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_135" transform="matrix(1 0 0 1 291.34 199.97)" d="M0,0 L-14.91,-7.29 L-1.37,-22.84 L3.96,-20.23 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_136" transform="matrix(1 0 0 1 276.43 192.67)" d="M0,0 L-12.66,-10.78 L4.35,-22.51 L8.87,-18.66 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_137" transform="matrix(1 0 0 1 263.77 181.89)" d="M0,0 L-9.79,-13.42 L9.46,-20.85 L12.95,-16.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_138" transform="matrix(1 0 0 1 253.98 168.48)" d="M0,0 L-6.95,-15.12 L1.54,-16.57 L6.63,-5.5 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_139" transform="matrix(1 0 0 1 247.03 153.36)" d="M0,0 L-3.03,-16.36 L5.56,-15.68 L7.77,-3.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_0" transform="matrix(1 0 0 1 150 124)" d="M43.5,-6.5 L43,-6.5 L40.3529,-9.7142 L37.6525,-12.8841 L34.7046,-15.8236 L31.434,-18.3974 L27.9552,-20.6866 L24.3854,-22.8316 L20.7475,-24.859 L17.0488,-26.7733 L13.2902,-28.5669 L9.4662,-30.2163 L5.5689,-31.6839 L1.6143,-32.9897 L-2.3812,-34.1646 L-6.407,-35.2315 L-10.4556,-36.2085 L-14.5216,-37.1104 L-18.6108,-37.8995 L-22.7244,-38.5502 L-26.8574,-39.0621 L-31.0077,-39.4051 L-35.1706,-39.484 L-39.3025,-39.02 L-42.9183,-37.0901 L-44.0361,-33.2057 L-43.06,-29.1691 L-41.3883,-25.3573 L-39.3963,-21.7004 L-37.201,-18.1617 L-34.8119,-14.7511 L-32.1633,-11.5382 L-29.3371,-8.4793 L-26.4285,-5.4984 L-23.5078,-2.5294 L-20.4268,0.2642 L-17.1619,2.8421 L-16.1521,6.6537 L-18.0468,10.3507 L-19.8345,14.0974 L-20.0944,18.2426 L-19.5036,22.3571 L-17.8887,26.1789 L-15.3182,29.4462 L-12.2263,32.2309 L-8.7788,34.5619 L-5.0518,36.4149 L-1.1484,37.8624 L2.8781,38.9195 L6.9991,39.4999 L11.161,39.4981 L15.2919,38.9873 L19.3311,37.9827 L23.1985,36.448 L26.7849,34.3374 L30.0874,31.8032 L33.1159,28.9465 L35.7923,25.7609 L38.0093,22.2377 L39.8912,18.5234 L41.486,14.6785 L42.4175,10.6234 L43,6.5 L43.5,6.5 Z" fill="none" stroke="#404040" stroke-width="0.5" stroke-linejoin="round"/>
+<path id="moth_node_1" transform="matrix(1 0 0 1 330 124)" d="M-43.5,-6.5 L-43,-6.5 L-40.3529,-9.7142 L-37.6525,-12.8841 L-34.7046,-15.8236 L-31.434,-18.3974 L-27.9552,-20.6866 L-24.3854,-22.8316 L-20.7475,-24.859 L-17.0488,-26.7733 L-13.2902,-28.5669 L-9.4662,-30.2163 L-5.5689,-31.6839 L-1.6143,-32.9897 L2.3812,-34.1646 L6.407,-35.2315 L10.4556,-36.2085 L14.5216,-37.1104 L18.6108,-37.8995 L22.7244,-38.5502 L26.8574,-39.0621 L31.0077,-39.4051 L35.1706,-39.484 L39.3025,-39.02 L42.9183,-37.0901 L44.0361,-33.2057 L43.06,-29.1691 L41.3883,-25.3573 L39.3963,-21.7004 L37.201,-18.1617 L34.8119,-14.7511 L32.1633,-11.5382 L29.3371,-8.4793 L26.4285,-5.4984 L23.5078,-2.5294 L20.4268,0.2642 L17.1619,2.8421 L16.1521,6.6537 L18.0468,10.3507 L19.8345,14.0974 L20.0944,18.2426 L19.5036,22.3571 L17.8887,26.1789 L15.3182,29.4462 L12.2263,32.2309 L8.7788,34.5619 L5.0518,36.4149 L1.1484,37.8624 L-2.8781,38.9195 L-6.9991,39.4999 L-11.161,39.4981 L-15.2919,38.9873 L-19.3311,37.9827 L-23.1985,36.448 L-26.7849,34.3374 L-30.0874,31.8032 L-33.1159,28.9465 L-35.7923,25.7609 L-38.0093,22.2377 L-39.8912,18.5234 L-41.486,14.6785 L-42.4175,10.6234 L-43,6.5 L-43.5,6.5 Z" fill="none" stroke="#404040" stroke-width="0.5" stroke-linejoin="round"/>
+<path id="moth_node_140" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-3.17,-12.07 L-21.42,-32.58 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_141" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-19.56,-30.95 L-42.26,-46.36 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_142" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-40.12,-45.09 L-64.53,-57.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_143" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-62.25,-56.69 L-87.94,-66.42 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_144" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-85.56,-65.66 L-112.12,-72.74 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_145" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-109.68,-72.18 L-136.68,-77.33 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_146" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-134.2,-77.01 L-161.59,-79.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_147" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-159.45,-79.6 L-178.96,-65.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_148" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-178.54,-67.56 L-168.33,-42.25 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_149" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-169.52,-44.42 L-153.6,-22.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_150" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-155.5,-24.26 L-129.68,1.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_151" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-131.09,-0.48 L-125.86,21.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_152" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-125.95,19.5 L-129.15,45.91 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_153" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-129.73,43.73 L-113.72,65.45 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_154" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-115.56,63.9 L-91.19,76.29 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_155" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-93.53,75.56 L-66.45,79.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_156" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-68.88,79.3 L-42.4,72.59 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_157" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-44.59,73.65 L-22.78,57.14 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_158" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-24.45,58.94 L-9.54,36 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_159" transform="matrix(1 0 0 1 240 124)" d="M-3,0 L-10.53,38.25 L-3.69,11.8 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_160" transform="matrix(1 0 0 1 240 124)" d="M3,0 L3.17,-12.07 L21.42,-32.58 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_161" transform="matrix(1 0 0 1 240 124)" d="M3,0 L19.56,-30.95 L42.26,-46.36 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_162" transform="matrix(1 0 0 1 240 124)" d="M3,0 L40.12,-45.09 L64.53,-57.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_163" transform="matrix(1 0 0 1 240 124)" d="M3,0 L62.25,-56.69 L87.94,-66.42 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_164" transform="matrix(1 0 0 1 240 124)" d="M3,0 L85.56,-65.66 L112.12,-72.74 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_165" transform="matrix(1 0 0 1 240 124)" d="M3,0 L109.68,-72.18 L136.68,-77.33 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_166" transform="matrix(1 0 0 1 240 124)" d="M3,0 L134.2,-77.01 L161.59,-79.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_167" transform="matrix(1 0 0 1 240 124)" d="M3,0 L159.45,-79.6 L178.96,-65.78 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_168" transform="matrix(1 0 0 1 240 124)" d="M3,0 L178.54,-67.56 L168.33,-42.25 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_169" transform="matrix(1 0 0 1 240 124)" d="M3,0 L169.52,-44.42 L153.6,-22.06 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_170" transform="matrix(1 0 0 1 240 124)" d="M3,0 L155.5,-24.26 L129.68,1.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_171" transform="matrix(1 0 0 1 240 124)" d="M3,0 L131.09,-0.48 L125.86,21.71 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_172" transform="matrix(1 0 0 1 240 124)" d="M3,0 L125.95,19.5 L129.15,45.91 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_173" transform="matrix(1 0 0 1 240 124)" d="M3,0 L129.73,43.73 L113.72,65.45 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_174" transform="matrix(1 0 0 1 240 124)" d="M3,0 L115.56,63.9 L91.19,76.29 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_175" transform="matrix(1 0 0 1 240 124)" d="M3,0 L93.53,75.56 L66.45,79.16 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_176" transform="matrix(1 0 0 1 240 124)" d="M3,0 L68.88,79.3 L42.4,72.59 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_177" transform="matrix(1 0 0 1 240 124)" d="M3,0 L44.59,73.65 L22.78,57.14 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_178" transform="matrix(1 0 0 1 240 124)" d="M3,0 L24.45,58.94 L9.54,36 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_179" transform="matrix(1 0 0 1 240 124)" d="M3,0 L10.53,38.25 L3.69,11.8 Z" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path id="moth_node_2" transform="matrix(1 0 0 1 150 124)" d="M43.5,-6.5 L43,-6.5 L40.3529,-9.7142 L37.6525,-12.8841 L34.7046,-15.8236 L31.434,-18.3974 L27.9552,-20.6866 L24.3854,-22.8316 L20.7475,-24.859 L17.0488,-26.7733 L13.2902,-28.5669 L9.4662,-30.2163 L5.5689,-31.6839 L1.6143,-32.9897 L-2.3812,-34.1646 L-6.407,-35.2315 L-10.4556,-36.2085 L-14.5216,-37.1104 L-18.6108,-37.8995 L-22.7244,-38.5502 L-26.8574,-39.0621 L-31.0077,-39.4051 L-35.1706,-39.484 L-39.3025,-39.02 L-42.9183,-37.0901 L-44.0361,-33.2057 L-43.06,-29.1691 L-41.3883,-25.3573 L-39.3963,-21.7004 L-37.201,-18.1617 L-34.8119,-14.7511 L-32.1633,-11.5382 L-29.3371,-8.4793 L-26.4285,-5.4984 L-23.5078,-2.5294 L-20.4268,0.2642 L-17.1619,2.8421 L-16.1521,6.6537 L-18.0468,10.3507 L-19.8345,14.0974 L-20.0944,18.2426 L-19.5036,22.3571 L-17.8887,26.1789 L-15.3182,29.4462 L-12.2263,32.2309 L-8.7788,34.5619 L-5.0518,36.4149 L-1.1484,37.8624 L2.8781,38.9195 L6.9991,39.4999 L11.161,39.4981 L15.2919,38.9873 L19.3311,37.9827 L23.1985,36.448 L26.7849,34.3374 L30.0874,31.8032 L33.1159,28.9465 L35.7923,25.7609 L38.0093,22.2377 L39.8912,18.5234 L41.486,14.6785 L42.4175,10.6234 L43,6.5 L43.5,6.5 Z" fill="none" stroke="#404040" stroke-width="0.5" stroke-linejoin="round"/>
+<path id="moth_node_3" transform="matrix(1 0 0 1 330 124)" d="M-43.5,-6.5 L-43,-6.5 L-40.3529,-9.7142 L-37.6525,-12.8841 L-34.7046,-15.8236 L-31.434,-18.3974 L-27.9552,-20.6866 L-24.3854,-22.8316 L-20.7475,-24.859 L-17.0488,-26.7733 L-13.2902,-28.5669 L-9.4662,-30.2163 L-5.5689,-31.6839 L-1.6143,-32.9897 L2.3812,-34.1646 L6.407,-35.2315 L10.4556,-36.2085 L14.5216,-37.1104 L18.6108,-37.8995 L22.7244,-38.5502 L26.8574,-39.0621 L31.0077,-39.4051 L35.1706,-39.484 L39.3025,-39.02 L42.9183,-37.0901 L44.0361,-33.2057 L43.06,-29.1691 L41.3883,-25.3573 L39.3963,-21.7004 L37.201,-18.1617 L34.8119,-14.7511 L32.1633,-11.5382 L29.3371,-8.4793 L26.4285,-5.4984 L23.5078,-2.5294 L20.4268,0.2642 L17.1619,2.8421 L16.1521,6.6537 L18.0468,10.3507 L19.8345,14.0974 L20.0944,18.2426 L19.5036,22.3571 L17.8887,26.1789 L15.3182,29.4462 L12.2263,32.2309 L8.7788,34.5619 L5.0518,36.4149 L1.1484,37.8624 L-2.8781,38.9195 L-6.9991,39.4999 L-11.161,39.4981 L-15.2919,38.9873 L-19.3311,37.9827 L-23.1985,36.448 L-26.7849,34.3374 L-30.0874,31.8032 L-33.1159,28.9465 L-35.7923,25.7609 L-38.0093,22.2377 L-39.8912,18.5234 L-41.486,14.6785 L-42.4175,10.6234 L-43,6.5 L-43.5,6.5 Z" fill="none" stroke="#404040" stroke-width="0.5" stroke-linejoin="round"/>
+<path id="moth_node_180" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L19.72,-0.2 L19.72,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_181" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L56.84,-0.2 L56.84,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_182" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L96.61,-0.2 L96.61,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_183" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L133.63,-0.2 L133.63,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_184" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L108.4,-0.2 L108.4,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_185" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L92.75,-0.2 L92.75,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_186" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L84.81,-0.2 L84.81,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_187" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L52.37,-0.2 L52.37,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_188" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L19.74,-0.2 L19.74,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_189" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L19.72,-0.2 L19.72,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_190" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L56.84,-0.2 L56.84,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_191" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L96.61,-0.2 L96.61,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_192" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L133.63,-0.2 L133.63,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_193" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L108.4,-0.2 L108.4,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_194" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L92.75,-0.2 L92.75,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_195" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L84.81,-0.2 L84.81,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_196" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L52.37,-0.2 L52.37,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_197" transform="matrix(1 0 0 1 240 124)" d="M0,-0.6 L19.74,-0.2 L19.74,0.2 L0,0.6 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<circle id="moth_node_198" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_199" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_200" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_201" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_202" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_203" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_204" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_205" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_206" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_207" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_208" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_209" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_210" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_211" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_212" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_213" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_214" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_215" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_216" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_217" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_218" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<circle id="moth_node_219" cx="0" cy="0" r="4.4" fill="#404040" stroke="#404040" stroke-width="0.25"/>
+<circle id="moth_node_220" cx="0" cy="0" r="3.3" fill="#262626" stroke="#262626" stroke-width="0.25"/>
+<circle id="moth_node_221" cx="0" cy="0" r="3" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.25"/>
+<path id="moth_node_222" transform="matrix(1 0 0 1 240 124)" d="M-1.35,-28.03 L-2.17,-40.12 L-8.62,-54.25 L-20.65,-68.28 L-26.63,-77.25 L-27.37,-76.75 L-21.35,-67.72 L-9.38,-53.75 L-3.03,-39.88 L-2.25,-27.97 Z" fill="#808080" stroke="#808080" stroke-width="0.1"/>
+<path id="moth_node_223" transform="matrix(1 0 0 1 240 124)" d="M2.25,-27.96 L3.03,-37.86 L9.37,-49.75 L19.35,-61.72 L24.37,-68.74 L23.63,-69.26 L18.65,-62.28 L8.63,-50.25 L2.17,-38.14 L1.35,-28.04 Z" fill="#808080" stroke="#808080" stroke-width="0.1"/>
+<path id="moth_node_224" transform="matrix(1 0 0 1 240 124)" d="M-6.5,-28 L6.5,-28 L6.5,-25 L5.5,-25 L5.5,-12.5 L5.36,-11.28 L4.96,-10.11 L4.3,-9.07 L3.43,-8.2 L2.39,-7.54 L1.22,-7.14 L0,-7 L-1.22,-7.14 L-2.39,-7.54 L-3.43,-8.2 L-4.3,-9.07 L-4.96,-10.11 L-5.36,-11.28 L-5.5,-12.5 L-5.5,-25 L-6.5,-25 Z" fill="#6e6e6e" stroke="#6e6e6e" stroke-width="0.1"/>
+<path id="moth_node_225" transform="matrix(1 0 0 1 240 124)" d="M-5.7,-27.3 L5.7,-27.3 L5.7,-25.7 L4.7,-25.7 L4.7,-12.5 L4.58,-11.45 L4.23,-10.46 L3.67,-9.57 L2.93,-8.83 L2.04,-8.27 L1.05,-7.92 L0,-7.8 L-1.05,-7.92 L-2.04,-8.27 L-2.93,-8.83 L-3.67,-9.57 L-4.23,-10.46 L-4.58,-11.45 L-4.7,-12.5 L-4.7,-25.7 L-5.7,-25.7 Z" fill="#141414" stroke="#141414" stroke-width="0.1"/>
+<path id="moth_node_226" transform="matrix(1 0 0 1 240 124)" d="M-2.4,-27.3 L-1.4,-27.3 L-1.4,-18.3 L-2.4,-18.3 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_227" transform="matrix(1 0 0 1 240 124)" d="M1,-27.3 L2.2,-27.3 L2.2,-21 L3.6,-19 L3.6,-15.4 L-0.4,-15.4 L-0.4,-19 L1,-21 Z" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.1"/>
+<path id="moth_node_228" transform="matrix(1 0 0 1 240 124)" d="M0.7,-17.6 L2.5,-17.6 L2.5,-16 L0.7,-16 Z" fill="#404040" stroke="#404040" stroke-width="0.1"/>
+<path id="moth_node_229" transform="matrix(1 0 0 1 240 124)" d="M-2.04,-18.25 L-1.32,-16.11 L0.22,-15.45 L1.31,-16.49 L1.09,-16.71 L0.18,-15.75 L-1.08,-16.29 L-1.76,-18.35 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.1"/>
+<path id="moth_node_230" transform="matrix(1 0 0 1 240 124)" d="M-3,-7.4 L3,-7.4 L6.5,-1.6 L-6.5,-1.6 Z" fill="#262626" stroke="#262626" stroke-width="0.1"/>
+<path id="moth_node_231" transform="matrix(1 0 0 1 240 124)" d="M7.4,24 L7.31,28.07 L7.04,32.03 L6.59,35.8 L5.99,39.28 L5.23,42.38 L4.35,45.03 L3.36,47.17 L2.29,48.73 L1.16,49.68 L0,50 L-1.16,49.68 L-2.29,48.73 L-3.36,47.17 L-4.35,45.03 L-5.23,42.38 L-5.99,39.28 L-6.59,35.8 L-7.04,32.03 L-7.31,28.07 L-7.4,24 L-7.31,19.93 L-7.04,15.97 L-6.59,12.2 L-5.99,8.72 L-5.23,5.62 L-4.35,2.97 L-3.36,0.83 L-2.29,-0.73 L-1.16,-1.68 L0,-2 L1.16,-1.68 L2.29,-0.73 L3.36,0.83 L4.35,2.97 L5.23,5.62 L5.99,8.72 L6.59,12.2 L7.04,15.97 L7.31,19.93 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.1"/>
+<path id="moth_node_232" transform="matrix(1 0 0 1 240 124)" d="M6.6,24 L6.52,27.94 L6.28,31.79 L5.88,35.44 L5.34,38.81 L4.67,41.82 L3.88,44.39 L3,46.45 L2.04,47.97 L1.03,48.89 L0,49.2 L-1.03,48.89 L-2.04,47.97 L-3,46.45 L-3.88,44.39 L-4.67,41.82 L-5.34,38.81 L-5.88,35.44 L-6.28,31.79 L-6.52,27.94 L-6.6,24 L-6.52,20.06 L-6.28,16.21 L-5.88,12.56 L-5.34,9.19 L-4.67,6.18 L-3.88,3.61 L-3,1.55 L-2.04,0.03 L-1.03,-0.89 L0,-1.2 L1.03,-0.89 L2.04,0.03 L3,1.55 L3.88,3.61 L4.67,6.18 L5.34,9.19 L5.88,12.56 L6.28,16.21 L6.52,20.06 Z" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.1"/>
+<path id="moth_node_233" transform="matrix(1 0 0 1 240 124)" d="M-2.21,4.55 L1.88,4.44 L2.8,7.56 L-3.4,7.53 L-4,12.47 L3.47,12.49 L3.86,15.51 L-4.35,15.5 L-4.56,20.5 L4.1,20.5 L4.17,23.5 L-4.63,23.5 L-4.56,28.5 L4.09,28.5 L3.87,31.5 L-4.36,31.51 L-3.97,36.49 L3.45,36.47 L2.85,39.53 L-3.46,39.56 L-2.54,44.44 L2.21,44.55 L2.21,43.45 L-1.88,43.56 L-2.8,40.44 L3.4,40.47 L4,35.53 L-3.47,35.51 L-3.86,32.49 L4.35,32.5 L4.56,27.5 L-4.1,27.5 L-4.17,24.5 L4.63,24.5 L4.56,19.5 L-4.09,19.5 L-3.87,16.5 L4.36,16.49 L3.97,11.51 L-3.45,11.53 L-2.85,8.47 L3.46,8.44 L2.54,3.56 L-2.21,3.45 Z" fill="#333333" stroke="#333333" stroke-width="0.1"/>
+<path id="moth_node_234" transform="matrix(1 0 0 1 240 124)" d="M-2.9,49.48 L-3.4,59.96 L-4.89,67.93 L-4.11,68.07 L-2.6,60.04 L-2.1,49.52 Z" fill="#404040" stroke="#404040" stroke-width="0.1"/>
+<path id="moth_node_235" transform="matrix(1 0 0 1 240 124)" d="M2.1,49.52 L2.6,60.04 L4.11,68.07 L4.89,67.93 L3.4,59.96 L2.9,49.48 Z" fill="#404040" stroke="#404040" stroke-width="0.1"/>
+<path d="M398,200 L468,200 L468,214 L398,214 Z" fill="none" stroke="#333333" stroke-width="0.6"/>
+<text transform="matrix(1 0 0 1 402 209.4)" fill="#5c5c5c" font-family="UniversNextPro-Light" font-size="6.5px">Phalaena vactrolis</text>
+<path id="moth_node_236" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_237" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_238" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_239" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_240" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_241" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_242" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_243" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_244" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_245" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_246" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_247" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_248" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_249" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_250" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_251" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_252" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_253" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_254" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<path id="moth_node_255" transform="matrix(1 0 0 1 640 320)" d="M1.6,0 L1.29,0.41 L0.49,0.67 L-0.49,0.67 L-1.29,0.41 L-1.6,0 L-1.29,-0.41 L-0.49,-0.67 L0.49,-0.67 L1.29,-0.41 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.25"/>
+<circle id="moth_palette_0" cx="640" cy="0" r="1" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<circle id="moth_palette_1" cx="640" cy="0" r="1" fill="#0d0d0d" stroke="#0d0d0d" stroke-width="0.5"/>
+<circle id="moth_palette_2" cx="640" cy="0" r="1" fill="#141414" stroke="#141414" stroke-width="0.5"/>
+<circle id="moth_palette_3" cx="640" cy="0" r="1" fill="#1c1c1c" stroke="#1c1c1c" stroke-width="0.5"/>
+<circle id="moth_palette_4" cx="640" cy="0" r="1" fill="#262626" stroke="#262626" stroke-width="0.5"/>
+<circle id="moth_palette_5" cx="640" cy="0" r="1" fill="#333333" stroke="#333333" stroke-width="0.5"/>
+<circle id="moth_palette_6" cx="640" cy="0" r="1" fill="#404040" stroke="#404040" stroke-width="0.5"/>
+<circle id="moth_palette_7" cx="640" cy="0" r="1" fill="#4d4d4d" stroke="#4d4d4d" stroke-width="0.5"/>
+<circle id="moth_palette_8" cx="640" cy="0" r="1" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.5"/>
+<circle id="moth_palette_9" cx="640" cy="0" r="1" fill="#6e6e6e" stroke="#6e6e6e" stroke-width="0.5"/>
+<circle id="moth_palette_10" cx="640" cy="0" r="1" fill="#808080" stroke="#808080" stroke-width="0.5"/>
+<circle id="moth_palette_11" cx="640" cy="0" r="1" fill="#999999" stroke="#999999" stroke-width="0.5"/>
+<circle id="moth_palette_12" cx="640" cy="0" r="1" fill="#b3b3b3" stroke="#b3b3b3" stroke-width="0.5"/>
+<circle id="moth_palette_13" cx="640" cy="0" r="1" fill="#cccccc" stroke="#cccccc" stroke-width="0.5"/>
+<circle id="moth_palette_14" cx="640" cy="0" r="1" fill="#e6e6e6" stroke="#e6e6e6" stroke-width="0.5"/>
+<circle id="moth_palette_15" cx="640" cy="0" r="1" fill="#ffffff" stroke="#ffffff" stroke-width="0.5"/>
+</g>

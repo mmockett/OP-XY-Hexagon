@@ -1,27 +1,45 @@
-// Hollow's screen: a shelf of eight vessels in the body's shape. Each held
-// note lights one, left to right; it swells as the note blooms (slower for a
-// long ring, sooner with more breath) and rings on for Ring's time once
-// released. Ripples rise from a ringing vessel's mouth, rounder for oo and
-// flatter for ee; with Spread a fainter copy rises either side, as wide as the
-// ensemble's detune and swaying with it; breath motes drift up, glass glints, sympathy arcs join
-// vessels that ring together, and the air line along the top stirs with all
-// of it. Integer arithmetic only; nothing moves while nothing rings.
+// Hollow's screen: an engraved plate of acoustics. Fig. 1 is the body Body is
+// nearest, in section, with its standing wave drawn along it (the vocal
+// tract, the string, the air column, the glass's rim) and its sympathetic
+// partner beside it (the nasal cavity, the open string, the neighbouring
+// pipe, the second glass). Fig. 2 is Koenig's analyser: a Helmholtz resonator
+// per mode, sized for its pitch, whose flame burns as high as the mode rings.
+// Everything is drawn from modes.h, so the picture is the sound's: each
+// mode's level, ratio, ring and widening are the engine's own. Integer
+// arithmetic only; nothing moves while nothing rings.
 #include "display.h"
-#include "modes.h"
 
 namespace hollow {
 namespace screen {
 using namespace opxy::draw;
 
-const i32 shelf = 196;
-const i32 mouth_height[kBodies] = {64, 78, 72, 66};   // vox, str, pipe, glass
-const i32 ripple_radius = 13;                          // as authored
-// Palette entries (tools/make_panel.py).
-const u32 at_rest = 0, ringing = 1, ripple_ink = 6, arc_ink = 10, air_ink = 13, mote_ink = 14, glint_ink = 15;
-const i32 lit_floor = 1638;                            // 0.05: below this a vessel is dark and still
-const u32 radian = 683565276u;                         // one radian in Q32 cycles
+// The engine's drive (engine.cpp, render): the bow's and the breath's
+// amplitudes at full level, the bow's own hiss and the sympathetic level.
+const i32 kBowAmplitude = 3000, kBreathAmplitude = 750, kBowHiss = 2600, kSympathy = 24000;
+// The screen draws the body as it sounds for A3, 220 Hz (a phase increment).
+const u32 kReference = 21426141u;
 
-inline i32 vessel_x(u32 k) { return 51 + 54 * static_cast<i32>(k); }
+// Palette entries (tools/make_panel.py).
+const u32 wave_ink = 0, rest_ink = 1, partner_ink = 2, rim_ink = 3, copy_ink = 4, flame_ink = 5, resonator_rest = 9,
+          resonator_lit = 10, mote_ink = 11, mote_fading = 12, air_ink = 13, bow_ink = 14, bow_faint = 15;
+const i32 lit_floor = 820;   // 0.025: below this a mode is still
+
+// A quarter of a sine, Q14, 64 steps.
+const opxy::i16 kQuarter[65] = {
+    0, 402, 804, 1205, 1606, 2006, 2404, 2801, 3196, 3590, 3981, 4370, 4756, 5139, 5520, 5897, 6270, 6639, 7005,
+    7366, 7723, 8076, 8423, 8765, 9102, 9434, 9760, 10080, 10394, 10702, 11003, 11297, 11585, 11866, 12140, 12406,
+    12665, 12916, 13160, 13395, 13623, 13842, 14053, 14256, 14449, 14635, 14811, 14978, 15137, 15286, 15426, 15557,
+    15679, 15791, 15893, 15986, 16069, 16143, 16207, 16261, 16305, 16340, 16364, 16379, 16384};
+// sin of a phase in Q32 turns, Q14.
+inline i32 sin14(u32 phase) {
+    u32 at = (phase >> 16) & 0x3fffu;            // 0..16383 within the quarter
+    if (phase & 0x40000000u) at = 16384 - at;   // the second and fourth quarters run back
+    const u32 i = at >> 8, f = at & 255u;
+    const i32 low = kQuarter[i], high = kQuarter[i < 64 ? i + 1 : 64];
+    const i32 v = low + ((high - low) * static_cast<i32>(f) >> 8);
+    return phase & 0x80000000u ? -v : v;
+}
+inline i32 cos14(u32 phase) { return sin14(phase + 0x40000000u); }
 
 // A fixed pseudo-random value 0..65535 for n.
 inline u32 hash(u32 n) {
@@ -32,9 +50,14 @@ inline u32 hash(u32 n) {
     n ^= n >> 16;
     return n >> 16;
 }
-// sin of a phase in Q32 cycles, Q10.
-inline i32 wave(u32 phase) { return sine(static_cast<i32>(((phase >> 16) * 3600u) >> 16)); }
-
+// Smooth value noise for seed n at u (Q16 steps), -16384..16384.
+inline i32 noise(u32 n, u32 u) {
+    const u32 at = u >> 16, f = (u & 0xffffu) >> 1;             // Q15
+    const i32 a = static_cast<i32>(hash(n * 7919u + at) >> 1) - 16384;
+    const i32 b = static_cast<i32>(hash(n * 7919u + at + 1) >> 1) - 16384;
+    const u32 s = (f * f >> 15) * (98304u - 2 * f) >> 15;     // smoothstep, Q15
+    return a + ((b - a) * static_cast<i32>(s) >> 15);
+}
 // exp(-dt / time), Q16, for dt in Q10 seconds and time in Q16 seconds.
 inline i32 decay(i32 dt, u32 time) {
     const u32 time_q10 = time >> 6;
@@ -43,34 +66,125 @@ inline i32 decay(i32 dt, u32 time) {
     if (octaves > (20u << 16)) octaves = 20u << 16;
     return static_cast<i32>(exp2_q16(-static_cast<i32>(octaves)));
 }
+inline u32 isqrt(u32 v) {
+    u32 r = 0, b = 1u << 30;
+    while (b > v) b >>= 2;
+    while (b) {
+        if (v >= r + b) {
+            v -= r + b;
+            r = (r >> 1) + b;
+        } else {
+            r >>= 1;
+        }
+        b >>= 2;
+    }
+    return r;
+}
 
-struct Ripple { i32 x, y, scale; u32 shade; };
+// What the body sounds like this frame: each mode's bow and breath amplitude
+// (as engine.cpp drives them, for the reference note), its ring time and the
+// rate its breath wanders.
+struct Sound {
+    i32 bow[kModes], wind[kModes];   // 0..4095 amplitude units
+    i32 ring[kModes];                // log2 of the mode's ring time while driven, Q16 seconds
+    u32 rms;                         // the modes' steady power, square-rooted
+    i32 bowed;                       // the bow's share, Q15
+};
 
-inline void place_air(DisplayState& state, Frame& frame, i32 amp, bool fresh) {
-    if (fresh || amp != state.air_amp || (amp && state.tau != state.air_tau)) {
-        state.air_amp = amp;
-        state.air_tau = state.tau;
-        state.air_key = state.air_key + 1 ? state.air_key + 1 : 1;
-        for (u32 h = 0; h < 2; ++h) {
-            Frame::path_type& path = frame.paths[h];
-            for (u32 i = 0; i < 32; ++i) {
-                // 32 samples out along the line and back 0.15 px below: a closed ribbon at scale 2.
-                const i32 x = -56 * unit + static_cast<i32>(i) * 114688 / 31;
-                const u32 screen_x = static_cast<u32>((128 + 224 * static_cast<i32>(h)) * unit + 2 * x);
-                // The board's two travelling waves, 160 and 61 px long.
-                const u32 slow = screen_x * 26214u + state.tau * 24248u;
-                const u32 quick = screen_x * 68760u - state.tau * 54395u;
-                const i32 shape = (614 * wave(slow) + 410 * wave(quick)) >> 10;
-                const i32 y = (amp * shape >> 10) >> 1;
-                path.points[i].x = x;
-                path.points[i].y = y;
-                path.points[63 - i].x = x;
-                path.points[63 - i].y = y + 77;
-            }
-            path.key = state.air_key;
+inline Sound hear(i32 breath, i32 body, i32 bright, i32 ring, i32 vowel) {
+    Sound s;
+    const i32 octave = log2_q16(kReference);
+    const i32 slope = 131072 - (bright * 9 >> 1), cutoff = bright * 16;
+    const i32 open = static_cast<i32>(times(static_cast<u32>(kBowAmplitude), exp2_q16(-bright)));
+    const i32 rest = 32767 - breath;
+    const i32 bowed = 32767 - (breath * breath >> 15), puff = 32767 - (rest * rest >> 15);
+    const i32 blown = puff + ((32767 - puff) * kBowHiss >> 15);
+    const i32 widen = breath_widen_log2(breath), seconds = ring_log2_seconds(ring, body);
+    const Traits traits = body_traits(body);
+    u32 power = 1;
+    for (u32 k = 0; k < kModes; ++k) {
+        const Shape shape = body_mode(body, k);
+        const u32 at = times(kReference, shape.ratio);
+        const i32 level = mode_level(shape, traits, vowel, at, octave + shape.log2_ratio);
+        const u32 bow_roll = exp2_q16(-((slope >> 4) * (shape.log2_ratio >> 4) >> 8));
+        const i32 over = shape.log2_ratio - cutoff;
+        const u32 breath_roll = exp2_q16(over > 0 ? -over : 0);
+        s.bow[k] = static_cast<i32>(times(static_cast<u32>((level * open >> 15) * bowed >> 15), bow_roll));
+        s.wind[k] = static_cast<i32>(times(static_cast<u32>((level * kBreathAmplitude >> 15) * blown >> 15), breath_roll));
+        s.ring[k] = seconds - shape.log2_fade - widen;
+        power += static_cast<u32>(s.bow[k] * s.bow[k]) + 4u * static_cast<u32>(s.wind[k] * s.wind[k]);
+    }
+    s.rms = isqrt(power);
+    s.bowed = bowed;
+    return s;
+}
+
+// The wander of a breath-driven mode: two slow noises, Q14.
+struct Wander { i32 a, b; };
+inline Wander wander(u32 seed, i32 ring_log2, u32 tau) {
+    // Wider resonances (a shorter ring) wander faster: 0.5 steps a second at
+    // one second, by the square root, between 0.08 and 3.
+    i32 rate = static_cast<i32>(exp2_q16(-(ring_log2 >> 1) - 65536));
+    rate = clamp(rate, 5243, 196608);
+    const u32 u = times(static_cast<u32>(rate), tau);
+    Wander w = {noise(seed, u), noise(seed + 101, u + 0x8000u)};
+    return w;
+}
+
+// A strand's displacement at each sample (Q10 px) from its modes' amplitudes
+// (Q10 px) and shapes.
+inline void sum_modes(i32* d, u32 samples, const i32* amp, const u32 (*shape)[2], u32 modes) {
+    for (u32 i = 0; i < samples; ++i) d[i] = 0;
+    for (u32 k = 0; k < modes; ++k) {
+        if (!amp[k]) continue;
+        u32 phase = shape[k][1];
+        for (u32 i = 0; i < samples; ++i, phase += shape[k][0]) d[i] += amp[k] * sin14(phase) >> 14;
+    }
+}
+
+// Draws a strand into outline p: each rest point moved along its way by d
+// (plus a fixed shift), as a thin ribbon, or a loop round a rim.
+inline void draw_strand(Frame& frame, u32 p, u32 family, u32 which, const i32* d, i32 shift, const i32* lift, u32 key) {
+    Frame::path_type& path = frame.paths[p];
+    const opxy::i16 (*rest)[2] = strand_rest[family][which];
+    const opxy::i16 (*way)[2] = strand_way[family][which];
+    const u32 n = strand_samples[family];
+    const i32 limit = strand_reach[family][which] + 3072;   // the artwork's room either side
+    for (u32 i = 0; i < n; ++i) {
+        const i32 move = clamp(d[i] + shift, -limit, limit);
+        const i32 x = (static_cast<i32>(rest[i][0]) << 6) + (way[i][0] * move >> 12);
+        const i32 y = (static_cast<i32>(rest[i][1]) << 6) + (way[i][1] * move >> 12) + (lift ? lift[i] : 0);
+        if (n == 64) {
+            path.points[i].x = x >> 1;
+            path.points[i].y = y >> 1;
+        } else {
+            // Out along the strand, and back 0.3 px to its side.
+            path.points[i].x = x >> 1;
+            path.points[i].y = y >> 1;
+            path.points[63 - i].x = (x + (way[i][0] * 307 >> 12)) >> 1;
+            path.points[63 - i].y = (y + (way[i][1] * 307 >> 12)) >> 1;
         }
     }
-    for (u32 h = 0; h < 2; ++h) place(frame, h, (128 + 224 * static_cast<i32>(h)) * unit, 56 * unit, 2 * unit, air_ink, stroke);
+    path.key = key;
+}
+
+inline void place_strand(Frame& frame, u32 p, u32 family, u32 which, u32 ink) {
+    place(frame, p, strand_anchor[family][which][0] * unit, strand_anchor[family][which][1] * unit, 2 * unit, ink, stroke);
+}
+
+// How far Spread's copies sit out from the wave, per body (Q10 of 1 to 4 px).
+const i32 kApart[kBodies] = {614, 1024, 1024, 256};
+
+// The vowel's poses for the tongue (dx, dy px Q10, turn in tenths of a
+// degree) and the lips' opening (scale Q10): oo, oh, ah, eh, ee.
+const i32 kTongue[kVowels][3] = {{-3072, -4096, 50}, {-2048, -2048, 30}, {0, 0, 0}, {2048, -2048, -30}, {3072, -3072, -45}};
+const i32 kLips[kVowels][2] = {{430, 2048}, {640, 1024}, {1024, 0}, {760, 0}, {560, -512}};   // scale, forward (Q10 px)
+inline i32 vowel_pose(const i32* table, u32 stride, i32 vowel) {
+    const i32 v = clamp(vowel, 0, 32767) * static_cast<i32>(kVowels - 1);
+    u32 which = static_cast<u32>(v >> 15);
+    i32 toward = v & 32767;
+    if (which >= kVowels - 1) { which = kVowels - 2; toward = 32768; }
+    return mix(table[which * stride], table[(which + 1) * stride], toward);
 }
 }
 
@@ -87,7 +201,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // (as the body scales it), vowel and cents; amounts elsewhere.
     const char* const titles[8] = {"Breath", "Body", "Bright", "Ring", "Air", "Vowel", "Spread", "Sympathy"};
     char values[8][header_capacity];
-    for (opxy::u32 i = 0; i < 8; ++i) header_amount(values[i], header_capacity, input.slots[i]);
+    for (u32 i = 0; i < 8; ++i) header_amount(values[i], header_capacity, input.slots[i]);
     body_caption(values[1], header_capacity, control(input.slots[1]));
     ring_caption(values[3], header_capacity, control(input.slots[3]), control(input.slots[1]));
     vowel_caption(values[5], header_capacity, control(input.slots[5]));
@@ -95,171 +209,245 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const opxy::u8 slots[2][4] = {{0, 1, 2, 3}, {4, 5, 6, 7}};
     page_header(state.header, input, frame, titles, values, header_first, slots);
 
-    const i32 breath = control(input.slots[0]), body = control(input.slots[1]), bright = control(input.slots[2]);
-    const i32 ring = control(input.slots[3]), air = control(input.slots[4]), vowel = control(input.slots[5]);
-    const i32 spread = control(input.slots[6]), sympathy = control(input.slots[7]);
-    // The screen draws the nearest family and the nearest vowel's ripple.
+    // A track change or reset shows the end state at once, as reduced motion always does.
+    const bool fresh = !state.started || !state.notes.initialized || state.notes.track != input.track;
+    const bool jump = fresh || input.reduced_motion;
+    state.notes.update(input);
+    const i32 dt = clamp(input.elapsed, 0, 102);
+
+    // The controls as the screen shows them: each eases to a turn in about
+    // 0.15 s (a 0.045 s time constant).
+    const i32 ease = 65536 - decay(dt, 2949);
+    for (u32 c = 0; c < 8; ++c) {
+        const i32 target = control(input.slots[c]);
+        i32& v = state.shown[c];
+        if (jump) v = target;
+        else v += (target - v) * (ease >> 1) >> 15;
+        if (v - target < 48 && target - v < 48) v = target;
+    }
+    const i32 breath = state.shown[0], body = state.shown[1], bright = state.shown[2], ring = state.shown[3];
+    const i32 air = state.shown[4], vowel = state.shown[5], spread = state.shown[6], sympathy = state.shown[7];
     u32 family = static_cast<u32>((body * 3 + 16384) >> 15);
     if (family > 3) family = 3;
-    u32 aspect = static_cast<u32>((vowel * 4 + 16384) >> 15);
-    if (aspect >= aspect_count) aspect = aspect_count - 1;
-    const i32 mouth = shelf - mouth_height[family];
+    const Sound sound = hear(breath, body, bright, ring, vowel);
+    const i32 widen = breath_widen_log2(breath);
 
-    // Notes: each held note lights a vessel, left to right. A track change or
-    // reset shows the end state at once, as reduced motion always does.
-    const bool fresh = !state.started || !state.notes.initialized || state.notes.track != input.track;
-    state.notes.update(input);
+    // Notes: each mode blooms while a note is held (as fast as the engine's
+    // resonance fills: slower with a longer ring, sooner with more breath,
+    // high modes first) and rings out over its own ring time once released.
     const u32 held = input.held_notes <= 128 ? input.held_notes : 0;
-    const u32 lit = held < 8 ? held : 8;
-    const i32 dt = clamp(input.elapsed, 0, 102);
-    if (fresh) {
-        for (u32 k = 0; k < 8; ++k) state.energy[k] = k < lit ? 32768 : 0;
-        state.tau = 0;
+    const i32 coupling = sympathy * (11469 + (21299 * sympathy >> 15)) >> 15;   // as the engine's, Q15
+    const i32 echo_ring = ring_log2_seconds(ring, body) + coupling * 3 - widen;  // up to 2.8 times longer
+    if (fresh) state.tau = 0;
+    if (jump) {
+        for (u32 k = 0; k < kModes; ++k) state.energy[k] = held ? 32768 : 0;
+        state.echo = held >= 2 && coupling ? 32768 : 0;
     } else {
-        // A note started and released between frames still rings its vessel.
-        const u32 starts = input.note_serial - state.serial, grew = held > state.held ? held - state.held : 0;
-        const u32 quick = starts > grew ? (starts - grew < 8 ? starts - grew : 8) : 0;
-        for (u32 m = 0; m < quick; ++m) {
-            const u32 k = lit + m < 8 ? lit + m : 7;
-            if (state.energy[k] < 9830) state.energy[k] = 9830;
-        }
-        // A vessel swells toward full while its note is held (more slowly with
-        // a longer ring, as a high-Q body blooms; sooner with more breath, which
-        // widens the resonances) and rings out over Ring's time once released:
-        // ring time and widening from the engine's mapping.
-        const u32 seconds = exp2_q16(ring_log2_seconds(ring, body));   // Q16
-        const u32 blooms = exp2_q16(ring_log2_seconds(ring, body) - breath_widen_log2(breath)) / 6;
-        const u32 swell = 13107u + (blooms < 163840u ? blooms : 163840u);
-        const i32 rise = decay(dt, swell), fall = decay(dt, seconds / 3);
-        for (u32 k = 0; k < 8; ++k) {
+        for (u32 k = 0; k < kModes; ++k) {
             i32& e = state.energy[k];
-            if (input.reduced_motion) e = k < lit ? 32768 : 0;
-            else if (k < lit) e += (32768 - e) * ((65536 - rise) >> 1) >> 15;
-            else e -= e * ((65536 - fall) >> 1) >> 15;
-            if (e < lit_floor && k >= lit) e = 0;
+            if (held) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(sound.ring[k] - 169408) + 3277)) >> 1) >> 15;
+            else e -= e * ((65536 - decay(dt, exp2_q16(sound.ring[k] - 131072))) >> 1) >> 15;
+            if (!held && e < lit_floor) e = 0;
         }
+        // A note started and released between frames still rings.
+        const u32 starts = input.note_serial - state.serial;
+        if (starts && !held && !state.held)
+            for (u32 k = 0; k < kModes; ++k) state.energy[k] = state.energy[k] > 9830 ? state.energy[k] : 9830;
+        // The sympathetic partner blooms slowly while two or more notes ring together.
+        i32& e = state.echo;
+        if (held >= 2 && coupling) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(echo_ring - 103872))) >> 1) >> 15;
+        else e -= e * ((65536 - decay(dt, exp2_q16(echo_ring - 131072))) >> 1) >> 15;
+        if (e < lit_floor && !(held >= 2 && coupling)) e = 0;
     }
     state.serial = input.note_serial;
     state.held = held;
     state.started = 1;
-    i32 sounding = 0, total = 0;
-    for (u32 k = 0; k < 8; ++k) {
-        if (state.energy[k] > sounding) sounding = state.energy[k];
-        total += state.energy[k];
-    }
-    // The clock runs as fast as the loudest vessel rings, so motion fades with the sound.
-    if (!input.reduced_motion && !fresh) {
-        const u32 pace = static_cast<u32>(sounding * 3 / 2 < 32768 ? sounding * 3 / 2 : 32768);
+    i32 loud = state.echo;
+    for (u32 k = 0; k < kModes; ++k) loud = state.energy[k] > loud ? state.energy[k] : loud;
+    // The clock runs as fast as the loudest mode rings, so motion fades with the sound.
+    if (!jump) {
+        const u32 pace = static_cast<u32>(loud * 3 / 2 < 32768 ? loud * 3 / 2 : 32768);
         state.tau += (static_cast<u32>(dt) << 6) * pace >> 15;
     }
     const u32 tau = state.tau;
+    const bool ringing = loud >= lit_floor;
 
-    // Air: the line along the top stirs with what sounds, more with more air.
-    const i32 stir = total / 3 < 32768 ? total / 3 : 32768;
-    place_air(state, frame, (1024 + (7168 * air >> 15)) * stir >> 15, fresh);
-
-    // Vessels: the body's family, dark at rest, glowing as each one rings.
+    // Fig. 1: the current body, in place; the others hidden.
     for (u32 f = 0; f < kBodies; ++f)
-        for (u32 k = 0; k < 8; ++k) {
-            const u32 node = vessel_first + 8 * f + k;
-            if (f != family) { hide(frame, node); continue; }
-            const i32 e = state.energy[k];
-            const i32 glow = e * 5 >> 15;
-            place(frame, node, vessel_x(k) * unit, shelf * unit, unit,
-                  e >= lit_floor ? ringing + static_cast<u32>(glow < 4 ? glow : 4) : at_rest, fill_and_stroke);
+        for (u32 n = figure_first[f]; n < figure_first[f] + figure_count[f]; ++n) {
+            if (f == family) place(frame, n, 0, 0, unit, 0, keep);
+            else hide(frame, n);
         }
-    // A pipe's mouth stays dark, outlined as its pipe is.
-    for (u32 k = 0; k < 8; ++k) {
-        if (family != 2) { hide(frame, mouth_first + k); continue; }
-        place(frame, mouth_first + k, vessel_x(k) * unit, shelf * unit, unit,
-              state.energy[k] >= lit_floor ? ringing : at_rest, fill_and_stroke);
+    i32 lift[32];
+    const i32* follow = 0;
+    if (family == 0) {
+        // The tongue takes the vowel's place; the lips round and part; the
+        // tract over the tongue follows it.
+        const i32 dx = vowel_pose(&kTongue[0][0], 3, vowel), dy = vowel_pose(&kTongue[0][1], 3, vowel);
+        const i32 tenths = vowel_pose(&kTongue[0][2], 3, vowel);
+        place(frame, tongue_node, tongue_origin[0] + dx, tongue_origin[1] + dy, unit, 0, keep);
+        turn(frame, tongue_node, rotation(tenths));
+        for (u32 i = 0; i < 32; ++i) {
+            // The tongue's rise under this sample: its shift, and its turn about the root.
+            const i32 x = strand_anchor[0][0][0] * unit + (static_cast<i32>(strand_rest[0][0][i][0]) << 6) - tongue_origin[0];
+            const i32 rise = dy + ((x >> 4) * (tenths * 1787 / 1000) >> 6);   // Q10 px; a tenth of a degree is 1.787 Q10 radians
+            lift[i] = rise * tract_follow[i] >> 8;
+        }
+        follow = lift;
+        place(frame, mouth_node, mouth_origin[0] + vowel_pose(&kLips[0][1], 2, vowel), mouth_origin[1],
+              vowel_pose(&kLips[0][0], 2, vowel), 0, keep);
+    } else if (family == 1) {
+        // The bow draws while the string sounds, and lifts away as Breath takes over.
+        const i32 travel = ringing ? 10 * sin14(tau * 13107u) >> 4 : 0;   // 0.2 Hz, +-10 px (Q10)
+        const u32 ink = sound.bowed > 16384 ? bow_ink : bow_faint;
+        place(frame, bow_hair_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
+        place(frame, bow_stick_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
+    } else if (family == 2) {
+        // Each pipe's wind sheet sways across its mouth as the pipe speaks.
+        for (u32 j = 0; j < 2; ++j) {
+            const i32 e = j ? state.echo : state.energy[0];
+            const i32 sway = (e >> 5) * sin14(tau * (j ? 340787u : 262144u)) >> 14;   // 4 and 5.2 Hz, up to 10 degrees
+            const i32 flutter = (e >> 6) * (32767 - sound.bowed) >> 15;
+            const i32 tenths = (sway * 100 >> 10) + ((flutter * noise(j + 7, tau * 3) >> 14) * 100 >> 10);
+            place(frame, j ? side_jet_node : main_jet_node, jet_origin[j][0], jet_origin[j][1], unit, 0, keep);
+            turn(frame, j ? side_jet_node : main_jet_node, rotation(tenths));
+        }
     }
 
-    // Sympathy: an arc between vessels ringing together, within three of each
-    // other, brighter as both ring, pulsing slowly.
-    u32 n = 0;
-    for (u32 i = 0; i < 8; ++i)
-        for (u32 j = i + 1; j < 8 && j <= i + 3; ++j, ++n) {
-            const i32 e = state.energy[i] < state.energy[j] ? state.energy[i] : state.energy[j];
-            if (sympathy <= 655 || e < lit_floor) { hide(frame, arc_first + n); continue; }
-            const i32 pulse = 21299 + (11469 * wave(tau * 29491u + i * 888634858u + j * radian) >> 10);
-            const i32 level = (sympathy * e >> 15) * pulse >> 15;
-            const i32 step = level * 4 >> 15;
-            place(frame, arc_first + n, vessel_x(i) * unit, (mouth - 4) * unit, unit,
-                  step > 0 ? arc_ink + static_cast<u32>((step < 3 ? step : 3) - 1) : ripple_ink, fill_and_stroke);
-        }
-
-    // Ripples rising from each ringing mouth: slower and wider the longer it
-    // rings, fading as they rise and brighter with Bright. With Spread, the
-    // ensemble's sharp and flat copies rise as fainter ripples to the right and
-    // left, 1.5 px out at the least and 7.6 px at 30 cents, each swaying with
-    // its copy's detune at the engine's slow rates. A pool holds 29 of the 72
-    // a full chord with spread could show: the faintest go first.
-    Ripple ripples[72];
-    u32 count = 0;
-    const u32 rate = 16384u + static_cast<u32>(36045 * (32767 - ring) >> 15);   // Q16 cycles a second
-    const i32 reach = 8192 + (14336 * ring >> 15);                              // Q10 px
-    const i32 lift = 14746 + (18022 * bright >> 15);
-    const i32 wet = spread_wet(spread);
-    const bool ensemble = wet > lit_floor;
-    const i32 width = 1536 + (spread_cents_q8(spread) * 13 >> 4);                // Q10 px
-    const i32 copy = 16384 + (wet * 10 >> 4);                                     // the copies' shade, Q15 of the centre's
-    for (u32 k = 0; k < 8; ++k) {
+    // The strands. Each mode turns at its own rate; the breath's part wanders.
+    i32 amp[kModes], up[kModes], down[kModes];
+    const i32 reach = strand_reach[family][0];
+    const i32 cents = spread_cents_q8(spread), wet = spread_wet(spread);
+    const u32 drift = static_cast<u32>(cents * 3);   // the copies' beat, Q16 of the mode's rate: 0.35 at 30 cents
+    for (u32 k = 0; k < kModes; ++k) {
+        const u32 phase = mode_rate[family][k] * tau + (hash(k + 17) << 16);
+        const Wander w = wander(k * 31 + family, sound.ring[k], tau);
         const i32 e = state.energy[k];
-        if (e < lit_floor) continue;
-        const i32 strength = e * lift >> 15;
-        for (u32 i = 0; i < 3; ++i) {
-            const u32 p = (tau * rate + i * 0x55555555u + hash(k + 11) * 19661u) >> 16;   // Q16 of its rise
-            const i32 scale = (4096 + static_cast<i32>(p * static_cast<u32>(reach) >> 16)) / ripple_radius;
-            const i32 level = (static_cast<i32>(65536 - p) >> 1) * strength >> 15;
-            const i32 y = (mouth - 6) * unit - static_cast<i32>(p >> 2);
-            const i32 x = vessel_x(k) * unit;
-            ripples[count++] = Ripple{x, y, scale, static_cast<u32>(level * 4 >> 15)};
-            if (ensemble) {
-                const u32 phase = hash(k + 31) << 16;
-                const i32 up = width + (width * (kSwaySlow * wave(tau * kSwayRates[0] + phase) >> 10) >> 15);
-                const i32 down = width + (width * (kSwaySlow * wave(tau * kSwayRates[1] + phase * 3) >> 10) >> 15);
-                const u32 shade = static_cast<u32>((level * copy >> 15) * 4 >> 15);
-                ripples[count++] = Ripple{x + up, y, scale, shade};
-                ripples[count++] = Ripple{x - down, y, scale, shade};
-            }
+        const i32 wind2 = sound.wind[k] * 2;
+        const i32 noisy = ((wind2 * w.a >> 14) * cos14(phase) >> 14) + ((wind2 * w.b >> 14) * sin14(phase) >> 14);
+        const i32 scale = static_cast<i32>((static_cast<u32>(reach) << 4) / sound.rms);   // Q10 px per amplitude unit, Q4
+        amp[k] = ((sound.bow[k] * cos14(phase) >> 14) + noisy) * (e >> 3) >> 12;            // amplitude units
+        amp[k] = amp[k] * scale >> 4;
+        // Spread's copies: the same mode beating ahead and behind, swaying
+        // at the ensemble's slow rates.
+        const u32 beat = times(mode_rate[family][k], drift);
+        const u32 sway = beat * 15860u;
+        const u32 ahead = beat * tau + static_cast<u32>(sin14(times(kSwayRates[0], tau) << 16) * static_cast<i32>(sway >> 14));
+        const u32 behind = beat * tau + static_cast<u32>(sin14((times(kSwayRates[1], tau) << 16) + 0x5000000u) * static_cast<i32>(sway >> 14));
+        up[k] = ((((sound.bow[k] * cos14(phase + ahead)) >> 14) + noisy) * (e >> 3) >> 12) * scale >> 4;
+        down[k] = ((((sound.bow[k] * cos14(phase - behind)) >> 14) + noisy) * (e >> 3) >> 12) * scale >> 4;
+    }
+    // The partner rings at its own pitch (a fifth or so above), its breath wandering too.
+    i32 echo_amp[3];
+    {
+        const i32 level = (coupling * kSympathy >> 15) * (state.echo >> 3) >> 12;            // Q15
+        const i32 crowd = 19661 + 4369 * static_cast<i32>(held > 4 ? 3 : held > 1 ? held - 1 : 0);
+        const i32 r = (strand_reach[family][1] >> 2) * (level * crowd >> 15) >> 13;          // Q10 px
+        const i32 parts[3] = {32767, 13107, 5898};
+        for (u32 j = 0; j < 3; ++j) {
+            const u32 phase = partner_rate[family][j] * tau + (hash(j + 41) << 16);
+            const Wander w = wander(j * 13 + 5, echo_ring, tau);
+            const i32 bowed = (sound.bowed * cos14(phase) >> 14);
+            const i32 blown = ((32767 - sound.bowed) * ((w.a * cos14(phase) + w.b * sin14(phase)) >> 14) >> 14);
+            echo_amp[j] = (r * parts[j] >> 15) * ((bowed + blown) >> 3) >> 12;
         }
     }
-    u32 used = 0;
-    for (u32 s = 4; s-- > 0;)
-        for (u32 r = 0; r < count && used < ripple_pool; ++r) {
-            const u32 shade = ripples[r].shade < 3 ? ripples[r].shade : 3;
-            if (shade != s) continue;
-            place(frame, ripple_first + ripple_pool * aspect + used++, ripples[r].x, ripples[r].y, ripples[r].scale,
-                  ripple_ink + shade, stroke);
-        }
-    for (u32 a = 0; a < aspect_count; ++a)
-        for (u32 r = a == aspect ? used : 0; r < ripple_pool; ++r) hide(frame, ripple_first + ripple_pool * a + r);
+    // Redraw only when something moved: a still picture keeps its keys.
+    u32 digest = tau * 3u + family * 7919u + static_cast<u32>(held) * 131u + static_cast<u32>(vowel) * 7u;
+    for (u32 k = 0; k < kModes; ++k) digest = digest * 31u + static_cast<u32>(amp[k] + up[k] * 3 + down[k] * 5);
+    for (u32 j = 0; j < 3; ++j) digest = digest * 31u + static_cast<u32>(echo_amp[j]);
+    digest = digest * 31u + static_cast<u32>(cents + wet * 7);
+    const bool redraw = fresh || digest != state.drawn;
+    state.drawn = digest;
+    if (redraw) state.key = state.key + 4 > state.key ? state.key + 4 : 4;
+    const u32 n = strand_samples[family];
+    const bool glass = family == 3;
+    const bool ensemble = wet > lit_floor && ringing;
+    if (redraw) {
+        i32 d[64];
+        sum_modes(d, n, amp, mode_shape[family], kModes);
+        draw_strand(frame, 0, family, 0, d, 0, follow, state.key);
+        sum_modes(d, n, echo_amp, partner_shape[family], 3);
+        draw_strand(frame, 1, family, 1, d, 0, 0, state.key + 1);
+        // The copies sit either side, as far out as the detune (closer in the
+        // airway, and barely off the rim).
+        const i32 apart = (1024 + (cents * 13 >> 5)) * kApart[family] >> 10;
+        sum_modes(d, n, up, mode_shape[family], kModes);
+        draw_strand(frame, 2, family, 0, d, apart, follow, state.key + 2);
+        sum_modes(d, n, down, mode_shape[family], kModes);
+        draw_strand(frame, 3, family, 0, d, -apart, follow, state.key + 3);
+    }
+    place_strand(frame, 0, family, 0, ringing ? wave_ink : glass ? rim_ink : rest_ink);
+    // The partner shows while it rings; the second glass's rim always shows.
+    if (glass) place_strand(frame, 1, family, 1, state.echo >= lit_floor ? rim_ink : partner_ink);
+    else if (state.echo >= lit_floor) place_strand(frame, 1, family, 1, rim_ink);
+    else hide(frame, 1);
+    for (u32 p = 2; p < 4; ++p) {
+        if (ensemble) place_strand(frame, p, family, 0, copy_ink);
+        else hide(frame, p);
+    }
 
-    // Breath: up to three motes drift up from each ringing vessel.
-    const u32 motes = static_cast<u32>((breath * 3 + 16384) >> 15);
-    for (u32 k = 0; k < 8; ++k)
-        for (u32 i = 0; i < 3; ++i) {
-            const u32 node = mote_first + 3 * k + i;
-            if (i >= motes || state.energy[k] < lit_floor) { hide(frame, node); continue; }
-            const u32 speed = (7u * 65536u + 6u * hash(3 * k + i + 101)) / 46;   // Q16 rises a second
-            const u32 rise = (tau * speed + hash(7 * k + i + 211) * 56988u) >> 16;
-            const i32 sway = 5 * wave(tau * 19661u + i * 2 * radian + k * radian);
-            place(frame, node, vessel_x(k) * unit + sway, (mouth - 4) * unit - static_cast<i32>(rise * 46 >> 6), unit,
-                  mote_ink, fill_and_stroke);
+    // Fig. 2: Koenig's analyser. Each resonator is as large as its mode's
+    // pitch needs (radius by the ratio to the -2/3, as for a fixed neck); each
+    // flame burns as high as its mode rings, flickering with the breath.
+    i32 peak = 1, strength[kModes];
+    for (u32 k = 0; k < kModes; ++k) {
+        strength[k] = static_cast<i32>(isqrt(static_cast<u32>(sound.bow[k] * sound.bow[k] + 4 * sound.wind[k] * sound.wind[k])));
+        peak = strength[k] > peak ? strength[k] : peak;
+    }
+    for (u32 k = 0; k < kModes; ++k) {
+        const Shape shape = body_mode(body, k);
+        const i32 size = static_cast<i32>(exp2_q16(-(shape.log2_ratio * 2 / 3)) >> 6);   // Q10
+        const i32 rings = (strength[k] << 15) / peak * (state.energy[k] >> 3) >> 12;    // Q15
+        place(frame, resonator_first + k, slot_x[k], neck_y, size > 120 ? size : 120,
+              rings > 6554 ? resonator_lit : resonator_rest, fill_and_stroke);
+        place(frame, shine_first + k, slot_x[k], neck_y, size > 120 ? size : 120, 0, keep);
+        i32 height = 102 + (922 * rings >> 15);   // Q10: a pilot flame at rest
+        if (ringing) {
+            const i32 lick = 40 * sin14(tau * 458752u + k * 0x2f000000u) >> 14;
+            const i32 gust = ((32767 - sound.bowed) * 180 >> 15) * noise(k + 61, tau * 4) >> 14;
+            height += height * (lick + gust) >> 10;
         }
+        height = clamp(height, 60, 1100);
+        const u32 ink = flame_ink + static_cast<u32>(clamp((height - 102) * 4 / 922, 0, 3));
+        place(frame, flame_first + k, slot_x[k], burner_y, height, ink, fill_and_stroke);
+        if (height > 260) place(frame, core_first + k, slot_x[k], burner_y, height, 0, keep);
+        else hide(frame, core_first + k);
+    }
 
-    // Glass: glints catch on the bowl, more as it brightens.
-    const u32 glints = family == 3 ? static_cast<u32>((bright * 2 + 16384) >> 15) : 0;
-    for (u32 k = 0; k < 8; ++k)
-        for (u32 i = 0; i < 2; ++i) {
-            const u32 node = glint_first + 2 * k + i;
-            if (i >= glints || state.energy[k] < lit_floor) { hide(frame, node); continue; }
-            const u32 tick = (tau * 3u + hash(k + 5 * i + 307) * 3u) >> 16;
-            if (hash(tick * 13 + 7 * k + i + 401) > 36045) { hide(frame, node); continue; }
-            const i32 x = vessel_x(k) * unit + ((static_cast<i32>(hash(tick + k + i + 503)) - 32768) * 22 >> 6);
-            const i32 y = (shelf - 8) * unit - static_cast<i32>(hash(3 * tick + k + i + 601) * 56 >> 6);
-            place(frame, node, x, y, unit, glint_ink, fill_and_stroke);
-        }
+    // Breath leaves the body as motes (more with more breath), and Air's hiss
+    // as faster streaks, while it sounds.
+    const i32 sx = breath_source[family][0] * unit, sy = breath_source[family][1] * unit;
+    const i32 vx = breath_source[family][2], vy = breath_source[family][3];
+    const i32 length = static_cast<i32>(isqrt(static_cast<u32>(vx * vx + vy * vy) << 16));   // Q8
+    const i32 ux = (vx << 18) / length, uy = (vy << 18) / length;                           // Q10, its unit direction
+    const i32 puff = 32767 - sound.bowed;
+    const u32 motes = ringing ? static_cast<u32>((puff * static_cast<i32>(mote_count) + 16384) >> 15) : 0;
+    for (u32 m = 0; m < mote_count; ++m) {
+        const u32 node = mote_first + m;
+        if (m >= motes) { hide(frame, node); continue; }
+        const u32 life = (tau * (19661u + hash(m + 3) * 16384u / 65536u)) + (hash(m + 11) << 16);   // Q32 of its life
+        const i32 age = static_cast<i32>(life >> 22);                                                 // 0..1023
+        const i32 along = age * 22 / 10;                    // Q10 s: 2.2 s of drift
+        const i32 across = (static_cast<i32>(hash(m + 23)) - 32768) * (4 + 12 * age / 1024) >> 15;   // px
+        const i32 sway = 2 * sin14(tau * 32768u + m * 0x3b000000u) >> 4;                           // Q10 px, 0.5 Hz
+        const i32 x = sx + vx * along - uy * across + (sway * -uy >> 10);
+        const i32 y = sy + vy * along + ux * across + (sway * ux >> 10);
+        place(frame, node, x, y, unit, age < 560 ? mote_ink : mote_fading, fill_and_stroke);
+    }
+    const u32 streaks = ringing ? static_cast<u32>((air * static_cast<i32>(air_count) + 16384) >> 15) : 0;
+    for (u32 m = 0; m < air_count; ++m) {
+        const u32 node = air_first + m;
+        if (m >= streaks) { hide(frame, node); continue; }
+        const u32 life = (tau * (45875u + hash(m + 5) * 26214u / 65536u)) + (hash(m + 13) << 16);
+        const i32 age = static_cast<i32>(life >> 22);
+        const i32 along = age * 30 / 10;                     // Q10 s: 3 s of drift, half again as fast as the motes
+        const i32 across = (static_cast<i32>(hash(m + 29)) - 32768) * (6 + 22 * age / 1024) >> 15;
+        const i32 x = sx + (vx * 3 >> 1) * along - uy * across;
+        const i32 y = sy + (vy * 3 >> 1) * along + ux * across;
+        place(frame, node, x, y, unit, air_ink, fill_and_stroke);
+        const Turn way = {ux, uy};
+        turn(frame, node, way);
+    }
 }
 }

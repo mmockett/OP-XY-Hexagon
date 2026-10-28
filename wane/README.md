@@ -53,8 +53,17 @@ note on the right. It is still until you play or turn something.
   drag, flutter adds a fast ripple and each note start dips it by sag. It
   stays between the capstans and the shell's edge. The reels turn with the same wobble, and
   over a long session the tape winds from one pack onto the other.
-- **Age** fades the label's stripes in three steps and gathers dust on the
-  shell, which shivers while notes play.
+- **Age** wears the cassette, and the wear stays still: what age shows is a
+  used object, not a motion. From the first steps dust settles and the label's
+  top-right corner starts to lift; by 30 a first scratch crosses the window
+  and another the shell. Further up the label's stripes fade (in three steps,
+  at 34 and 67), more scratches cross the window, the shell and the foot, its
+  edges rub pale and chip, the print wears out of "wane", the side letter and
+  the title lines, and grime gathers in corners and along edges. The corner
+  peels further in four stages, its pale underside curling back over the
+  label to leave bare shell; from 66 the bottom-left corner lifts too, and
+  from 78 the label tears. At 100 it is a well-used tape. Each piece appears at
+  once as age passes its point, and nothing moves.
 
 The artwork is generated from the cassette's geometry by
 `tools/make_panel.py`; run it after changing a shape, and keep the constants
