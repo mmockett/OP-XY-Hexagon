@@ -3,7 +3,8 @@
 // Every frame is valid and every outline has distinct points; the screen is
 // still when nothing sounds; a strike lights the wings and they fade at
 // glow's pace; reduced motion, a reset and a track change show the end
-// state at once.
+// state at once; drift sways the moth while it sounds, a group of pieces a
+// frame, and no frame redraws much of the moth.
 #include "../display.cpp"
 #include <cstdio>
 #include <cstring>
@@ -83,14 +84,15 @@ void stillness() {
     before = frame;
     player.tick();
     check("idle: nothing moves while nothing sounds", same(before, frame));
-    check("idle: the lit wing, halo and LED glow are dark", !shown(2) && !shown(3) && !shown(moth::kHaloFirst) && !shown(moth::kLedGlow));
-    // A strike lights the wings, beats them and sheds scales; then it all fades.
+    check("idle: the lit edges and the light crossing to the cell are dark",
+          !shown(2) && !shown(3) && !shown(moth::kBodyFirst + 8));
+    // A strike lights the wings and the voice's eyespot and sheds scales; then it all fades.
     player.hold(1);
     player.tick();
     player.tick();
     bool scales = false;
     for (u32 s = 0; s < moth::kScaleCount; ++s) scales = scales || shown(moth::kScaleFirst + s);
-    check("a strike lights the wings and the halo", shown(2) && shown(3) && shown(moth::kHaloFirst));
+    check("a strike lights the wings and its eyespot", shown(2) && shown(3) && frame.nodes[moth::kEyeFirst + 1].shade > 4);
     check("a strike knocks scales loose", scales);
     player.hold(0);
     for (u32 f = 0; f < 240; ++f) player.tick();
@@ -132,6 +134,52 @@ void snapping() {
     check("a track change shows the end state", shown(2));
 }
 
+// Nodes that differ between two frames.
+u32 changed(const moth::Frame& a, const moth::Frame& b) {
+    u32 n = 0;
+    for (u32 k = 0; k < moth::Frame::node_count; ++k) n += std::memcmp(&a.nodes[k], &b.nodes[k], sizeof a.nodes[k]) != 0;
+    return n;
+}
+
+void swaying() {
+    // A held pad at full drift: the moth sways, a step at a time, and each
+    // frame redraws only a few pieces.
+    const double pad[8] = {0.45, 0.15, 0.41, 0, 0.95, 0.3, 0, 1};
+    moth::display_reset(state);
+    Player player(pad, 0);
+    player.tick();
+    player.hold(2);
+    for (u32 f = 0; f < 30; ++f) player.tick();
+    static moth::Frame before;
+    u32 peak = 0, total = 0, steps = 0;
+    i32 low = 1 << 30, high = -(1 << 30);
+    for (u32 f = 0; f < 600; ++f) {
+        before = frame;
+        player.tick();
+        const u32 n = changed(before, frame);
+        peak = n > peak ? n : peak;
+        total += n;
+        steps += frame.nodes[moth::kBodyFirst + 9].y != before.nodes[moth::kBodyFirst + 9].y ||
+                 frame.nodes[moth::kBodyFirst + 9].sin != before.nodes[moth::kBodyFirst + 9].sin;
+        low = frame.nodes[moth::kBodyFirst + 9].sin < low ? frame.nodes[moth::kBodyFirst + 9].sin : low;
+        high = frame.nodes[moth::kBodyFirst + 9].sin > high ? frame.nodes[moth::kBodyFirst + 9].sin : high;
+    }
+    check("drift sways the moth while it sounds", steps >= 4 && high > low);
+    check("the sway moves in steps, a few a second", steps <= 10 * 60);
+    check("no frame redraws more than a group of pieces", peak <= 16);
+    check("on average a held, swaying pad redraws under six pieces a frame", total < 6 * 600);
+    // Without drift, a held note is still.
+    const double still[8] = {0.45, 0.15, 0.41, 0, 0.95, 0.3, 0, 0};
+    moth::display_reset(state);
+    Player quiet(still, 0);
+    quiet.tick();
+    quiet.hold(2);
+    for (u32 f = 0; f < 120; ++f) quiet.tick();
+    before = frame;
+    quiet.tick();
+    check("without drift, a held harmonic note is still", same(before, frame));
+}
+
 void header() {
     const double ping[8] = {0.55, 0.3, 0.67, 0.85, 0.3, 0.2, 0.5, 0.25};
     moth::display_reset(state);
@@ -152,6 +200,7 @@ int main() {
     frames();
     stillness();
     snapping();
+    swaying();
     header();
     if (failures) std::printf("%d failures\n", failures);
     return failures ? 1 : 0;

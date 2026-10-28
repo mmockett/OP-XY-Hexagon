@@ -3,24 +3,18 @@
 geometry display.cpp draws from: run it after changing a shape here, and
 commit all three.
 
-A moth, wings spread, centred at (240, 124). Each wing's margin is the folded
-waveform (display.cpp reshapes the four outlines: the dark edge and the lit
-edge of each wing; the dark edge's 31 vertices joined by straight chords).
-The OP-XY's outlines cannot be filled, so the membrane is built under each
-chord from two pieces: a wedge from the root out to the chord, scaled to the
-nearer of its two vertices (so it never passes the edge), and a tooth
-authored on the chord at the margin's full reach, which display.cpp turns and
-scales so its base lies exactly on the chord as it moves, covering what the
-wedge leaves between it and the edge. So the membrane's boundary is the edge
-at every fold. The lit wing is twenty wedges a wing, and its edge runs along
-their tops. The body
-is a vactrol: the LED's leads bent up as antennae, the LED as head and
-thorax, the photocell's serpentine track as the abdomen. Behind it all, the
-lamp's halo; over it, the scales a strike knocks loose. A specimen label sits
-in the corner as static artwork. Node numbers are the ones display.h names.
-Every node is one closed outline (or a circle) of distinct points, so every
-outline encloses area; lines are thin closed ribbons. The halo comes before
-the header block, so the header covers its top, as on the board."""
+A moth, wings spread, centred at (240, 124), drawn in line. Each wing is its
+margin, the folded waveform, as one outline of the root's two points and 62
+margin points (display.cpp reshapes the four outlines: each wing's edge, and
+inside it the lit edge, the gate's light, which grows toward the edge and
+brightens as the vactrol lights). Fine static veins and an eyespot a voice
+(a ring and a pupil) sit inside the wings, short of the deepest scallop, so
+they stay inside the edge at every fold. The body is a vactrol: the LED's
+leads bent up as antennae, the LED as head and thorax, the photocell's
+serpentine track as the abdomen. Over it all, the scales a strike knocks
+loose; in the corner, a specimen label (static artwork). Node numbers are the
+ones display.h names. Every node is one closed outline of distinct points (or
+a circle), so every outline encloses area; lines are thin closed ribbons."""
 import math
 import pathlib
 import sys
@@ -32,30 +26,19 @@ FONT = 'font-family="UniversNextPro-Light"'
 CX, CY = 240, 124
 MARGIN = 62               # margin points per wing; with the two root points, an outline's 64
 POINTS = 64
-VERTICES = 31             # the dark edge's vertices along the margin; a wedge and a tooth under each chord
-VERTEX_INDEX = [round(i * (MARGIN - 1) / (VERTICES - 1)) for i in range(VERTICES)]
-CHORDS_N = VERTICES - 1
-LIT_N = 20                # the lit membrane's wedges a wing; the lit edge runs along their tops
-LIT_INDEX = [round(i * (MARGIN - 1) / LIT_N) for i in range(LIT_N + 1)]
-TAPER = 75                # degrees: how steeply a tooth's sides lean in from its chord
-FAN = (-3, 0)             # the wedges' common corner, at the root, from the centre: it scales with them, so it barely moves
-VEINS = [0.05, 0.15, 0.26, 0.37, 0.5, 0.62, 0.74, 0.86, 0.95]
-SPOTS = [(0.28, 0.6), (0.47, 0.64), (0.72, 0.6), (0.87, 0.52)]
-REST = 0.89               # the margin's mean reach, where the veins are authored
-DUST = 20
+VEINS = [0.06, 0.2, 0.35, 0.5, 0.65, 0.8, 0.94]
+VEIN_REACH = 0.76         # where the veins end: inside the deepest scallop (the margin's reach is 0.78 to 1)
+SPOTS = [(0.28, 0.6), (0.47, 0.64), (0.72, 0.6), (0.87, 0.52)]   # along the margin, and the share of its reach
+REST = 0.89               # the margin's mean reach, where the eyespots sit
+DUST = 8
 
 # Nodes (display.h names the same numbers).
 PATHS = 0                 # 0, 1: dark edges (left, right); 2, 3: lit edges
 HEADER = 4                # eight bar nodes
-HALO = 12                 # seven lamp rings, outermost first
-LED_GLOW = 19
-DARK = 20                 # the dark membrane's wedges (thirty a wing, left first), then its teeth
-DARK_TEETH = 80
-LIT = 140                 # the lit membrane's wedges (twenty a wing)
-VEIN = 180                # nine a wing, left then right
-EYE = 198                 # eight eyes, three nodes each: ring, inside, pupil
-BODY = 222                # fourteen parts of the vactrol
-DUST_FIRST = 236
+VEIN = 12                 # seven a wing, left then right
+EYE = 26                  # eight eyespots, two nodes each: ring, pupil (odd voices left, even right)
+BODY = 42                 # fourteen parts of the vactrol
+DUST_FIRST = 56
 
 GREYS = ['#000000', '#0d0d0d', '#141414', '#1c1c1c', '#262626', '#333333', '#404040', '#4d4d4d',
          '#5c5c5c', '#6e6e6e', '#808080', '#999999', '#b3b3b3', '#cccccc', '#e6e6e6', '#ffffff']
@@ -146,99 +129,28 @@ def mirror(points):
     return [(-x, y) for x, y in points]
 
 
-angles = [math.atan2(y - FAN[1], -(x - FAN[0])) for x, y in WING]
-assert all(b > a for a, b in zip(angles, angles[1:-1])), "the margin must wind once round the fan's corner"
-
-
-def inside(polygon, x, y):
-    hit = False
-    for (x0, y0), (x1, y1) in zip(polygon, polygon[1:] + polygon[:1]):
-        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
-            hit = not hit
-    return hit
-
-
-# Under each chord between vertices: a wedge from FAN out to the chord, and a
-# tooth on the chord reaching inward by half its length (less where the wing
-# is thinner), authored with its first corner at its origin.
-OUTLINE = [(-3, -13)] + WING + [(-3, 13)]
-# The interior lies on one side of every chord: the side the outline turns to.
-AREA = sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(OUTLINE, OUTLINE[1:] + OUTLINE[:1]))
-TURN = 1 if AREA > 0 else -1
-TEETH, CHORDS, WEDGES, MIDDLES = [], [], [], []
-# The edge as drawn: the root's points and the vertices, joined by chords.
-EDGE = [(-3, -13)] + [WING[i] for i in VERTEX_INDEX] + [(-3, 13)]
-for j in range(CHORDS_N):
-    a, b = WING[VERTEX_INDEX[j]], WING[VERTEX_INDEX[j + 1]]
-    ux, uy = b[0] - a[0], b[1] - a[1]
-    length = math.hypot(ux, uy)
-    nx, ny = -uy / length * TURN, ux / length * TURN
-    # Deep enough to cover what the wedge leaves: the wedge stops at the
-    # nearer vertex's reach, leaving a triangle between the chord and the
-    # point at that reach on the farther vertex's ray. Its depth, as a share
-    # of the chord, is found over every pair of reaches the edge can take
-    # (0.78 to 1): half where the margin crosses the rays square, more where
-    # it runs along them, as at the tornus.
-    need = 0.5
-    steps = [0.78 + 0.22 * k / 10 for k in range(11)]
-    for ra in steps:
-        for rb in steps:
-            A, B = (a[0] * ra, a[1] * ra), (b[0] * rb, b[1] * rb)
-            D = (b[0] * ra, b[1] * ra) if rb > ra else (a[0] * rb, a[1] * rb)
-            chord = math.hypot(B[0] - A[0], B[1] - A[1])
-            if chord < length * 0.3:
-                continue
-            gap = abs((B[0] - A[0]) * (D[1] - A[1]) - (B[1] - A[1]) * (D[0] - A[0])) / chord
-            need = max(need, gap / chord)
-    depth = min(need, 1.2) * length
-    while not all(inside(EDGE, a[0] + t * ux + nx * depth * w, a[1] + t * uy + ny * depth * w)
-                  for t in (0.05, 0.5, 0.95) for w in (0.25, 1)):
-        depth *= 0.9
-        assert depth > length / 20, "a tooth faces out"
-    # Its sides lean in at TAPER from the chord, so at a sharp crest it does
-    # not reach past the next chord.
-    lean = depth / math.tan(math.radians(TAPER)) / length
-    TEETH.append([(0, 0), (ux, uy), (ux + nx * depth - ux * lean, uy + ny * depth - uy * lean),
-                  (nx * depth + ux * lean, ny * depth + uy * lean)])
-    CHORDS.append((ux, uy))
-    # The wedge reaches a little past each vertex's ray (5% of the chord), so
-    # neighbours overlap even as a beat turns each its own way.
-    wa = (a[0] - ux * 0.05, a[1] - uy * 0.05)
-    wb = (b[0] + ux * 0.05, b[1] + uy * 0.05)
-    WEDGES.append([FAN, wa, wb])
-    MIDDLES.append(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2))
-LIT_WEDGES, LIT_MIDDLES = [], []
-for j in range(LIT_N):
-    a, b = WING[LIT_INDEX[j]], WING[LIT_INDEX[j + 1]]
-    ux, uy = b[0] - a[0], b[1] - a[1]
-    LIT_WEDGES.append([FAN, (a[0] - ux * 0.05, a[1] - uy * 0.05), (b[0] + ux * 0.05, b[1] + uy * 0.05)])
-    LIT_MIDDLES.append(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2))
-
-
-# Veins: from the root to the margin, authored at REST along +x from their
-# root; display.cpp turns and scales each to the margin as it moves.
-def vein_geometry(u, reach):
-    tip = at([(x * reach, y * reach) for x, y in WING], u)
+# Veins: from the root toward the margin, authored in place and ending at
+# VEIN_REACH of it, so no fold brings the edge in past them.
+def vein_points(u):
+    tip = at([(x * VEIN_REACH, y * VEIN_REACH) for x, y in WING], u)
     base = (-3, (u - 0.5) * 22)
     root = (base[0] + (tip[0] - base[0]) * 0.16, base[1] + (tip[1] - base[1]) * 0.16)
-    return root, math.hypot(tip[0] - root[0], tip[1] - root[1]) * 0.97
+    dx, dy = tip[0] - root[0], tip[1] - root[1]
+    length = math.hypot(dx, dy)
+    nx, ny = -dy / length, dx / length
+    end = (root[0] + dx * 0.97, root[1] + dy * 0.97)
+    return [(root[0] + nx * 0.6, root[1] + ny * 0.6), (end[0] + nx * 0.2, end[1] + ny * 0.2),
+            (end[0] - nx * 0.2, end[1] - ny * 0.2), (root[0] - nx * 0.6, root[1] - ny * 0.6)]
 
 
-VEIN_REST = [vein_geometry(u, REST)[1] for u in VEINS]
-
-
-def vein(length):
-    return [(0, -0.6), (length, -0.2), (length, 0.2), (0, 0.6)]
+# Eyespots: each at its margin point, at its share of the margin's mean reach.
+EYES = []
+for u, f in SPOTS:
+    i = round(u * (MARGIN - 1))
+    EYES.append((WING[i][0] * REST * f, WING[i][1] * REST * f))
 
 
 out = [f'<g id="{ID}_panel">']
-# The lamp's halo: rings of light behind the moth, drawn at full and scaled.
-for k in range(1, 8):
-    out.append(f'<circle id="{ID}_node_{HALO + k - 1}" cx="0" cy="0" r="{176 - 22 * k}" fill="#000000" '
-               f'stroke="#000000" stroke-width="0.25" transform="matrix(1 0 0 1 {CX} {CY - 16})"/>')
-out.append(f'<circle id="{ID}_node_{LED_GLOW}" cx="0" cy="0" r="22" fill="#000000" stroke="#000000" '
-           f'stroke-width="0.25" transform="matrix(1 0 0 1 {CX} {CY - 16})"/>')
-
 out += ["<!-- SDK two-page header: keep this block before machine artwork below y=38. -->",
        '<path d="M0,0 L480,0 L480,38 L0,38 Z" fill="#000000"/>']
 bar = ["#000000", "#323232", "#4B4B4B", "#646464", "#7D7D7D", "#969696", "#AFAFAF", "#CDCDCD"]
@@ -255,23 +167,9 @@ for i, (x, y, ink, size) in enumerate(texts):
     out.append(f'<text id="{ID}_text_{i}" transform="matrix(1 0 0 1 {num(x)} {num(y)})" fill="{ink}" {FONT} '
                f'font-size="{size}px">-</text>')
 
-# The dark membrane (fill, then teeth), the dark edges, then the lit membrane and lit edges.
-def membrane(first, teeth, wedges=WEDGES):
-    for side in range(2):
-        for j, wedge in enumerate(wedges):
-            out.append(node(first + len(wedges) * side + j, outline(mirror(wedge) if side else wedge), GREYS[4], width=0.3, at=(CX, CY)))
-    if teeth is None:
-        return
-    for side in range(2):
-        for j, tooth in enumerate(TEETH):
-            a = WING[VERTEX_INDEX[j]]
-            out.append(node(teeth + CHORDS_N * side + j, outline(mirror(tooth) if side else tooth), GREYS[4], width=0.3,
-                            at=(CX - a[0] if side else CX + a[0], CY + a[1])))
-
-
-membrane(DARK, DARK_TEETH)
 # The edges: the wing's outline at rest, the root's two points and the margin
-# (display.cpp places them at scale 2, from the wing's middle).
+# (display.cpp places them at scale 2, from the wing's middle, so the 0.5 px
+# stroke draws a 1 px line).
 for p in range(4):
     side = p & 1
     mid = 90 * (1 if side else -1)
@@ -282,20 +180,23 @@ for p in range(4):
     d = "M" + " L".join(f"{num(x, 4)},{num(y, 4)}" for x, y in rel) + " Z"
     assert len(rel) == POINTS
     out.append(f'<path id="{ID}_node_{PATHS + p}" transform="matrix(1 0 0 1 {CX + mid} {CY})" d="{d}" fill="none" '
-               f'stroke="{GREYS[6]}" stroke-width="0.5" stroke-linejoin="round"/>')
-    if p == 1:
-        membrane(LIT, None, LIT_WEDGES)
+               f'stroke="{GREYS[9] if p < 2 else GREYS[6]}" stroke-width="0.5" stroke-linejoin="round"/>')
 
-# Veins.
+# Veins, fine lines in place.
 for side in range(2):
-    for v, length in enumerate(VEIN_REST):
-        out.append(node(VEIN + 9 * side + v, outline(vein(length)), GREYS[7], width=0.1, at=(CX, CY)))
+    for v, u in enumerate(VEINS):
+        pts = vein_points(u)
+        out.append(node(VEIN + len(VEINS) * side + v, outline(mirror(pts) if side else pts), GREYS[6], width=0.1, at=(CX, CY)))
 
-# Eyespots: a ring, the wing showing inside it, and the pupil.
+# Eyespots: a ring (a circle drawn at scale 2, stroked: a 1 px line) and the pupil.
 for e in range(8):
-    out.append(f'<circle id="{ID}_node_{EYE + 3 * e}" cx="0" cy="0" r="4.4" fill="{GREYS[6]}" stroke="{GREYS[6]}" stroke-width="0.25"/>')
-    out.append(f'<circle id="{ID}_node_{EYE + 3 * e + 1}" cx="0" cy="0" r="3.3" fill="{GREYS[4]}" stroke="{GREYS[4]}" stroke-width="0.25"/>')
-    out.append(f'<circle id="{ID}_node_{EYE + 3 * e + 2}" cx="0" cy="0" r="3" fill="{GREYS[3]}" stroke="{GREYS[3]}" stroke-width="0.25"/>')
+    j, side = e // 2, e % 2
+    x, y = EYES[j]
+    at_x, at_y = num(CX - x if side else CX + x), num(CY + y)
+    out.append(f'<circle id="{ID}_node_{EYE + 2 * e}" transform="matrix(1 0 0 1 {at_x} {at_y})" cx="0" cy="0" r="2.2" '
+               f'fill="none" stroke="{GREYS[7]}" stroke-width="0.5"/>')
+    out.append(f'<circle id="{ID}_node_{EYE + 2 * e + 1}" transform="matrix(1 0 0 1 {at_x} {at_y})" cx="0" cy="0" r="3" '
+               f'fill="{GREYS[4]}" stroke="{GREYS[4]}" stroke-width="0.25"/>')
 
 
 # The body: the vactrol, authored round the moth's centre.
@@ -376,24 +277,9 @@ header = ["#pragma once",
           f"const opxy::i32 kWingY[{MARGIN}] = {{{', '.join(str(q10(v)) for _, v in WING)}}};",
           f"// The tornus, where the hindwing meets the forewing, as a share of the margin (Q16).",
           f"const opxy::i32 kJoint = {round(JOINT * 65536)};",
-          f"// The edge's vertices: their margin points.",
-          f"const opxy::u32 kVertices = {VERTICES};",
-          f"const opxy::u8 kVertexIndex[{VERTICES}] = {{{', '.join(str(i) for i in VERTEX_INDEX)}}};",
-          f"// Each tooth's chord as authored, from its first vertex to its next (the tooth's origin is the first).",
-          f"const opxy::i32 kChordX[{VERTICES - 1}] = {{{', '.join(str(q10(x)) for x, _ in CHORDS)}}};",
-          f"const opxy::i32 kChordY[{VERTICES - 1}] = {{{', '.join(str(q10(v)) for _, v in CHORDS)}}};",
-          f"// Each tooth's two inner corners as authored, from its origin.",
-          f"const opxy::i32 kToothInner[{VERTICES - 1}][4] = {{{', '.join('{' + ', '.join(str(q10(v)) for v in (t[3][0], t[3][1], t[2][0], t[2][1])) + '}' for t in TEETH)}}};",
-          f"// Each chord's middle as authored, where a beat turns its wedge about the centre.",
-          f"const opxy::i32 kMiddleX[{CHORDS_N}] = {{{', '.join(str(q10(x)) for x, _ in MIDDLES)}}};",
-          f"const opxy::i32 kMiddleY[{CHORDS_N}] = {{{', '.join(str(q10(v)) for _, v in MIDDLES)}}};",
-          f"// The lit membrane's wedges: the margin points each spans, and each one's middle.",
-          f"const opxy::u32 kLitWedges = {LIT_N};",
-          f"const opxy::u8 kLitIndex[{LIT_N + 1}] = {{{', '.join(str(i) for i in LIT_INDEX)}}};",
-          f"const opxy::i32 kLitMiddleX[{LIT_N}] = {{{', '.join(str(q10(x)) for x, _ in LIT_MIDDLES)}}};",
-          f"const opxy::i32 kLitMiddleY[{LIT_N}] = {{{', '.join(str(q10(v)) for _, v in LIT_MIDDLES)}}};",
-          f"// Each vein's authored length (it is drawn with the margin at {REST} of its reach).",
-          f"const opxy::i32 kVeinLength[9] = {{{', '.join(str(q10(v)) for v in VEIN_REST)}}};",
+          f"// The eyespots' places on the left wing (the right mirrors x).",
+          f"const opxy::i32 kEyeX[{len(EYES)}] = {{{', '.join(str(q10(x)) for x, _ in EYES)}}};",
+          f"const opxy::i32 kEyeY[{len(EYES)}] = {{{', '.join(str(q10(v)) for _, v in EYES)}}};",
           "}",
           ""]
 if ID == "moth":

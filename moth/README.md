@@ -146,26 +146,30 @@ declared 0.27 (`outputPeakQ31`), which a clamp guarantees and never reaches.
 
 ## Screen
 
-A moth, wings spread, the specimen label pinned in the corner. Each wing's
-margin is the folded waveform, one cycle wrapped along it, the forewing its
-first half and the hindwing its second: each half-cycle swells a lobe, and
-every fold splits it into scallops. The right wing shows the wave half a
-cycle on and turned over, so bias, or FM at an odd ratio, makes the wings
-differ. FM's modulator is drawn as a strobe at the note's own rate: the
-nearest half-harmonic stands still and what is left over crawls along the
-edge (1.01 slowly, 2.76 quickly) while the moth sounds.
+A moth, wings spread, drawn in line, with the specimen label pinned in the
+corner. Each wing is its edge: the folded waveform, one cycle wrapped along
+the margin, the forewing its first half and the hindwing its second. Each
+half-cycle swells a lobe, and every fold splits it into scallops. The right
+wing shows the wave half a cycle on and turned over, so bias, or FM at an odd
+ratio, makes the wings differ. FM's modulator is drawn as a strobe at the
+note's own rate: the nearest half-harmonic stands still and what is left over
+crawls along the edge (1.01 slowly, 2.76 quickly) while the moth sounds. As
+the index rises it frays the edge, drawn through all 62 margin points (the
+board drew 60).
 
 The body is the vactrol: the LED's leads bent up as antennae, the LED its
 head, shining down onto the photocell, whose serpentine track makes the
 abdomen. Each held note has its own vactrol, with the laws audio uses: its
-LED flashes as the note is struck, and its cell lights the wings, the lamp's
-halo behind the moth and its own eyespot (odd voices on the left wing, even
-on the right), fading at glow's pace once the note ends. In the lit wing the
-gate's waveform shows: vca keeps its scallops as the light shrinks, lp melts
-them back toward a smooth wing. A strike flicks the antennae out and back
-within 0.2 s and knocks up to four scales off the wings' edges, faster the
-harder it pings; they tumble out and settle as they fade. Drift makes the
-edges wander while the moth sounds.
+LED flashes as the note is struck, and its cell lights its own eyespot (odd
+voices on the left wing, even on the right) and, with the others, the wings.
+Inside each edge a lit edge grows toward it and brightens with the light,
+then fades at glow's pace once the note ends. The lit edge shows the gate's
+waveform: vca keeps its scallops as the light shrinks, lp melts them back
+toward a smooth wing. A strike flicks the antennae out and back within 0.2 s.
+It also knocks up to two scales off the wings' edges, faster the harder it
+pings; they tumble out and settle as they fade. Drift makes the edges wander
+and sways the whole moth, up to 2.9 degrees and 2.2 px at full drift, while
+it sounds. Fine static veins run from the root toward the margin.
 
 Controls ease in over about 0.15 s and the ratio glides between stops. The
 screen cannot hear the voices: it follows the held notes (a note started and
@@ -173,78 +177,73 @@ released between frames still pings the next vactrol) and the controls. When
 nothing sounds the screen is still. Reduced motion, a reset and a track change
 show the end state at once.
 
-The OP-XY redraws whatever changes, so the screen changes little. The moth
-itself stays put. A membrane piece is redrawn only once the wave has moved
-it about a pixel from where it was drawn (under a pixel of lag), and the
-gate's light (the lit wing, its grey, the halo and the cell), the LED and
-the eyespots are drawn in steps (sixteen, sixteen and eight), redrawn only
-when they step. Plucking Ping every half second, about 22 nodes change a
-frame on average (Lantern 36, Clean 32), at most about 100 on the frame a
-lit wing appears.
+### Redrawing little
 
-### The wings' edges and membranes
+The OP-XY redraws whatever changes, so the screen changes little:
 
-The OP-XY's reshaping outlines cannot be filled, so each wing's edge is a
-1 px outline and its membrane is built from filled pieces that meet it:
+- **The wings are outlines.** There is no membrane fill. A wing is two
+  64-point outlines (the edge and the lit edge), re-keyed only when their
+  points change. The veins and eyespots stay put on the wing: the veins end
+  at 0.76 of the margin's reach and the eyespots sit nearer the root, inside
+  the deepest scallop (0.78), so no fold brings the edge in past them. The
+  lit edge stays at least 3% inside the edge, even where lp's melting would
+  carry a dip's light past it.
+- **The wave and the sway move in steps** of an eighth of a second (the
+  clock, drift's wander and the FM crawl are sampled then). The sway moves in
+  whole pixels and steps of 0.4 degrees, and only when it has moved three
+  quarters of a step past where it was drawn. Each step reaches one group of
+  pieces a frame: the left wing's edges and veins, the right wing's, the LED
+  (antennae to the light crossing), the cell, then each wing's eyespots. A
+  frame therefore moves at most 9 pieces for the sway. The sway waits out
+  the 0.2 s after a strike, when the LED and antennae are busy.
+- **The light is stepped.** The gate's light (the lit edges' size and grey,
+  and the cell) has sixteen steps, the LED eight and each eyespot eight, each
+  redrawn only when it steps. The antennae flick in 2 degree steps. The
+  scales are drawn at whole pixels and in 30 degree turns.
 
-- **The dark wing.** The edge runs through 31 vertices along the margin,
-  joined by straight chords. Under each chord sits a wedge from the root out
-  to the chord, scaled to the nearer of the chord's two vertices, so it never
-  passes the edge, and a tooth: a tapered strip authored on the chord, which
-  the screen turns and scales so its base lies exactly on the chord as the
-  wave moves, covering what the wedge leaves below it. Each tooth is as deep
-  as the widest gap its wedge can leave (half its chord where the margin
-  crosses the rays square, up to 1.2 where it runs along them); where a sharp
-  fold would carry a tooth's inner corners out past the edge, it shrinks along
-  its chord toward the farther vertex.
-- **The lit wing.** Twenty wedges a wing, each at the nearer of its ends; the
-  lit edge runs along their tops, so it is the lit membrane's boundary by
-  construction (stepped where neighbouring wedges differ).
-- **The wings never move as a whole,** so their edges stay on their
-  membranes at every moment, strikes included.
+Measured with the preview's real frames, a note every half second held for a
+quarter second (`mothcost.mjs`), at drift 50 then 100:
 
-Measured at about 180,000 points along the dark edge (every combination of
-fold 0/55/100, fm 0/100, bias 0/100, strike 0/100 and mode lp/vca, with
-drift and a strike, probing 2 px either side of the line), the membrane meets
-the edge within 2 px at 97.7% of them: at 1.1% the membrane falls more than
-2 px short and at 1.2% it reaches more than 2 px past. At fold 0 and 55
-without FM (any bias) no point misses by 2 px. The worst settings are fold
-55 with FM 100 (3.5% of points, where FM's wrinkles are finer than 31
-vertices) and fold 100 without FM (2.7%, at the sharpest scallops). As FM
-rises the vertices take a little of their neighbours' reach, so the drawn
-edge keeps the wave's shape without those wrinkles.
+| | nodes changed a frame, average | peak | outlines re-keyed a frame | host µs a frame |
+| --- | --- | --- | --- | --- |
+| Ping | 4 / 4 | 15 / 17 | 0.4 / 0.4 | 8 |
+| Lantern | 3 / 4 | 13 / 13 | 1.2 / 1.2 | 6 |
+| Clean | 3 / 4 | 13 / 15 | 1.5 / 1.5 | 4 |
+
+The build before this one changed 26, 38 and 33 nodes a frame on average
+(peaks 120, 103 and 77) and re-keyed 2.2, 4.0 and 3.6 outlines. With two
+notes held under a pad at full drift, about 3 nodes change a frame (peak 9)
+and 0.5 outlines are re-keyed. The tests check that a held, swaying pad never
+changes more than 16 nodes in a frame and averages under six.
 
 `tools/make_panel.py` writes `panel.svg.fragment` and `wing.h` (the wing's
-margin, the edges' vertices, the teeth's chords and corners, the wedges and
-the veins) with the node numbers `display.h` names. The screen uses all 256
-nodes (60 dark wedges, 60 teeth and 40 lit wedges among them, 20 scales), 4
-outlines of 64 points and all 16 text slots (the two-page header).
+margin and the eyespots' places) with the node numbers `display.h` names. The
+screen uses 64 nodes (14 veins, 8 eyespots of two nodes, 14 body parts and 8
+scales among them), 4 outlines of 64 points, and all 16 text slots (the
+two-page header).
 
 Departures from the board:
 
-- **The edge is drawn in chords.** The dark edge has 31 vertices (the board
-  sampled 60 points), so strong folds read as faceted scallops, and the lit
-  edge steps from wedge to wedge (above).
-- **No wing beat.** The board narrowed the wings at each strike; here the
-  wings stay still (moving them would part the edge from the membrane, or
-  redraw most of the screen each frame), and a strike flicks the antennae
-  instead, beside the LED's flash, the halo, the lit wing, the eyespot and
-  the shed scales.
-- **Drift does not sway the moth.** The board swayed and bobbed it; here
-  drift shows in the wandering edges, so the moth's many pieces stay still.
-- **Fewer scales:** up to four a strike, from a pool of 20 (the board shed up
+- **The wings are outlines,** not filled: the edge, and the lit edge growing
+  and brightening inside it. The eyespot is a ring and a pupil.
+- **No wing beat.** The board narrowed the wings at each strike. Here a
+  strike flicks the antennae instead, beside the LED's flash, the lit edges,
+  the eyespot and the shed scales.
+- **No halo.** The board's lamp lit rings of glow behind the moth. As filled
+  discs they redrew most of the screen at every step of the light. As thin
+  rings they would still redraw a box around most of the moth each time the
+  light stepped, so they are left out.
+- **The sway steps** (above), and reaches the moth's pieces over a few frames
+  rather than all at once.
+- **The veins and eyespots stay put** on the wing, rather than following the
+  edge, and the veins stop short of the margin.
+- **Fewer scales:** up to two a strike, from a pool of 8 (the board shed up
   to nine and kept 64).
-- **The lit wing steps:** its size, grey and the halo change in sixteen steps
-  of the gate's light, not continuously.
-- **Glow is honest:** the lit wings fade by the engine's vactrol, where glow
-  is the time to fall 60 dB; the board's sketch used it as a time constant, so
-  for the same caption the wings now fade several times sooner, with the
+- **Glow is honest:** the lit edges fade by the engine's vactrol, where glow
+  is the time to fall 60 dB. The board's sketch used it as a time constant,
+  so for the same caption the wings now fade several times sooner, with the
   sound.
-- The eyespot's ring is a ring-coloured disc with a disc of the wing's colour
-  inside it (the artwork has no even-odd fill).
 - The label's text is upright (authored SVG has no italics).
-- The halo comes before the header block in the artwork, so the header covers
-  its top, as on the board.
 - Drift's caption follows its new law: 3.9c at 25 (the board showed 1.6c for
   25 x²), so a quarter turn is clearly heard.
 - Clean holds the gate open (strike 0) in combo, where the board's sketch had
