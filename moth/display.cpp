@@ -11,10 +11,16 @@
 // its own vactrol (the laws audio uses, laws.h): its LED flashes as the note
 // is struck, its cell lights the wings, the lamp's halo and its own eyespot,
 // and fades at glow's pace. In the lit wing the gate's waveform shows: vca
-// keeps its scallops as it shrinks, lp melts them. A strike beats the wings
-// once and knocks scales off their edges; drift sways the moth while it
-// sounds. The screen cannot hear the voices: it follows the held notes and
-// the controls. Integer arithmetic only; nothing moves while nothing sounds.
+// keeps its scallops as it shrinks, lp melts them. A strike flicks the
+// antennae and knocks scales off the wings; drift makes the edges wander while
+// the moth sounds. The screen cannot hear the voices: it follows the held
+// notes and the controls. Integer arithmetic only; nothing moves while
+// nothing sounds.
+//
+// The OP-XY redraws what changes, so the screen changes little: the moth
+// stays put, the membrane's pieces are redrawn only once the wave has moved
+// them about a pixel, and the gate's light, the LED and the eyespots are
+// drawn in steps, redrawn only when they step.
 #include "display.h"
 #include "laws.h"
 #include "wing.h"
@@ -25,7 +31,7 @@ using namespace opxy::draw;
 
 const i32 kCX = 240 * unit, kCY = 124 * unit;
 const i32 kDepth = 7209;        // how far a lobe swells past the dips: 0.22 of the wing's reach, Q15
-const u32 kBeat = 13107;        // a wing beat: 0.2 s, Q16 seconds
+const u32 kBeat = 13107;        // an antenna's flick: 0.2 s, Q16 seconds
 const u32 kFlash = 3932;        // the LED's flash: 60 ms, Q16 seconds
 const i32 kEaseLog2 = -293206;  // log2 of 45 ms, Q16: controls settle within 0.2 s
 const i32 kVeinAt[kVeins] = {3277, 9830, 17039, 24248, 32768, 40632, 48497, 56361, 62259};  // Q16 along the margin
@@ -90,6 +96,25 @@ inline void pose(Frame& frame, u32 node, const Pose& p, i32 x, i32 y, i32 scale,
     place(frame, node, s.x, s.y, scale, shade, paint);
     opxy::draw::turn(frame, node, compose(p.sway, turn));
 }
+// As pose, but leaves the node as it is when it is already within tol pixels
+// (Q10) of the place, tol_scale (Q10) of the scale and tol_turn of the turn,
+// in the same paint: so the OP-XY redraws only what has visibly moved. exact
+// writes it regardless (the first frame after a reset sets every element).
+inline void settle(Frame& frame, u32 node, const Pose& p, i32 x, i32 y, i32 scale, Turn turn, u32 shade, Paint paint,
+                   i32 tol, i32 tol_scale, i32 tol_turn, bool exact) {
+    const Point2 at = on_screen(p, x, y);
+    const Turn t = compose(p.sway, turn);
+    const Node& n = frame.nodes[node];
+    const i32 dx = n.x - at.x, dy = n.y - at.y, ds = n.scale - scale, dc = n.cos - t.cos, dn = n.sin - t.sin;
+    if (!exact && n.shade == shade && n.paint == paint && dx <= tol && -dx <= tol && dy <= tol && -dy <= tol &&
+        ds <= tol_scale && -ds <= tol_scale && (dc < 0 ? -dc : dc) + (dn < 0 ? -dn : dn) <= tol_turn)
+        return;
+    place(frame, node, at.x, at.y, scale, shade, paint);
+    opxy::draw::turn(frame, node, t);
+}
+// Tolerances: a piece may lag the wave by under a pixel before it is redrawn.
+const i32 kNearPlace = 768, kNearScale = 5, kNearTurn = 12;
+
 // The unit turn from direction (x, y), any scale.
 inline Turn heading(i32 x, i32 y) {
     while (x > 30000 || x < -30000 || y > 30000 || y < -30000) { x >>= 1; y >>= 1; }
@@ -127,8 +152,8 @@ inline i32 reach(i32 y) {
     return (32768 - (kDepth * (32768 - a) >> 15)) >> 3;
 }
 
-// A wing's point (Q10 px from the centre) as the beat turns its wing about
-// the centre by flap.
+// A wing's point (Q10 px from the centre) turned about the centre by flap
+// (the wings now stay level: flap is always upright).
 inline Point2 lifted(i32 x, i32 y, Turn flap) {
     Point2 p = {(x * flap.cos - y * flap.sin) >> 10, (x * flap.sin + y * flap.cos) >> 10};
     return p;
@@ -151,9 +176,10 @@ void edge(Frame& frame, DisplayState& state, u32 path, u32 side, const Point2* v
     u32 n = 0;
     pts[n++] = lifted(root_x, -13 * unit, flap);
     for (u32 k = 0; k < kVertices; ++k) {
-        pts[n++] = vertices[k];
+        const Point2 a = lifted(vertices[k].x, vertices[k].y, flap);
+        pts[n++] = a;
         if (k + 1 == kVertices) break;
-        const Point2 a = vertices[k], b = vertices[k + 1];
+        const Point2 b = lifted(vertices[k + 1].x, vertices[k + 1].y, flap);
         const u32 parts = k == kVertices / 2 ? 3 : 2;
         for (u32 q = 1; q < parts; ++q) {
             pts[n].x = a.x + static_cast<i32>(q) * (b.x - a.x) / static_cast<i32>(parts);
@@ -238,8 +264,8 @@ inline bool within(const Point2* v, u32 n, Point2 top, Point2 bottom, i32 x, i32
 // vertex, so the membrane's boundary is the edge. Where a sharp fold would
 // leave a tooth's inner corners outside the edge, the tooth shrinks along its
 // chord toward the farther vertex, where the wedge leaves most to cover.
-void teeth(Frame& frame, const Pose& p, u32 first, u32 side, const Point2* vertices, const i32* reaches, Turn flap) {
-    const Point2 top = lifted((side ? 3 : -3) * unit, -13 * unit, flap), bottom = lifted((side ? 3 : -3) * unit, 13 * unit, flap);
+void teeth(Frame& frame, const Pose& p, u32 first, u32 side, const Point2* vertices, const i32* reaches, bool exact) {
+    const Point2 top = {(side ? 3 : -3) * unit, -13 * unit}, bottom = {(side ? 3 : -3) * unit, 13 * unit};
     for (u32 j = 0; j + 1 < kVertices; ++j) {
         const u32 node = first + (kVertices - 1) * side + j;
         const i32 ux = side ? -kChordX[j] : kChordX[j], uy = kChordY[j];
@@ -250,6 +276,14 @@ void teeth(Frame& frame, const Pose& p, u32 first, u32 side, const Point2* verti
         const i32 now = static_cast<i32>(root(static_cast<u32>((vx >> 4) * (vx >> 4) + (vy >> 4) * (vy >> 4))));
         const i32 scale = clamp(authored ? now * unit / authored : unit, 16, 2 * unit);
         const bool far_end = reaches[j + 1] > reaches[j];
+        // Already in place, whole, within a pixel: nothing to test or redraw.
+        {
+            const Node& n = frame.nodes[node];
+            const Point2 at = on_screen(p, vertices[j].x, vertices[j].y);
+            const i32 dx = n.x - at.x, dy = n.y - at.y, ds = n.scale - scale, dc = n.cos - bend.cos, dn = n.sin - bend.sin;
+            if (!exact && dx <= kNearPlace && -dx <= kNearPlace && dy <= kNearPlace && -dy <= kNearPlace &&
+                ds <= kNearScale && -ds <= kNearScale && (dc < 0 ? -dc : dc) + (dn < 0 ? -dn : dn) <= kNearTurn) continue;
+        }
         bool placed = false;
         for (i32 share = 4; share >= 1 && !placed; --share) {  // quarters of the chord
             const i32 s = scale * share >> 2;
@@ -265,7 +299,7 @@ void teeth(Frame& frame, const Pose& p, u32 first, u32 side, const Point2* verti
                 inside = within(vertices, kVertices, top, bottom, ox + tx, oy + ty);
             }
             if (inside || share == 1) {
-                pose(frame, node, p, ox, oy, clamp(s, 16, 2 * unit), bend, 4, keep);
+                settle(frame, node, p, ox, oy, clamp(s, 16, 2 * unit), bend, 4, keep, kNearPlace, kNearScale, kNearTurn, exact);
                 placed = inside;
             }
         }
@@ -390,42 +424,43 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     i32 dark_wave[2][kMargin], lit_wave[2][kMargin];
     for (u32 side = 0; side < 2; ++side) wave(dark_wave[side], side, fold, depth, shown, state.psi);
 
-    // The wing beat: each strike beats the wings once, down and back within
-    // 0.2 s, each wing turning about the body by up to 10 degrees (down, so
-    // the forewings stay clear of the header). Every piece of a wing turns
-    // with it, so the membrane meets its edge throughout.
-    i32 beat = 0;
+    // A strike flicks the antennae (the LED's leads): each turns out about its
+    // foot and back within 0.2 s, by up to 12 degrees, the harder the strike
+    // the further. Two nodes; the wings never move, so their edges stay on
+    // their membranes.
+    i32 flick = 0;
     if (!input.reduced_motion)
         for (u32 k = 0; k < 8; ++k)
-            if (state.lamps[k].since < kBeat) beat += 512 * strike / 32767 * sine(static_cast<i32>(state.lamps[k].since * 1800u / kBeat)) >> 10;
-    const i32 lift = beat * 287 >> 10 > 100 ? 100 : beat * 287 >> 10;  // half the beat's radians, in tenths of a degree
-    const Turn flaps[2] = {rotation(-lift), rotation(lift)};
+            if (state.lamps[k].since < kBeat) flick += 120 * strike / 32767 * sine(static_cast<i32>(state.lamps[k].since * 1800u / kBeat)) >> 10;
+    if (flick > 120) flick = 120;  // tenths of a degree
+    const Turn level = rotation(0);
 
-    // Drift: the whole moth wavers a little while it sounds.
-    Pose p;
-    {
-        const i32 lean = 51 * (drift * wander(state.tau, 2) >> 15) >> 15;  // up to 0.05 rad, Q10
-        p.sway.sin = lean;
-        p.sway.cos = unit - (lean * lean >> 11);
-    }
-    p.bob = 2253 * drift / 32767 * wander(state.tau, 9) / 32767;  // 2.2 px
+    // The moth itself stays put: drift shows in its edges' wander.
+    const Pose p = {level, 0};
+    const bool exact = fresh;
 
+    // The gate as drawn, in sixteen steps: the lit wing, its grey, the halo
+    // and the cell redraw only when it steps.
+    const i32 drawn = gate <= 328 ? 0 : ((gate + 1024) >> 11 << 11) - (gate + 1024 >= 32768 ? 1 : 0);
     // The gate's look: mode filters (lp, combo) and fades (combo, vca).
     const Mix mix = mode_mix(state.eased[kMode]);
-    const i32 closed = 32767 - gate;
+    const i32 closed = 32767 - drawn;
     const i32 k = 32767 - (30802 * (mix.filter * power(closed, 19661) >> 15) >> 15);  // 1 - 0.94 filter closed^0.6
     const i32 rho = 30474 * (32767 - (closed * (13763 + (15073 * mix.fade >> 15)) >> 15)) >> 15;  // 0.93 (1 - closed (0.42 + 0.46 fade))
-    const bool glowing = gate > 655;
-    const u32 lit_grey = grey(1024 + (2406 * power(gate, 27853) >> 15));  // 4 + 9.4 g^0.85
+    const bool glowing = drawn > 0;
+    const u32 lit_grey = grey(1024 + (2406 * power(drawn, 27853) >> 15));  // 4 + 9.4 g^0.85
 
     // The lamp: the vactrol's own light, haloed round the body, fading with glow.
     const Point2 lamp = {0, -16 * unit};
     for (u32 r = 0; r < kHaloCount; ++r) {
-        if (gate <= 328) { hide(frame, kHaloFirst + r); continue; }
-        const i32 shade = (static_cast<i32>(r + 1) * power(gate, 26214) >> 7);  // k g^0.8, Q8
-        pose(frame, kHaloFirst + r, p, lamp.x, lamp.y, 901 + (123 * gate >> 15), rotation(0), grey(shade), fill_and_stroke);
+        if (!drawn) { hide(frame, kHaloFirst + r); continue; }
+        const i32 shade = (static_cast<i32>(r + 1) * power(drawn, 26214) >> 7);  // k g^0.8, Q8
+        pose(frame, kHaloFirst + r, p, lamp.x, lamp.y, 901 + (123 * drawn >> 15), level, grey(shade), fill_and_stroke);
     }
-    if (led > 1638) pose(frame, kLedGlow, p, lamp.x, lamp.y, (10 * unit + (12 * unit * led >> 15)) / 22, rotation(0), grey(1792 + (1280 * led >> 15)), fill_and_stroke);
+    // The LED's glow, in sixteen steps.
+    const i32 shine = led > 1638 ? (led + 1024) >> 11 << 11 : 0;
+    if (shine) pose(frame, kLedGlow, p, lamp.x, lamp.y, (10 * unit + (12 * unit * (shine > 32767 ? 32767 : shine) >> 15)) / 22, level,
+                    grey(1792 + (1280 * shine >> 15)), fill_and_stroke);
     else hide(frame, kLedGlow);
 
     // The wings: the edges' vertices, then each membrane's wedges, the dark
@@ -449,7 +484,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             const u32 i = kVertexIndex[v], before = i ? i - 1 : i, after = i + 1 < kMargin ? i + 1 : i;
             const i32 soft = (dark_reach[side][before] + 2 * dark_reach[side][i] + dark_reach[side][after]) >> 2;
             dark_at[v] = dark_reach[side][i] + ((soft - dark_reach[side][i]) * blur >> 15);
-            edges[side][v] = margin(side, i, dark_at[v], flaps[side]);
+            edges[side][v] = margin(side, i, dark_at[v], level);
         }
         for (u32 v = 0; v <= kLitWedges; ++v) {
             const u32 i = kLitIndex[v], before = i ? i - 1 : i, after = i + 1 < kMargin ? i + 1 : i;
@@ -459,24 +494,25 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         // Each lit wedge reaches the nearer of its ends; the lit edge runs along their tops.
         for (u32 j = 0; j < kLitWedges; ++j) lit_top[j] = lit_at[j] < lit_at[j + 1] ? lit_at[j] : lit_at[j + 1];
         // Under each chord a wedge from the root, reaching the nearer of the
-        // chord's vertices (a beat turns each about the centre to its chord's
-        // middle), then the teeth on the chords.
+        // chord's vertices, then the teeth on the chords; each redrawn only
+        // once the wave has moved it about a pixel.
         for (u32 j = 0; j < kChords; ++j) {
             const i32 dark = dark_at[j] < dark_at[j + 1] ? dark_at[j] : dark_at[j + 1];
-            pose(frame, kDarkFirst + kChords * side + j, p, 0, 0, clamp(dark >> 2, 16, 2 * unit), flaps[side], 4, keep);
+            settle(frame, kDarkFirst + kChords * side + j, p, 0, 0, clamp(dark >> 2, 16, 2 * unit), level, 4, keep,
+                   0, kNearScale, 0, exact);
         }
         for (u32 j = 0; j < kLitWedges; ++j) {
             const u32 node = kLitFirst + kLitWedges * side + j;
             if (!glowing) { hide(frame, node); continue; }
-            pose(frame, node, p, 0, 0, clamp(lit_top[j] >> 2, 16, 2 * unit), flaps[side], lit_grey, fill_and_stroke);
+            settle(frame, node, p, 0, 0, clamp(lit_top[j] >> 2, 16, 2 * unit), level, lit_grey, fill_and_stroke, 0, kNearScale, 0, exact);
         }
-        teeth(frame, p, kDarkTeeth, side, edges[side], dark_at, flaps[side]);
-        edge(frame, state, side, side, edges[side], flaps[side]);
+        teeth(frame, p, kDarkTeeth, side, edges[side], dark_at, exact);
+        edge(frame, state, side, side, edges[side], level);
         const Point2 middle = {side ? 90 * unit : -90 * unit, 0};
-        pose(frame, side, p, middle.x, middle.y, 2 * unit, rotation(0), 6, stroke);
-        lit_edge(frame, state, 2 + side, side, glowing ? lit_top : dark_at, flaps[side]);
+        pose(frame, side, p, middle.x, middle.y, 2 * unit, level, 6, stroke);
+        lit_edge(frame, state, 2 + side, side, glowing ? lit_top : dark_at, level);
         if (glowing) {
-            pose(frame, 2 + side, p, middle.x, middle.y, 2 * unit, rotation(0), lit_grey + 1 > 15 ? 15 : lit_grey + 1, stroke);
+            pose(frame, 2 + side, p, middle.x, middle.y, 2 * unit, level, lit_grey + 1 > 15 ? 15 : lit_grey + 1, stroke);
         } else {
             hide(frame, 2 + side);
         }
@@ -484,45 +520,53 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         // Veins from the root to the margin.
         for (u32 v = 0; v < kVeins; ++v) {
             const Point2 tip = along(edges[side], kVeinAt[v]);
-            const Point2 base = lifted((side ? 3 : -3) * unit, ((kVeinAt[v] - 32768) * 22) >> 6, flaps[side]);
-            const i32 base_x = base.x, base_y = base.y;
+            const i32 base_x = (side ? 3 : -3) * unit, base_y = ((kVeinAt[v] - 32768) * 22) >> 6;
             const i32 root_x = base_x + ((tip.x - base_x) >> 4) * 41 / 16, root_y = base_y + ((tip.y - base_y) >> 4) * 41 / 16;  // 0.16 of the way
             const i32 dx = tip.x - root_x, dy = tip.y - root_y;
             const i32 length = static_cast<i32>(root(static_cast<u32>((dx >> 4) * (dx >> 4) + (dy >> 4) * (dy >> 4)))) * 16 * 993 >> 10;  // 0.97
-            pose(frame, kVeinFirst + kVeins * side + v, p, root_x, root_y, clamp(length * unit / kVeinLength[v], 256, 2 * unit),
-                 heading(dx, dy), 7, keep);
+            settle(frame, kVeinFirst + kVeins * side + v, p, root_x, root_y, clamp(length * unit / kVeinLength[v], 256, 2 * unit),
+                   heading(dx, dy), 7, keep, kNearPlace, kNearScale * 2, kNearTurn, exact);
         }
 
         // Eyespots, one a voice (odd voices left, even right), each lit by its own vactrol.
         for (u32 j = 0; j < 4; ++j) {
             const u32 i = static_cast<u32>((kSpotAt[j] * static_cast<i32>(kMargin - 1) + 32768) >> 16);
             const i32 r = dark_reach[side][i] * kSpotReach[j] >> 15;
-            const Point2 spot = margin(side, i, r, flaps[side]);
-            const i32 g = cells[2 * j + side];
-            const bool on = g > 655;
+            const Point2 spot = margin(side, i, r, level);
+            const i32 g = cells[2 * j + side] > 655 ? (cells[2 * j + side] + 2048) >> 12 << 12 : 0;  // eight steps
+            const bool on = g > 0;
             const u32 node = kEyeFirst + 3 * (2 * j + side);
-            pose(frame, node, p, spot.x, spot.y, unit, rotation(0), on ? 3 : 6, fill_and_stroke);
+            settle(frame, node, p, spot.x, spot.y, unit, level, on ? 3 : 6, fill_and_stroke, kNearPlace, 0, 0, exact);
             const bool inside = glowing && r < lit_reach[side][i] * 7 / 8;
-            pose(frame, node + 1, p, spot.x, spot.y, unit, rotation(0), inside ? lit_grey : 4, fill_and_stroke);
-            pose(frame, node + 2, p, spot.x, spot.y, (1434 + (1638 * g >> 15)) / 3, rotation(0), on ? grey(1280 + (2560 * g >> 15)) : 3, fill_and_stroke);
+            settle(frame, node + 1, p, spot.x, spot.y, unit, level, inside ? lit_grey : 4, fill_and_stroke, kNearPlace, 0, 0, exact);
+            settle(frame, node + 2, p, spot.x, spot.y, (1434 + (1638 * (g > 32767 ? 32767 : g) >> 15)) / 3, level,
+                   on ? grey(1280 + (2560 * g >> 15)) : 3, fill_and_stroke, kNearPlace, 0, 0, exact);
         }
     }
 
     // The body: the vactrol. The LED's epoxy and die glow with its light, the
     // light crosses to the cell, and the cell's track glows with the gate.
-    for (u32 b = 0; b < 14; ++b) pose(frame, kBodyFirst + b, p, 0, 0, unit, rotation(0), 0, keep);
-    shade(frame, kBodyFirst + 3, grey(512 + (2816 * led >> 15)), fill_and_stroke);
-    shade(frame, kBodyFirst + 6, grey(1536 + (2304 * led >> 15)), fill_and_stroke);
-    if (led > 983) shade(frame, kBodyFirst + 8, grey(1024 + (2816 * led >> 15)), fill_and_stroke);
+    for (u32 b = 0; b < 2; ++b) {
+        // An antenna turns about its foot, (-1.8, -28) or (1.8, -28) px: placed
+        // at foot - R foot, turned by R.
+        const Turn r = rotation(b ? flick : -flick);
+        const i32 fx = b ? 1843 : -1843, fy = -28 * unit;
+        pose(frame, kBodyFirst + b, p, fx - ((fx * r.cos - fy * r.sin) >> 10), fy - ((fx * r.sin + fy * r.cos) >> 10), unit, r, 0, keep);
+    }
+    for (u32 b = 2; b < 14; ++b) pose(frame, kBodyFirst + b, p, 0, 0, unit, level, 0, keep);
+    shade(frame, kBodyFirst + 3, grey(512 + (2816 * shine >> 15)), fill_and_stroke);
+    shade(frame, kBodyFirst + 6, grey(1536 + (2304 * shine >> 15)), fill_and_stroke);
+    if (shine > 983) shade(frame, kBodyFirst + 8, grey(1024 + (2816 * shine >> 15)), fill_and_stroke);
     else hide(frame, kBodyFirst + 8);
-    shade(frame, kBodyFirst + 10, grey(768 + (512 * gate >> 15)), fill_and_stroke);
-    shade(frame, kBodyFirst + 11, grey(1280 + (2560 * power(gate, 26214) >> 15)), fill_and_stroke);
+    shade(frame, kBodyFirst + 10, grey(768 + (512 * drawn >> 15)), fill_and_stroke);
+    shade(frame, kBodyFirst + 11, grey(1280 + (2560 * power(drawn, 26214) >> 15)), fill_and_stroke);
 
-    // Scales knocked loose: a strike sheds more, and faster, the harder it
-    // pings, from the wings' edges; they tumble outward and settle as they fade.
+    // Scales knocked loose: a strike sheds up to four, more and faster the
+    // harder it pings, from the wings' edges; they tumble outward and settle
+    // as they fade.
     if (!input.reduced_motion && !fresh)
         for (u32 s = 0; s < strikes; ++s) {
-            const u32 count = static_cast<u32>((strike * 9 + 16384) >> 15);
+            const u32 count = static_cast<u32>((strike * 4 + 16384) >> 15);
             for (u32 n = 0; n < count; ++n) {
                 const u32 h = hash(state.seed * 7919u + n * 131u);
                 const u32 side = h & 1, i = 2 + (hash(h + 1) >> 16) * (kVertices - 4) / 65536;

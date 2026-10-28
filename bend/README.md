@@ -21,11 +21,11 @@ Press any encoder to switch pages.
 
 | Page | Control | Range | Default | Header | What it does |
 | --- | --- | --- | --- | --- | --- |
-| 1 | wave | saw, sq, pulse, dsine, sawpl, reso1, reso2, reso3 | saw | the wave's name | The map both lines are bent towards: the CZ's eight waves, numbered as the CZ numbers them. One choice per detent. |
+| 1 | wave | saw, sq, pulse, dsine, sawpl, res1, res2, res3 | saw | the wave's name | The map both lines are bent towards: the CZ's eight waves, numbered as the CZ numbers them. One choice per detent. |
 | 1 | bend | 0 to 100 | 25 | amount | The CZ's DCW: how far the map bends, from the straight line (a pure sine on every bent wave) to the full wave. Each note's contour adds to it (below). |
 | 1 | detune | 0 to 40 cents (40 x²) | 0 | `2.5c`, `10c`, `40c` | Line 2 against line 1. At unison the lines sit half either side of the note, so the chorus stays in tune; at other intervals line 1 stays on the note and line 2 rises. |
 | 1 | ring | 0 to 100 | 0 | amount | Blends line 2 into its product with line 1 (ring modulation): sum and difference tones, bells and clangs at the wider intervals. |
-| 2 | interval | -oct, uni, 4th, 5th, m7, oct, oct+5, 2oct | uni | the interval | Line 2's pitch: an octave below to two octaves above line 1. |
+| 2 | interval | -oct, uni, 4th, 5th, m7, oct, 12th (an octave and a fifth), 2oct | uni | the interval | Line 2's pitch: an octave below to two octaves above line 1. |
 | 2 | warp | 0 to 100 | 0 | amount | Beyond the CZ: skews the input phase (slow start, hurried end) and overruns the output up to 2.5 cycles, so the cosine wraps before the cycle ends, as hard sync does. Each turn is a new sync timbre. |
 | 2 | noise | 0 to 100 | 0 | amount | The CZ's noise: the lines' phases move by low-passed noise (at 8 times the note, so it is pitched with the keyboard), rms 0.015, 0.045, 0.1 and 0.22 of a cycle at 25, 50, 75 and 100. |
 | 2 | lofi | 48 kHz, 16 bits to 4 kHz, 4 bits | 0 | the DAC's rate: `48k`, `23k`, `5.8k` | A coarse DAC: the voice held at a rate falling from 48 to 4 kHz (48 x 12^-x) and stepped to a depth falling from 16 to 4 bits, without anti-aliasing. |
@@ -36,7 +36,7 @@ Measured on a held note (`tests/sound.cpp` checks every step):
 | --- | --- | --- | --- | --- | --- |
 | bend, saw at 220 Hz: spectral centroid | 220 Hz | 247 | 291 | 364 | 427 |
 | bend, pulse at 220 Hz: centroid | 220 Hz | 292 | 440 | 731 | 973 |
-| bend, reso2 at 220 Hz: centroid | 260 Hz | 604 | 842 | 1081 | 1320 |
+| bend, res2 at 220 Hz: centroid | 260 Hz | 604 | 842 | 1081 | 1320 |
 | detune: unison beat at 900 Hz | none | 1.3 Hz | 5.2 | 11.7 | 20.8 |
 | ring (at the 5th): change from ring 0 | — | -13 dB | -7 | -3.6 | -1.1 |
 | warp (saw, bend 50): change from the last quarter | — | 17 dB | 7.4 | 7.5 | 9.6 |
@@ -61,7 +61,7 @@ line to:
 - **pulse**: a hold at the start, then the whole cycle in the last 1 - 0.9 d.
 - **dsine**: the straight line folded at the quarters, so the sine doubles.
 - **sawpl**: half a cycle in the first 4%, the rest by the half, then a hold.
-- **reso1, reso2, reso3**: the cosine runs at 1 + 5 d times the note under a
+- **res1, res2, res3** (the CZ's reso waves): the cosine runs at 1 + 5 d times the note under a
   saw, triangle or trapezoid window, which resets every cycle: a resonance
   that sweeps up with bend. At bend 0 they are still windowed (soft, not pure
   sines), as on the CZ.
@@ -115,9 +115,9 @@ reaches 0.96.
 | Preset | Sound | Eight-note peak |
 | --- | --- | --- |
 | Clean | The init sound: a CZ saw in unison, plucked by the contour | 0.71 |
-| Haze | The board's: reso2 an octave up, detuned and a little rung, warped, noisy and coarse | 0.50 |
+| Haze | The board's: res2 an octave up, detuned and a little rung, warped, noisy and coarse | 0.50 |
 | Brass 101 | A bitey CZ brass: bent saws 5 cents apart | 0.51 |
-| Wah Bass | reso1 with line 2 an octave down: each note wahs | 0.52 |
+| Wah Bass | res1 with line 2 an octave down: each note wahs | 0.52 |
 | Glass Ring | dsine rung against an octave and a fifth: bells and glass | 0.42 |
 | Sync Lead | A square warped into sync, line 2 a fifth up | 0.54 |
 | Breath | A narrow pulse an octave up in noise: a breathy flute | 0.46 |
@@ -135,17 +135,24 @@ Ported from the design board. Below the two-page header:
 - **cos**: the cosine the map is read through.
 - **wave**: line 1 as 160 dots over two of its cycles, line 2 as 69 fainter
   dots at its interval (gliding as the interval changes), sliding against line
-  1 at detune's beat (slowed to be seen) and turning into the ring product as
-  ring rises (brighter past half). lofi holds and steps the dots as its DAC
-  would; noise jitters their phases by its rms.
+  1 at a quarter of detune's beat, in 24ths of a cycle, and turning into the
+  ring product as ring rises (brighter past half). lofi holds and steps the
+  dots as its DAC would; noise jitters their phases by its rms.
 - **dcw**: a dial for each held note (up to eight), lit while it is held,
-  showing bend plus that note's contour.
+  showing bend plus that note's contour, to the nearest degree.
 - The eight waves, the chosen one lit on its key, which slides to it.
 
 The screen is still until you play or turn something: the contours, line 2's
-slide and the noise's roll (14 times a second) run only while notes are held.
+slide and the noise's roll (4 times a second) run only while notes are held.
 Every turn eases out within 0.2 s; reduced motion and a track change jump
 straight to the end state.
+
+The OP-XY redraws whatever changes in a frame, so the screen changes little
+while notes alone move it: the map follows the contour to 1/256 of bend, the
+dots sit on whole pixels and follow it in steps of 1/32, and a sixth of the
+dots is redrawn each frame (all of them while a control eases). With Haze,
+Wah Bass or Clean held, a frame changes 8 to 15 elements on average and at
+most about 40.
 
 The display keeps its own copy of what the sound is doing, from the controls
 and elapsed time, because it cannot read the audio; its maps and waves are
@@ -168,8 +175,13 @@ written by `tools/make_panel.py` from the board's geometry. To fit:
   scope's noise follows the sound's depth (the board's grew to 0.06 of a cycle).
 - The dials show the contour fading in over bend's first fifth, as the sound
   does.
-- Turns ease in 35 ms and the dots in 15 ms (the board's 45 and 30), so that
-  everything settles within 0.2 s.
+- Turns ease in 35 ms (the board's 45), so that everything settles within
+  0.2 s; the dots move in whole pixels and refresh a sixth at a time while
+  notes play, rather than easing every frame; line 2 slides at a quarter of the
+  board's speed, in steps, and the noise rolls 4 times a second (the board's
+  14).
+- The CZ's reso waves are captioned res1, res2 and res3, and the interval of
+  an octave and a fifth 12th, to fit the header's value column.
 - Labels are authored text in the OP-XY's font (the board's Inter).
 
 lofi's header shows the DAC's rate, which falls as lofi rises, as the board

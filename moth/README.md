@@ -35,7 +35,7 @@ and the drift.
 | strike | 0 to 100 | 0 | amount | How hard a note strikes the vactrol. The LED is held at 1 - strike while the note is held, and every strike above 0 pulses it fully for 4 ms, so the gate pings over the held level: 2.5 dB at 25, 6 dB at 50, 12 dB at 75, a pluck that dies away at 100. A harder strike is also up to 1.6 dB louder. Below 12.5 the pulse is gentler, so a light touch eases in. |
 | glow | 40 ms to 6.0 s, exponentially | 1.3 s | time, `180ms` or `1.3s` | The photocell's memory: how long a struck gate takes to close, from fully open to -60 dB (in vca mode; it is measured within a third of the caption at every setting). It closes three times faster while still bright and slower as it darkens, as a vactrol does. An unstruck note opens at a twentieth of glow's pace, so a long glow also swells in (2 ms at 0, 0.6 s at 100). |
 | bias | 0 to 100 | 0 | amount | Offsets the folder's input by up to half its swing, so the wave folds one way more than the other and gains even harmonics. Its offset is predicted (sin(c) J0(A)) and removed, so a biased note starts without a thump. |
-| mode | lp, lp/co, combo, co/vca, vca | combo | mode | How the gate acts: at lp it only closes a low-pass, at vca it only fades, at combo it does both, and between them each follows the cell's light to that power, so the morph is even in decibels. The low-pass is two one-poles whose cutoff follows the light (open from 0.8 up, about 9 kHz times the light below, never under 3 Hz). |
+| mode | lp to combo to vca | combo | the nearest of `lp`, `both` (combo) and `vca` | How the gate acts: at lp it only closes a low-pass, at vca it only fades, at combo it does both, and between them each follows the cell's light to that power, so the morph is even in decibels. The low-pass is two one-poles whose cutoff follows the light (open from 0.8 up, about 9 kHz times the light below, never under 3 Hz). |
 | drift | 0 to 25 cents, 12.5 (x + x²) | 0 | cents, `3.9c` | Slow seeded wander (0.11 to 0.16 Hz and 0.29 to 0.39 Hz, each voice its own): the pitch up to the cents shown, the modulator on its own as far again, so FM's sidebands drift against the carrier, and the fold's drive up to 25% either way. |
 
 Fm, bias and drift colour the sound, so they default to 0: the init sound,
@@ -70,8 +70,8 @@ Combo is the darkest and quickest to fade, as both act at once.
 | Clean | The init sound: a soft sine pad, held open, easing in | 0.78 |
 | Ping | The board's sound: folded FM at 3.50, struck hard over a low held level | 0.45 (struck together) |
 | Bongo | Inharmonic FM at 2.76, biased, a short combo pluck | 0.41 (struck together) |
-| Marimba | FM at 4.00, struck through lp/co, a woody decay | 0.59 (struck together) |
-| Bell | FM at 1.41, a long co/vca ring | 0.78 (struck together) |
+| Marimba | FM at 4.00, struck between lp and combo, a woody decay | 0.59 (struck together) |
+| Bell | FM at 1.41, a long ring between combo and vca | 0.78 (struck together) |
 | Lantern | A pad: folded, biased, beating at 2.02, swelling in through lp, drifting | 0.78 |
 | Dusk | A deep fold, half bias, beating slowly at 1.01, a little strike, wide drift | 0.62 |
 | Wingbeat | A sub-octave FM growl (0.50), folded hard, plucked over a held level | 0.57 |
@@ -162,16 +162,25 @@ LED flashes as the note is struck, and its cell lights the wings, the lamp's
 halo behind the moth and its own eyespot (odd voices on the left wing, even
 on the right), fading at glow's pace once the note ends. In the lit wing the
 gate's waveform shows: vca keeps its scallops as the light shrinks, lp melts
-them back toward a smooth wing. A strike beats the wings once, down and back
-within 0.2 s, and knocks scales off their edges, more and faster the harder
-it pings; they tumble out and settle as they fade. Drift sways the moth
-while it sounds.
+them back toward a smooth wing. A strike flicks the antennae out and back
+within 0.2 s and knocks up to four scales off the wings' edges, faster the
+harder it pings; they tumble out and settle as they fade. Drift makes the
+edges wander while the moth sounds.
 
 Controls ease in over about 0.15 s and the ratio glides between stops. The
 screen cannot hear the voices: it follows the held notes (a note started and
 released between frames still pings the next vactrol) and the controls. When
 nothing sounds the screen is still. Reduced motion, a reset and a track change
 show the end state at once.
+
+The OP-XY redraws whatever changes, so the screen changes little. The moth
+itself stays put. A membrane piece is redrawn only once the wave has moved
+it about a pixel from where it was drawn (under a pixel of lag), and the
+gate's light (the lit wing, its grey, the halo and the cell), the LED and
+the eyespots are drawn in steps (sixteen, sixteen and eight), redrawn only
+when they step. Plucking Ping every half second, about 22 nodes change a
+frame on average (Lantern 36, Clean 32), at most about 100 on the frame a
+lit wing appears.
 
 ### The wings' edges and membranes
 
@@ -191,12 +200,12 @@ The OP-XY's reshaping outlines cannot be filled, so each wing's edge is a
 - **The lit wing.** Twenty wedges a wing, each at the nearer of its ends; the
   lit edge runs along their tops, so it is the lit membrane's boundary by
   construction (stepped where neighbouring wedges differ).
-- **The wing beat** turns each wing rigidly about the body, edges, membranes,
-  veins and eyespots together, so nothing parts as it beats.
+- **The wings never move as a whole,** so their edges stay on their
+  membranes at every moment, strikes included.
 
 Measured at about 180,000 points along the dark edge (every combination of
-fold 0/55/100, fm 0/100, bias 0/100, strike 0/100 and mode lp/vca, through
-beats and drift, probing 2 px either side of the line), the membrane meets
+fold 0/55/100, fm 0/100, bias 0/100, strike 0/100 and mode lp/vca, with
+drift and a strike, probing 2 px either side of the line), the membrane meets
 the edge within 2 px at 97.7% of them: at 1.1% the membrane falls more than
 2 px short and at 1.2% it reaches more than 2 px past. At fold 0 and 55
 without FM (any bias) no point misses by 2 px. The worst settings are fold
@@ -216,12 +225,17 @@ Departures from the board:
 - **The edge is drawn in chords.** The dark edge has 31 vertices (the board
   sampled 60 points), so strong folds read as faceted scallops, and the lit
   edge steps from wedge to wedge (above).
-- **The wing beat is a downstroke.** Each wing turns down about the body by up
-  to 10 degrees and back, where the board narrowed the wings: a narrowing
-  cannot be followed exactly by pieces that only turn and scale, and an
-  upstroke would carry the forewings into the header.
-- **Fewer scales:** a pool of 20 (the board kept 64), as the membrane needs
-  the nodes.
+- **No wing beat.** The board narrowed the wings at each strike; here the
+  wings stay still (moving them would part the edge from the membrane, or
+  redraw most of the screen each frame), and a strike flicks the antennae
+  instead, beside the LED's flash, the halo, the lit wing, the eyespot and
+  the shed scales.
+- **Drift does not sway the moth.** The board swayed and bobbed it; here
+  drift shows in the wandering edges, so the moth's many pieces stay still.
+- **Fewer scales:** up to four a strike, from a pool of 20 (the board shed up
+  to nine and kept 64).
+- **The lit wing steps:** its size, grey and the halo change in sixteen steps
+  of the gate's light, not continuously.
 - **Glow is honest:** the lit wings fade by the engine's vactrol, where glow
   is the time to fall 60 dB; the board's sketch used it as a time constant, so
   for the same caption the wings now fade several times sooner, with the

@@ -26,7 +26,9 @@ const u32 samples = 64, crossings = 15, outline = 32;
 
 // Exponential eases as the share left after dt (Q10 s): Q16 octaves a Q10
 // second for a time constant tau, 92.33 / tau.
-const u32 tau_35 = 2638, tau_30 = 3078, tau_15 = 6155;
+const u32 tau_35 = 2638, tau_30 = 3078;
+const i32 dots_step = 1024;   // the dots follow bend's contour in 1/32 steps
+const u32 slices = 6;         // the dots redrawn in sixths, one a frame: all within 0.1 s
 inline i32 left(i32 dt, u32 rate) { return pd::decay(static_cast<u32>(dt) * rate); }   // Q15 (32768 is all)
 // Within `near` (a hundredth of the travel) of the target it arrives: every
 // ease is there within 0.2 s.
@@ -269,15 +271,18 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // Turns and notes ease out within 0.15 s; reduced motion and resets snap.
     const bool snap = fresh || reduced;
     const i32 controls = snap ? 0 : left(dt, tau_35);
+    bool turning = false;   // a control still easing: the dots follow every frame
     for (u32 i = 0; i < 8; ++i) {
-        const i32 target = pd::q15(slot[i]);
+        const i32 target = pd::q15(slot[i]), was = state.value[i];
         state.value[i] = snap ? target : eased(state.value[i], target, controls, 328);
+        turning = turning || state.value[i] != was;
     }
     for (u32 k = 0; k < 8; ++k) {
         const i32 target = k < held ? 32768 : 0;
         state.lit[k] = snap ? target : eased(state.lit[k], target, left(dt, k < held ? tau_30 : tau_35), 328);
     }
     const i32 octaves = pd::interval_octaves[interval];
+    turning = turning || state.octaves != octaves;
     state.octaves = snap ? octaves : eased(state.octaves, octaves, controls, 655);
     if (fresh || state.wave != wave) {
         state.previous = fresh ? wave : state.wave;
@@ -291,7 +296,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const i32 ring = state.value[RING], lofi = state.value[LOFI];
 
     // Each dial: bend, and while its note is held its contour's share of what
-    // bend leaves (none with reduced motion).
+    // bend leaves (none with reduced motion), turned to the nearest degree.
     i32 bent[8];
     for (u32 k = 0; k < 8; ++k) {
         const i32 contour = reduced ? 0 : (pd::contour(now - state.start[k], 0, breath(k)) * (state.lit[k] >> 1)) >> 14;
@@ -299,29 +304,32 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const bool on = k < held || state.lit[k] > 1638;
         place(frame, node::needle + k, dial_x + static_cast<i32>(k) * dial_step, dial_y, unit,
               on ? shade::needle_lit : shade::needle_dim, fill_and_stroke);
-        turn(frame, node::needle + k, rotation(-1350 + ((2700 * bent[k]) >> 15)));
+        turn(frame, node::needle + k, rotation((-135 + ((270 * bent[k] + 16384) >> 15)) * 10));
     }
     const i32 d = bent[state.newest];
 
-    // Line 2 slides against line 1 at detune's beat (slowed to be seen), and
-    // the noise rolls 14 times a second, only while a note sounds.
+    // Line 2 slides against line 1 at a quarter of detune's beat (slowed to be
+    // seen), in 1/24 cycle steps, and the noise rolls 4 times a second, only
+    // while a note sounds.
     const i32 sounding = state.lit[state.newest];
     if (!reduced && sounding) {
         const u32 tenths = pd::detune_tenths(slot[DETUNE]);
-        state.beat += ((tenths * 25166u * static_cast<u32>(dt)) >> 15) * static_cast<u32>(sounding);
-        if (sounding > 655) state.roll = now * 14u / 689u;
+        state.beat += ((tenths * 6291u * static_cast<u32>(dt)) >> 15) * static_cast<u32>(sounding);
+        if (sounding > 655) state.roll = now * 4u / 689u;
     }
+    const u32 beat = (state.beat / 178956971u) * 178956971u;   // whole 24ths of a cycle
 
-    // Left: the bent map, a new wave fading in over the last.
+    // Left: the bent map (to 1/256 of bend), a new wave fading in over the last.
     {
-        const u32 drawn = hash(static_cast<u32>(d) ^ static_cast<u32>(warp) << 15 ^ static_cast<u32>(noise) * 0x2545f491u ^
+        const i32 drawn_d = d & ~127;
+        const u32 drawn = hash(static_cast<u32>(drawn_d) ^ static_cast<u32>(warp) << 15 ^ static_cast<u32>(noise) * 0x2545f491u ^
                                (noise ? state.roll * 0x68e31da4u : 0u) ^ wave << 28 ^ state.previous << 24 ^
                                static_cast<u32>(state.fade < 32768)) | 1u;
         if (fresh || state.map_key != drawn) {
-            draw_map(frame.paths[node::map], wave, d, warp, noise, state.roll);
+            draw_map(frame.paths[node::map], wave, drawn_d, warp, noise, state.roll);
             frame.paths[node::map].key = drawn;
             if (state.fade < 32768) {
-                draw_map(frame.paths[node::fading], state.previous, d, warp, noise, state.roll);
+                draw_map(frame.paths[node::fading], state.previous, drawn_d, warp, noise, state.roll);
                 frame.paths[node::fading].key = drawn ^ 2u;
             } else if (fresh) {
                 frame.paths[node::fading] = frame.paths[node::map];
@@ -337,10 +345,15 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
 
     // Right: the two lines as dots over two of line 1's cycles, line 2 becoming
     // the ring product as ring rises. lofi holds and steps the dots as its DAC
-    // would; noise jitters their phases by its depth.
+    // would; noise jitters their phases by its depth. Each dot sits on a whole
+    // pixel. While a control eases (and on a reset, or with reduced motion)
+    // every dot follows each frame; while notes alone move the scene a sixth of
+    // the dots is redrawn a frame, so a frame changes only the dots that moved.
     {
+        const bool all = snap || turning;
+        if (all || d - state.dots_bend >= dots_step || state.dots_bend - d >= dots_step) state.dots_bend = d;
         pd::Line one;
-        pd::shape(one, wave, d, warp);
+        pd::shape(one, wave, state.dots_bend, warp);
         const i32 shake = pd::noise_depth(noise << 16);   // +-the noise's rms, Q16 cycles
         const bool coarse = lofi > 327;
         const u32 rate = pd::lofi_rate_tens(lofi << 16);               // tens of Hz: rate / 22 samples an A3 cycle
@@ -349,8 +362,9 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const u32 ratio = static_cast<u32>(pd::exp2_fraction(static_cast<u32>(state.octaves & 0xffff)) >> 13);
         const u32 twin_ratio = whole >= 0 ? ratio << whole : ratio >> -whole;
         const u32 offset = (static_cast<u32>(state.value[DETUNE]) * 3932u) << 1;   // 0.06 of a cycle at full detune, Q32
-        const i32 step = snap ? 32768 : 32768 - left(dt, tau_15);   // the dots ease in 15 ms, after the controls
-        for (u32 i = 0; i < node::dots + node::twins; ++i) {
+        const u32 ink2 = ring > 16384 ? shade::twin_ring : shade::twin;
+        const u32 slice = state.turn++ % slices;
+        for (u32 i = all ? 0 : slice; i < node::dots + node::twins; i += all ? 1 : slices) {
             const bool first = i < node::dots;
             const u32 k = first ? i : i - node::dots, count = first ? node::dots : node::twins;
             u32 c = k * 131072u / (count - 1);   // Q16 cycles of line 1
@@ -358,19 +372,19 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             const u32 shake1 = static_cast<u32>((shake * jitter(k * 13 + (first ? 7 : 11), state.roll)) >> 15) << 16;
             i32 v = pd::output(one, wave, static_cast<i32>(c & 0xffffu), shake1);
             if (!first) {
-                const u32 phase = c * twin_ratio + state.beat + offset;
+                const u32 phase = c * twin_ratio + beat + offset;
                 const u32 shake2 = static_cast<u32>((shake * jitter(k * 29 + 3, state.roll ^ 0x5bd1e995u)) >> 15) << 16;
                 const i32 o2 = pd::output(one, wave, static_cast<i32>(phase >> 16), shake2);
                 v = o2 + (((((o2 * v) >> 15) - o2) * ring) >> 15);
             }
             if (coarse) v = ((v + ((1 << bits) >> 1)) >> bits) << bits;
-            i16& h = first ? state.one[k] : state.two[k];
-            const i32 target = v >> 3;   // Q12
-            h = static_cast<i16>(snap ? target : eased(h, target, 32768 - step, 82));
-            // Authored on the zero line at its place across: only its height moves.
-            const u32 ink = first ? shade::dot : ring > 16384 ? shade::twin_ring : shade::twin;
-            place(frame, (first ? node::dot : node::twin) + k, 0, -((h * scope_half) >> 2), unit, ink, fill_and_stroke);
+            // Authored on the zero line at its place across: only its height moves, in whole pixels.
+            const i32 rise = (v * scope_half + 16384) >> 15;
+            place(frame, (first ? node::dot : node::twin) + k, 0, -rise * unit, unit, first ? shade::dot : ink2, fill_and_stroke);
         }
+        // Line 2's ink follows ring at once.
+        if (!all)
+            for (u32 k = 0; k < node::twins; ++k) opxy::draw::shade(frame, node::twin + k, ink2, fill_and_stroke);
     }
 
     // Below: the eight waves, the chosen one lit on its key.

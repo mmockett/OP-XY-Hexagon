@@ -534,7 +534,11 @@ void captions() {
     moth::mode_caption(text, sizeof text, 1638);
     check("mode caption at 5: lp", is("lp"));
     moth::mode_caption(text, sizeof text, 16384);
-    check("mode caption at 50: combo", is("combo"));
+    check("mode caption at 50: both", is("both"));
+    moth::mode_caption(text, sizeof text, 6553);
+    check("mode caption at 20: lp", is("lp"));
+    moth::mode_caption(text, sizeof text, 26214);
+    check("mode caption at 80: vca", is("vca"));
     moth::mode_caption(text, sizeof text, 32767);
     check("mode caption at 100: vca", is("vca"));
     moth::drift_caption(text, sizeof text, 8192);

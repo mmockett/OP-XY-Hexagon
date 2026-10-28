@@ -162,8 +162,8 @@ void captions() {
     }
     check(bend::pd::lofi_bits(0) == 16 && bend::pd::lofi_bits(word(0.5)) == 10 && bend::pd::lofi_bits(full) == 4,
           "lofi: its depth is not 16, 10 and 4 bits at 0, 50 and 100%");
-    const char* waves[8] = {"saw", "sq", "pulse", "dsine", "sawpl", "reso1", "reso2", "reso3"};
-    const char* intervals[8] = {"-oct", "uni", "4th", "5th", "m7", "oct", "oct+5", "2oct"};
+    const char* waves[8] = {"saw", "sq", "pulse", "dsine", "sawpl", "res1", "res2", "res3"};
+    const char* intervals[8] = {"-oct", "uni", "4th", "5th", "m7", "oct", "12th", "2oct"};
     for (unsigned k = 0; k < 8; ++k) {
         check(std::strcmp(bend::pd::wave_names[bend::pd::choice(word(choice(k)), 8)], waves[k]) == 0, "caption: wave names");
         check(std::strcmp(bend::pd::interval_names[bend::pd::choice(word(choice(k)), 8)], intervals[k]) == 0,
@@ -315,7 +315,7 @@ void sweep_wave() {
 }
 void sweep_bend() {
     const unsigned waves[4] = {bend::SAW, bend::PULSE, bend::DSINE, bend::RESO2};
-    const char* names[4] = {"saw", "pulse", "dsine", "reso2"};
+    const char* names[4] = {"saw", "pulse", "dsine", "res2"};
     for (unsigned w = 0; w < 4; ++w) {
         double brightness[5];
         for (unsigned q = 0; q < 5; ++q) {
@@ -417,7 +417,7 @@ void sweep_warp() {
         }
         double d[4];
         for (unsigned q = 1; q < 5; ++q) d[q - 1] = distance(s[q], s[q - 1], 32768);
-        std::printf("sweep warp (%s): change from the last quarter %.1f %.1f %.1f %.1f dB\n", w ? "reso2" : "saw", d[0], d[1],
+        std::printf("sweep warp (%s): change from the last quarter %.1f %.1f %.1f %.1f dB\n", w ? "res2" : "saw", d[0], d[1],
                     d[2], d[3]);
         for (unsigned q = 0; q < 4; ++q) {
             char what[80];
@@ -628,7 +628,7 @@ void screen() {
     const double haze[8] = {choice(bend::RESO2), 0.35, 0.5, 0.2, choice(5), 0.1, 0.15, 0.3};
     s.set(haze);
     s.tick();
-    const char* expected[4] = {"reso2", "35", "10c", "20"};
+    const char* expected[4] = {"res2", "35", "10c", "20"};
     for (unsigned k = 0; k < 4; ++k) {
         char what[80];
         std::snprintf(what, sizeof what, "screen: header %u reads %s, not %s", k, s.frame.header[k], expected[k]);

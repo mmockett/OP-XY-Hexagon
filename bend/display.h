@@ -26,7 +26,8 @@ const opxy::u32 map_dim = 1, map_bright = 7, dot = 8, twin = 9, twin_ring = 10, 
 // The screen keeps its own copy of what the sound is doing, from the controls
 // and elapsed time (the display cannot read the audio): each held note's
 // contour on its own dial, the controls eased, line 2's slide and the noise's
-// roll, and every dot's height easing to its target.
+// roll. The OP-XY redraws whatever changes, so the dots move in whole pixels,
+// a sixth of them a frame, and follow the contour in coarse steps.
 struct DisplayState {
     opxy::draw::PageHeader header;
     opxy::draw::NoteTracker notes;
@@ -43,7 +44,7 @@ struct DisplayState {
     opxy::u32 beat;              // line 2's slide against line 1, Q32 cycles
     opxy::u32 roll;              // the noise's roll
     opxy::u32 map_key;           // what the map outlines were drawn for
-    opxy::i16 one[160], two[69]; // the dots' heights, Q12 of the scope's half height
-    opxy::u16 spare;
+    opxy::i32 dots_bend;         // the bend the dots show, Q15: it follows in steps of 1/32
+    opxy::u32 turn;              // frames drawn: which sixth of the dots this frame redraws
 };
 }

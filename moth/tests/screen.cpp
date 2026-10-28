@@ -143,7 +143,7 @@ void header() {
     check("header: ratio 3.50", is(frame.texts[6].chars, "3.50"));
     check("header: strike 85", is(frame.texts[7].chars, "85"));
     check("header: glow 180ms", is(frame.texts[12].chars, "180ms"));
-    check("header: mode combo", is(frame.texts[14].chars, "combo"));
+    check("header: mode both", is(frame.texts[14].chars, "both"));
     check("header: titles", is(frame.texts[0].chars, "fold") && is(frame.texts[8].chars, "glow"));
 }
 }

@@ -36,8 +36,8 @@ enum Wave { SAW, SQUARE, PULSE, DSINE, SAWPULSE, RESO1, RESO2, RESO3 };
 
 namespace pd {
 const u32 waves = 8, intervals = 8;
-const char* const wave_names[waves] = {"saw", "sq", "pulse", "dsine", "sawpl", "reso1", "reso2", "reso3"};
-const char* const interval_names[intervals] = {"-oct", "uni", "4th", "5th", "m7", "oct", "oct+5", "2oct"};
+const char* const wave_names[waves] = {"saw", "sq", "pulse", "dsine", "sawpl", "res1", "res2", "res3"};
+const char* const interval_names[intervals] = {"-oct", "uni", "4th", "5th", "m7", "oct", "12th", "2oct"};
 // Line 2's pitch against line 1: semitones, and Q16 octaves.
 const i32 interval_semitones[intervals] = {-12, 0, 5, 7, 10, 12, 19, 24};
 const i32 interval_octaves[intervals] = {-65536, 0, 27307, 38229, 54613, 65536, 103765, 131072};

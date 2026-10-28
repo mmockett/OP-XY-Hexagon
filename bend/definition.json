@@ -15,9 +15,9 @@
           "pulse",
           "dsine",
           "sawpl",
-          "reso1",
-          "reso2",
-          "reso3"
+          "res1",
+          "res2",
+          "res3"
         ]
       },
       "display": "enum"
@@ -69,7 +69,7 @@
           "5th",
           "m7",
           "oct",
-          "oct+5",
+          "12th",
           "2oct"
         ]
       },
@@ -201,7 +201,7 @@
     "sharedBytes": 0,
     "outputPeakQ31": 402653184,
     "display": {
-      "stateBytes": 652,
+      "stateBytes": 200,
       "stateAlignment": 4,
       "paths": 2,
       "points": 64,

@@ -260,8 +260,10 @@ inline void glow_caption(char* out, u32 capacity, i32 glow) {
         fixed_caption(out, capacity, (ms + 50) / 100, 1, "s");
     }
 }
+// mode: the nearest of lp, both (combo) and vca; four characters at most,
+// so it fits the header's value column.
 inline void mode_caption(char* out, u32 capacity, i32 mode) {
-    put(out, capacity, mode < 3277 ? "lp" : mode < 13107 ? "lp/co" : mode < 19661 ? "combo" : mode < 29491 ? "co/vca" : "vca");
+    put(out, capacity, mode < 8192 ? "lp" : mode < 24576 ? "both" : "vca");
 }
 // drift: cents, e.g. "3.9c".
 inline void drift_caption(char* out, u32 capacity, i32 drift) {

@@ -336,9 +336,11 @@ body.append((ribbon([(2.5, y(173.5)), (3, y(184)), (4.5, y(192))], 0.8), GREYS[6
 for b, (pts, ink) in enumerate(body):
     out.append(node(BODY + b, outline(pts), ink, width=0.1, at=(CX, CY)))
 
-# The specimen label, pinned in the corner: static artwork, not a readout.
-out.append(f'<path d="{outline([(398, 200), (468, 200), (468, 214), (398, 214)])}" fill="none" stroke="{GREYS[5]}" stroke-width="0.6"/>')
-out.append(f'<text transform="matrix(1 0 0 1 402 209.4)" fill="{GREYS[8]}" {FONT} font-size="6.5px">Phalaena vactrolis</text>')
+# The specimen label, pinned in the corner: static artwork, not a readout. The
+# box leaves room for the OP-XY's Univers, which sets the name wider than the
+# browser's stand-in fonts.
+out.append(f'<path d="{outline([(384, 200), (472, 200), (472, 214), (384, 214)])}" fill="none" stroke="{GREYS[5]}" stroke-width="0.6"/>')
+out.append(f'<text transform="matrix(1 0 0 1 388 209.4)" fill="{GREYS[8]}" {FONT} font-size="6.5px">Phalaena vactrolis</text>')
 
 # Scales knocked loose: a pool, parked off screen until a strike sheds them.
 scale_d = outline(ellipse(0, 0, 1.6, 0.7, 10))
