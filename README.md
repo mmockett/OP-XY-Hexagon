@@ -1,5 +1,7 @@
 # OP-XY Hexagon
 
+![The six synths' screens playing together: Wane, Bloom and Hollow on top; Orbit, Bend and Moth below](docs/screens/hexagon.gif)
+
 Six synths for the OP-XY, built with the
 [Open-XY SDK](https://github.com/etcetc000/open-xy). Each one starts from an
 analog or acoustic way of making sound (tape, drifting partials, resonating
