@@ -10,55 +10,74 @@ into each other. Each one draws its own screen.
 OP-XY. They have been played on the device, but their CPU cost has only been
 estimated on a computer.
 
-## Wane
+## The synths
 
-Detuned, morphing oscillators heard through one worn, shared cassette. Every
-note plays through the same tape, so a chord wows, flutters, drags and sags
-together. Age dulls the highs and adds saturation and hiss.
+<table>
+<tr>
+<td width="50%"><img src="docs/screens/wane.gif" width="480" alt="Wane's screen: a C60 cassette whose reels turn and whose tape wobbles past the head as four notes start, needles lighting one by one"></td>
+<td>
 
-| Clean | Attic, three notes held |
-| --- | --- |
-| ![Wane's screen with the Clean preset: a C60 cassette, a saw wave and eight unlit needles](docs/screens/wane-clean.png) | ![Wane's screen with the Attic preset and three notes held: the tape ribbon wobbles, dust on the shell, three needles lit](docs/screens/wane-worn.png) |
+### Wane
 
-**shape · detune · drift · warmth** / **wow · flutter · sag · age**.
-The screen is a C60 cassette drawn to real proportions. Its reels turn while
-notes are held, and the tape past the head moves with the same wow and flutter
-the audio plays. The waveform shows shape and warmth, a needle lights for each
-held note, and dust gathers with age. [More about Wane](wane/README.md).
+**Tape-worn analogue polysynth.** Two detuned, morphing oscillators per note
+(sine through triangle and saw to a narrow pulse), a sub and a breath of
+noise, all played through one shared, worn cassette: a chord wows, flutters,
+drags and sags together, and age dulls, saturates and hisses.
 
-## Bloom
+**Page 1:** shape · detune · drift · warmth<br>
+**Page 2:** wow · flutter · sag · age
 
-Additive pads of 24 sine partials, shaped like an analogue wave and sung
-through vowel formants, that drift, smear and beat on their own: from a clean
-saw through PWM strings and choirs to glittering bells and breathy fog.
+The screen is a C60 drawn to real proportions. The reels turn and the tape
+past the head moves with the same wow and flutter the audio plays; a needle
+lights for each note and kicks back with sag. *Above: Attic, four notes
+joining, then wow swept up.* [More about Wane](wane/README.md)
 
-| Init, at rest | Tape Choir, three notes held |
-| --- | --- |
-| ![Bloom's screen at rest: twenty-four partials as grey stems falling away under a low sun](docs/screens/bloom-clean.png) | ![Bloom's screen with the Tape Choir preset and three notes held: partials open into doubled blossoms, two formant hills behind them](docs/screens/bloom-lush.png) |
+</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screens/bloom.gif" width="480" alt="Bloom's screen: a meadow of partials under a low sun, blossoms opening as a chord starts, formant hills sliding across as the vowel sweeps, then twin blossoms parting as haze rises"></td>
+<td>
 
-**tilt · shape · stretch · vowel** / **breath · blur · haze · time**.
-Shape runs from saw through square to a narrow pulse; vowel sings oo to ee;
-breath makes the partials, pulse width and vowel wander, at a pace time sets
-from 30 ms glitter to 30 s, or `hold`; blur smears partials into noise bands
-and haze doubles each into a beating pair. The screen is a meadow of partials
-drawn from the engine's own levels and pitches, with the vowel's formants as
-hills behind it and haze's pairs as twin blossoms. [More about Bloom](bloom/README.md).
+### Bloom
 
-## Hollow
+**Breathing additive pads.** Twenty-four sine partials, shaped like an
+analogue wave and sung through vowel formants, that drift, smear and beat on
+their own: from a clean saw through PWM strings and choirs to glittering
+bells and breathy fog.
 
-A resonator choir: breath and a soft bow through tuned bodies, morphing from a
-sung vowel through a string and a stopped pipe to glass. Held notes ring
-sympathetically in one another, so a chord blooms into one sound.
+**Page 1:** tilt · shape · stretch · vowel<br>
+**Page 2:** breath · blur · haze · time
 
-| Choir, three notes held | Glass, page 2, eight notes held |
-| --- | --- |
-| ![Hollow's screen with the choir preset: three of eight urns lit, ripples rising from them joined by arcs](docs/screens/hollow-choir.png) | ![Hollow's screen on page 2 with the glass body and eight notes held: every glass lit, wide ripples, sympathy arcs between them and glints](docs/screens/hollow-glass.png) |
+The screen is a meadow of partials drawn from the engine's own levels and
+pitches, the vowel's formants as hills behind it and haze's detuned pairs as
+twin blossoms. *Above: Tape Choir, a chord held while the vowel sweeps oo to
+ee and haze rises.* [More about Bloom](bloom/README.md)
 
-**breath · body · bright · ring** / **air · vowel · spread · sympathy**.
-The screen is a shelf of eight vessels in the body's shape: urns, string
-bodies, organ pipes or wine glasses. Each held note lights one, which rings out
-for the ring time shown. Ripples rise rounder for oo and flatter for ee, and
-arcs join notes as sympathy rises. [More about Hollow](hollow/README.md).
+</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screens/hollow.gif" width="480" alt="Hollow's screen: a shelf of eight vessels, four lighting as notes start with ripples rising and arcs joining them, the vessels morphing from urns through string bodies and organ pipes to wine glasses as body sweeps"></td>
+<td>
+
+### Hollow
+
+**Resonator choir.** Breath and a soft bow drive tuned resonant bodies that
+morph from a sung vowel through a string and a stopped pipe to glass. Held
+notes ring sympathetically in one another, and spread turns every resonance
+into a swaying ensemble.
+
+**Page 1:** breath · body · bright · ring<br>
+**Page 2:** air · vowel · spread · sympathy
+
+The screen is a shelf of eight vessels in the body's shape. Each note lights
+one, which rings out for the ring time shown; ripples rise in the vowel's
+shape, spread doubles them and arcs join notes as sympathy rises. *Above:
+Ensemble, four notes joining, then body swept from voice to glass.*
+[More about Hollow](hollow/README.md)
+
+</td>
+</tr>
+</table>
 
 ## Playing them
 
@@ -111,9 +130,9 @@ They ask for these numbers; a build gives them out when they're free:
 Each machine's folder holds its engine (`engine.cpp` and its headers), its
 screen (`display.cpp`, with the artwork `panel.svg.fragment` written by
 `tools/make_panel.py`) and its sound tests (`tests/sound.cpp`, run by
-`sdk.py test`). The screenshots in `docs/screens` are the machines' real
-display code, run through the SDK's browser preview, with Helvetica Neue
-standing in for the OP-XY's Univers.
+`sdk.py test`). The animations in `docs/screens` are the machines' real
+display code, frame by frame, run through the SDK's browser preview along a
+scripted performance, with Helvetica Neue standing in for the OP-XY's Univers.
 
 ## Licence
 
