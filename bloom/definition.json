@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "id": "bloom",
+  "name": "Bloom",
+  "parameters": [
+    {
+      "id": "tilt",
+      "label": "Tilt",
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": -24,
+        "maximum": 6
+      },
+      "display": "percent"
+    },
+    {
+      "id": "odd",
+      "label": "Odd",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "stretch",
+      "label": "Stretch",
+      "default": 0,
+      "mapping": {
+        "kind": "exponential",
+        "minimum": 2,
+        "maximum": 2.8284
+      },
+      "display": "ratio"
+    },
+    {
+      "id": "breath",
+      "label": "Breath",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "partials",
+      "label": "Partials",
+      "control": 0,
+      "default": 0.6522,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 1,
+        "maximum": 24
+      },
+      "display": "percent"
+    },
+    {
+      "id": "blur",
+      "label": "Blur",
+      "control": 1,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "haze",
+      "label": "Haze",
+      "control": 2,
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 30,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "time",
+      "label": "Time",
+      "control": 3,
+      "default": 0.68,
+      "mapping": {
+        "kind": "exponential",
+        "minimum": 500,
+        "maximum": 30000
+      },
+      "display": "duration"
+    }
+  ],
+  "presets": {
+    "Clean": {
+      "tilt": 0.5, "odd": 0, "stretch": 0, "breath": 0,
+      "partials": 0.6522, "blur": 0, "haze": 0, "time": 0.68
+    },
+    "Bloom": {
+      "tilt": 0.45, "odd": 0, "stretch": 0, "breath": 0.6,
+      "partials": 0.6522, "blur": 0.4, "haze": 0.35, "time": 0.68
+    },
+    "Tape Choir": {
+      "tilt": 0.4, "odd": 0.35, "stretch": 0, "breath": 0.45,
+      "partials": 0.5, "blur": 0.75, "haze": 0.6, "time": 0.6
+    },
+    "Hollow": {
+      "tilt": 0.55, "odd": 1, "stretch": 0, "breath": 0.5,
+      "partials": 0.7, "blur": 0.2, "haze": 0.25, "time": 0.75
+    },
+    "Glass": {
+      "tilt": 0.62, "odd": 0, "stretch": 0.35, "breath": 0.7,
+      "partials": 1, "blur": 0, "haze": 0.2, "time": 0.5
+    },
+    "Still Air": {
+      "tilt": 0.75, "odd": 0.5, "stretch": 0.08, "breath": 0.8,
+      "partials": 0.35, "blur": 0.3, "haze": 0.3, "time": 1
+    }
+  },
+  "resources": {
+    "voiceBytes": 208,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 12,
+    "outputPeakQ31": 1073741824,
+    "display": {
+      "stateBytes": 68,
+      "stateAlignment": 4,
+      "paths": 0,
+      "points": 0,
+      "nodes": 100,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

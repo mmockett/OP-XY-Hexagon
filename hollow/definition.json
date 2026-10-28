@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "id": "hollow",
+  "name": "Hollow",
+  "parameters": [
+    {
+      "id": "breath",
+      "label": "Breath",
+      "default": 0.35,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "body",
+      "label": "Body",
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "bright",
+      "label": "Bright",
+      "default": 0.45,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "ring",
+      "label": "Ring",
+      "default": 0.5,
+      "mapping": {
+        "kind": "exponential",
+        "minimum": 100,
+        "maximum": 20000
+      },
+      "display": "duration"
+    },
+    {
+      "id": "air",
+      "label": "Air",
+      "control": 0,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "vowel",
+      "label": "Vowel",
+      "control": 1,
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "spread",
+      "label": "Spread",
+      "control": 2,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 15
+      },
+      "display": "percent"
+    },
+    {
+      "id": "sympathy",
+      "label": "Sympathy",
+      "control": 3,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    }
+  ],
+  "presets": {
+    "Choir": {
+      "breath": 0.35,
+      "body": 0,
+      "bright": 0.45,
+      "ring": 0.5,
+      "air": 0,
+      "vowel": 0.5,
+      "spread": 0,
+      "sympathy": 0.5
+    },
+    "Dusk": {
+      "breath": 0.55,
+      "body": 0,
+      "bright": 0.3,
+      "ring": 0.62,
+      "air": 0.25,
+      "vowel": 0.2,
+      "spread": 0.55,
+      "sympathy": 0.6
+    },
+    "Bowed glass": {
+      "breath": 0.15,
+      "body": 1,
+      "bright": 0.6,
+      "ring": 0.8,
+      "air": 0,
+      "vowel": 0.5,
+      "spread": 0,
+      "sympathy": 0.45
+    },
+    "Bottle": {
+      "breath": 0.85,
+      "body": 0.667,
+      "bright": 0.35,
+      "ring": 0.4,
+      "air": 0.35,
+      "vowel": 0.25,
+      "spread": 0,
+      "sympathy": 0.3
+    },
+    "Strings": {
+      "breath": 0.2,
+      "body": 0.333,
+      "bright": 0.55,
+      "ring": 0.7,
+      "air": 0,
+      "vowel": 0.5,
+      "spread": 0.35,
+      "sympathy": 0.5
+    }
+  },
+  "resources": {
+    "voiceBytes": 228,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 100,
+    "outputPeakQ31": 1073741824,
+    "display": {
+      "stateBytes": 96,
+      "stateAlignment": 4,
+      "paths": 2,
+      "points": 64,
+      "nodes": 253,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

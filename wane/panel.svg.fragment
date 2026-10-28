@@ -1,0 +1,178 @@
+<g id="wane_panel">
+<!-- SDK two-page header: keep this block before machine artwork below y=38. -->
+<path d="M0,0 L480,0 L480,38 L0,38 Z" fill="#000000"/>
+<path id="wane_node_4" transform="matrix(1 0 0 1 0 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#000000" stroke="#000000" stroke-width="0.5"/>
+<path id="wane_node_5" transform="matrix(1 0 0 1 60 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#323232" stroke="#323232" stroke-width="0.5"/>
+<path id="wane_node_6" transform="matrix(1 0 0 1 120 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#4B4B4B" stroke="#4B4B4B" stroke-width="0.5"/>
+<path id="wane_node_7" transform="matrix(1 0 0 1 180 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#646464" stroke="#646464" stroke-width="0.5"/>
+<path id="wane_node_8" transform="matrix(1 0 0 1 240 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#7D7D7D" stroke="#7D7D7D" stroke-width="0.5"/>
+<path id="wane_node_9" transform="matrix(1 0 0 1 300 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#969696" stroke="#969696" stroke-width="0.5"/>
+<path id="wane_node_10" transform="matrix(1 0 0 1 360 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#AFAFAF" stroke="#AFAFAF" stroke-width="0.5"/>
+<path id="wane_node_11" transform="matrix(1 0 0 1 420 0)" d="M0,0 L60,0 L60,20 L0,20 Z" fill="#CDCDCD" stroke="#CDCDCD" stroke-width="0.5"/>
+<text id="wane_text_0" transform="matrix(1 0 0 1 5 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_1" transform="matrix(1 0 0 1 125 10)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_2" transform="matrix(1 0 0 1 245 10)" fill="#000000" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_3" transform="matrix(1 0 0 1 365 10)" fill="#000000" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_4" transform="matrix(1 0 0 1 65 17.4)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="wane_text_5" transform="matrix(1 0 0 1 185 17.4)" fill="#CBCBCB" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="wane_text_6" transform="matrix(1 0 0 1 305 17.4)" fill="#000000" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="wane_text_7" transform="matrix(1 0 0 1 425 17.4)" fill="#000000" font-family="UniversNextPro-Light" font-size="20px">-</text>
+<text id="wane_text_8" transform="matrix(1 0 0 1 5 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_9" transform="matrix(1 0 0 1 125 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_10" transform="matrix(1 0 0 1 245 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_11" transform="matrix(1 0 0 1 365 33)" fill="#5A5A5A" font-family="UniversNextPro-Light" font-size="10px">-</text>
+<text id="wane_text_12" transform="matrix(1 0 0 1 65 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="wane_text_13" transform="matrix(1 0 0 1 185 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="wane_text_14" transform="matrix(1 0 0 1 305 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text id="wane_text_15" transform="matrix(1 0 0 1 425 33)" fill="#707070" font-family="UniversNextPro-Light" font-size="13px">-</text>
+<text transform="matrix(1 0 0 1 12 58)" fill="#4d4d4d" font-family="UniversNextPro-Light" font-size="9px">osc</text>
+<path d="M12,64 L90,64 L90,64.6 L12,64.6 Z" fill="#262626" stroke="none"/>
+<path d="M12,204 L90,204 L90,204.6 L12,204.6 Z" fill="#262626" stroke="none"/>
+<path id="wane_node_0" transform="matrix(1 0 0 1 51 134)" d="M-39,0 L-36.4839,-9.4645 L-33.9677,-17.395 L-31.4516,-22.5061 L-28.9355,-23.9692 L-26.4194,-21.5473 L-23.9032,-15.6329 L-21.3871,-7.1847 L-18.871,2.428 L-16.3548,11.6472 L-13.8387,18.9786 L-11.3226,23.2339 L-8.8065,23.7232 L-6.2903,20.3675 L-3.7742,13.7104 L-1.2581,4.8312 L1.2581,-4.8312 L3.7742,-13.7104 L6.2903,-20.3675 L8.8065,-23.7232 L11.3226,-23.2339 L13.8387,-18.9786 L16.3548,-11.6472 L18.871,-2.428 L21.3871,7.1847 L23.9032,15.6329 L26.4194,21.5473 L28.9355,23.9692 L31.4516,22.5061 L33.9677,17.395 L36.4839,9.4645 L39,0 L39,0.6 L36.4839,10.0645 L33.9677,17.995 L31.4516,23.1061 L28.9355,24.5692 L26.4194,22.1473 L23.9032,16.2329 L21.3871,7.7847 L18.871,-1.828 L16.3548,-11.0472 L13.8387,-18.3786 L11.3226,-22.6339 L8.8065,-23.1232 L6.2903,-19.7675 L3.7742,-13.1104 L1.2581,-4.2312 L-1.2581,5.4312 L-3.7742,14.3104 L-6.2903,20.9675 L-8.8065,24.3232 L-11.3226,23.8339 L-13.8387,19.5786 L-16.3548,12.2472 L-18.871,3.028 L-21.3871,-6.5847 L-23.9032,-15.0329 L-26.4194,-20.9473 L-28.9355,-23.3692 L-31.4516,-21.9061 L-33.9677,-16.795 L-36.4839,-8.8645 L-39,0.6 Z" fill="none" stroke="#4d4d4d" stroke-width="0.6"/>
+<path id="wane_node_1" transform="matrix(1 0 0 1 51 134)" d="M-39,0 L-36.4839,-9.4645 L-33.9677,-17.395 L-31.4516,-22.5061 L-28.9355,-23.9692 L-26.4194,-21.5473 L-23.9032,-15.6329 L-21.3871,-7.1847 L-18.871,2.428 L-16.3548,11.6472 L-13.8387,18.9786 L-11.3226,23.2339 L-8.8065,23.7232 L-6.2903,20.3675 L-3.7742,13.7104 L-1.2581,4.8312 L1.2581,-4.8312 L3.7742,-13.7104 L6.2903,-20.3675 L8.8065,-23.7232 L11.3226,-23.2339 L13.8387,-18.9786 L16.3548,-11.6472 L18.871,-2.428 L21.3871,7.1847 L23.9032,15.6329 L26.4194,21.5473 L28.9355,23.9692 L31.4516,22.5061 L33.9677,17.395 L36.4839,9.4645 L39,0 L39,0.6 L36.4839,10.0645 L33.9677,17.995 L31.4516,23.1061 L28.9355,24.5692 L26.4194,22.1473 L23.9032,16.2329 L21.3871,7.7847 L18.871,-1.828 L16.3548,-11.0472 L13.8387,-18.3786 L11.3226,-22.6339 L8.8065,-23.1232 L6.2903,-19.7675 L3.7742,-13.1104 L1.2581,-4.2312 L-1.2581,5.4312 L-3.7742,14.3104 L-6.2903,20.9675 L-8.8065,24.3232 L-11.3226,23.8339 L-13.8387,19.5786 L-16.3548,12.2472 L-18.871,3.028 L-21.3871,-6.5847 L-23.9032,-15.0329 L-26.4194,-20.9473 L-28.9355,-23.3692 L-31.4516,-21.9061 L-33.9677,-16.795 L-36.4839,-8.8645 L-39,0.6 Z" fill="none" stroke="#e6e6e6" stroke-width="0.6"/>
+<text transform="matrix(1 0 0 1 446.5 58)" fill="#4d4d4d" font-family="UniversNextPro-Light" font-size="9px">notes</text>
+<path d="M390,64 L468,64 L468,64.6 L390,64.6 Z" fill="#262626" stroke="none"/>
+<path d="M390,204 L468,204 L468,204.6 L390,204.6 Z" fill="#262626" stroke="none"/>
+<path d="M391.5,74 L394.5,74 L394.5,74.6 L391.5,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M401.8,74 L404.8,74 L404.8,74.6 L401.8,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M412.1,74 L415.1,74 L415.1,74.6 L412.1,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M422.4,74 L425.4,74 L425.4,74.6 L422.4,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M432.7,74 L435.7,74 L435.7,74.6 L432.7,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M443,74 L446,74 L446,74.6 L443,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M453.3,74 L456.3,74 L456.3,74.6 L453.3,74.6 Z" fill="#333333" stroke="none"/>
+<path d="M463.6,74 L466.6,74 L466.6,74.6 L463.6,74.6 Z" fill="#333333" stroke="none"/>
+<path id="wane_node_47" transform="matrix(1 0 0 1 393 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_48" transform="matrix(1 0 0 1 403.3 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_49" transform="matrix(1 0 0 1 413.6 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_50" transform="matrix(1 0 0 1 423.9 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_51" transform="matrix(1 0 0 1 434.2 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_52" transform="matrix(1 0 0 1 444.5 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_53" transform="matrix(1 0 0 1 454.8 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<path id="wane_node_54" transform="matrix(1 0 0 1 465.1 196)" d="M-0.4,-117.85 L0.4,-117.85 L0.4,-0.15 L-0.4,-0.15 Z" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<circle id="wane_node_55" transform="matrix(1 0 0 1 393 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_56" transform="matrix(1 0 0 1 403.3 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_57" transform="matrix(1 0 0 1 413.6 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_58" transform="matrix(1 0 0 1 423.9 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_59" transform="matrix(1 0 0 1 434.2 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_60" transform="matrix(1 0 0 1 444.5 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_61" transform="matrix(1 0 0 1 454.8 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_node_62" transform="matrix(1 0 0 1 465.1 196)" cx="0" cy="0" r="1.45" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<path d="M164.384,99.992 L164.7153,98.3266 L165.6587,96.9147 L167.0706,95.9713 L168.736,95.64 L311.264,95.64 L312.9294,95.9713 L314.3413,96.9147 L315.2847,98.3266 L315.616,99.992 L315.616,132.088 L315.2847,133.7534 L314.3413,135.1653 L312.9294,136.1087 L311.264,136.44 L168.736,136.44 L167.0706,136.1087 L165.6587,135.1653 L164.7153,133.7534 L164.384,132.088 Z" fill="#050505" stroke="none"/>
+<circle id="wane_node_12" transform="matrix(1 0 0 1 182.2 116.04)" cx="0" cy="0" r="35.36" fill="#383838" stroke="#383838" stroke-width="0.5"/>
+<circle id="wane_node_13" transform="matrix(1 0 0 1 297.8 116.04)" cx="0" cy="0" r="35.36" fill="#383838" stroke="#383838" stroke-width="0.5"/>
+<circle id="wane_node_14" cx="182.2" cy="116.04" r="33.456" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_15" cx="182.2" cy="116.04" r="37.808" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_16" cx="182.2" cy="116.04" r="42.16" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_17" cx="182.2" cy="116.04" r="46.512" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_18" cx="182.2" cy="116.04" r="50.864" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_19" cx="182.2" cy="116.04" r="55.216" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_20" cx="182.2" cy="116.04" r="59.568" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_21" cx="182.2" cy="116.04" r="63.92" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_22" cx="297.8" cy="116.04" r="33.456" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_23" cx="297.8" cy="116.04" r="37.808" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_24" cx="297.8" cy="116.04" r="42.16" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_25" cx="297.8" cy="116.04" r="46.512" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_26" cx="297.8" cy="116.04" r="50.864" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_27" cx="297.8" cy="116.04" r="55.216" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_28" cx="297.8" cy="116.04" r="59.568" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle id="wane_node_29" cx="297.8" cy="116.04" r="63.92" fill="none" stroke="#4a4a4a" stroke-width="1"/>
+<circle cx="182.2" cy="116.04" r="29.104" fill="#7a7a7a" stroke="none"/>
+<circle cx="182.2" cy="116.04" r="17.952" fill="#5e5e5e" stroke="none"/>
+<circle cx="182.2" cy="116.04" r="11.424" fill="#000000" stroke="none"/>
+<circle cx="297.8" cy="116.04" r="29.104" fill="#7a7a7a" stroke="none"/>
+<circle cx="297.8" cy="116.04" r="17.952" fill="#5e5e5e" stroke="none"/>
+<circle cx="297.8" cy="116.04" r="11.424" fill="#000000" stroke="none"/>
+<path id="wane_node_30" transform="matrix(1 0 0 1 182.2 116.04)" d="M5.5929,5.8792 L7.4969,9.177 L4.1991,11.081 L2.2951,7.7832 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_31" transform="matrix(1 0 0 1 182.2 116.04)" d="M-2.2951,7.7832 L-4.1991,11.081 L-7.4969,9.177 L-5.5929,5.8792 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_32" transform="matrix(1 0 0 1 182.2 116.04)" d="M-7.888,1.904 L-11.696,1.904 L-11.696,-1.904 L-7.888,-1.904 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_33" transform="matrix(1 0 0 1 182.2 116.04)" d="M-5.5929,-5.8792 L-7.4969,-9.177 L-4.1991,-11.081 L-2.2951,-7.7832 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_34" transform="matrix(1 0 0 1 182.2 116.04)" d="M2.2951,-7.7832 L4.1991,-11.081 L7.4969,-9.177 L5.5929,-5.8792 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_35" transform="matrix(1 0 0 1 182.2 116.04)" d="M7.888,-1.904 L11.696,-1.904 L11.696,1.904 L7.888,1.904 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_36" transform="matrix(1 0 0 1 182.2 116.04)" d="M20.672,-2.448 L27.2,-2.448 L27.2,2.448 L20.672,2.448 Z" fill="#2a2a2a" stroke="none"/>
+<path id="wane_node_37" transform="matrix(1 0 0 1 297.8 116.04)" d="M5.5929,5.8792 L7.4969,9.177 L4.1991,11.081 L2.2951,7.7832 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_38" transform="matrix(1 0 0 1 297.8 116.04)" d="M-2.2951,7.7832 L-4.1991,11.081 L-7.4969,9.177 L-5.5929,5.8792 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_39" transform="matrix(1 0 0 1 297.8 116.04)" d="M-7.888,1.904 L-11.696,1.904 L-11.696,-1.904 L-7.888,-1.904 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_40" transform="matrix(1 0 0 1 297.8 116.04)" d="M-5.5929,-5.8792 L-7.4969,-9.177 L-4.1991,-11.081 L-2.2951,-7.7832 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_41" transform="matrix(1 0 0 1 297.8 116.04)" d="M2.2951,-7.7832 L4.1991,-11.081 L7.4969,-9.177 L5.5929,-5.8792 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_42" transform="matrix(1 0 0 1 297.8 116.04)" d="M7.888,-1.904 L11.696,-1.904 L11.696,1.904 L7.888,1.904 Z" fill="#7a7a7a" stroke="none"/>
+<path id="wane_node_43" transform="matrix(1 0 0 1 297.8 116.04)" d="M20.672,-2.448 L27.2,-2.448 L27.2,2.448 L20.672,2.448 Z" fill="#2a2a2a" stroke="none"/>
+<path d="M103.456,116.72 L103.456,49.128 L103.9529,46.6298 L105.368,44.512 L107.4858,43.0969 L109.984,42.6 L370.016,42.6 L372.5142,43.0969 L374.632,44.512 L376.0471,46.6298 L376.544,49.128 L376.544,116.72 L315.616,116.72 L315.616,99.992 L315.2847,98.3266 L314.3413,96.9147 L312.9294,95.9713 L311.264,95.64 L168.736,95.64 L167.0706,95.9713 L165.6587,96.9147 L164.7153,98.3266 L164.384,99.992 L164.384,116.72 Z" fill="#0d0d0d" stroke="none"/>
+<path d="M103.456,115.36 L164.384,115.36 L164.384,132.088 L164.7153,133.7534 L165.6587,135.1653 L167.0706,136.1087 L168.736,136.44 L311.264,136.44 L312.9294,136.1087 L314.3413,135.1653 L315.2847,133.7534 L315.616,132.088 L315.616,115.36 L376.544,115.36 L376.544,209.608 L376.0471,212.1062 L374.632,214.224 L372.5142,215.6391 L370.016,216.136 L109.984,216.136 L107.4858,215.6391 L105.368,214.224 L103.9529,212.1062 L103.456,209.608 Z" fill="#0d0d0d" stroke="none"/>
+<path d="M103.456,49.128 L103.9529,46.6298 L105.368,44.512 L107.4858,43.0969 L109.984,42.6 L370.016,42.6 L372.5142,43.0969 L374.632,44.512 L376.0471,46.6298 L376.544,49.128 L376.544,209.608 L376.0471,212.1062 L374.632,214.224 L372.5142,215.6391 L370.016,216.136 L109.984,216.136 L107.4858,215.6391 L105.368,214.224 L103.9529,212.1062 L103.456,209.608 Z" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<path d="M126.848,42.6 L143.168,42.6 L143.168,46.136 L126.848,46.136 Z" fill="#000000" stroke="#4d4d4d" stroke-width="1"/>
+<path d="M336.832,42.6 L353.152,42.6 L353.152,46.136 L336.832,46.136 Z" fill="#000000" stroke="#4d4d4d" stroke-width="1"/>
+<path d="M120.864,116.72 L120.864,61.64 L121.1953,59.9746 L122.1387,58.5627 L123.5506,57.6193 L125.216,57.288 L354.784,57.288 L356.4494,57.6193 L357.8613,58.5627 L358.8047,59.9746 L359.136,61.64 L359.136,116.72 L315.616,116.72 L315.616,99.992 L315.2847,98.3266 L314.3413,96.9147 L312.9294,95.9713 L311.264,95.64 L168.736,95.64 L167.0706,95.9713 L165.6587,96.9147 L164.7153,98.3266 L164.384,99.992 L164.384,116.72 Z" fill="#1a1a1a" stroke="none"/>
+<path d="M120.864,115.36 L164.384,115.36 L164.384,132.088 L164.7153,133.7534 L165.6587,135.1653 L167.0706,136.1087 L168.736,136.44 L311.264,136.44 L312.9294,136.1087 L314.3413,135.1653 L315.2847,133.7534 L315.616,132.088 L315.616,115.36 L359.136,115.36 L359.136,169.352 L358.8047,171.0174 L357.8613,172.4293 L356.4494,173.3727 L354.784,173.704 L125.216,173.704 L123.5506,173.3727 L122.1387,172.4293 L121.1953,171.0174 L120.864,169.352 Z" fill="#1a1a1a" stroke="none"/>
+<path d="M120.864,61.64 L121.1953,59.9746 L122.1387,58.5627 L123.5506,57.6193 L125.216,57.288 L354.784,57.288 L356.4494,57.6193 L357.8613,58.5627 L358.8047,59.9746 L359.136,61.64 L359.136,169.352 L358.8047,171.0174 L357.8613,172.4293 L356.4494,173.3727 L354.784,173.704 L125.216,173.704 L123.5506,173.3727 L122.1387,172.4293 L121.1953,171.0174 L120.864,169.352 Z" fill="none" stroke="#3d3d3d" stroke-width="1"/>
+<path id="wane_node_44" d="M121.364,144.328 L358.636,144.328 L358.636,151.372 L121.364,151.372 Z" fill="#d9d9d9" stroke="#d9d9d9" stroke-width="0.3"/>
+<path id="wane_node_45" d="M121.364,151.672 L358.636,151.672 L358.636,158.716 L121.364,158.716 Z" fill="#9a9a9a" stroke="#9a9a9a" stroke-width="0.3"/>
+<path id="wane_node_46" d="M121.364,159.016 L358.636,159.016 L358.636,166.06 L121.364,166.06 Z" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.3"/>
+<path d="M159.216,76.872 L348.256,76.872 L348.256,77.672 L159.216,77.672 Z" fill="#3d3d3d" stroke="none"/>
+<path d="M159.216,90.472 L348.256,90.472 L348.256,91.272 L159.216,91.272 Z" fill="#3d3d3d" stroke="none"/>
+<text transform="matrix(1 0 0 1 160.032 74.152)" fill="#e6e6e6" font-family="UniversNextPro-Light" font-size="14.688px">wane</text>
+<text transform="matrix(1 0 0 1 334.712 73.608)" fill="#808080" font-family="UniversNextPro-Light" font-size="7.072px">C60</text>
+<text transform="matrix(1 0 0 1 129.568 89.928)" fill="#d9d9d9" font-family="UniversNextPro-Light" font-size="27.2px">A</text>
+<path d="M164.384,99.992 L164.7153,98.3266 L165.6587,96.9147 L167.0706,95.9713 L168.736,95.64 L311.264,95.64 L312.9294,95.9713 L314.3413,96.9147 L315.2847,98.3266 L315.616,99.992 L315.616,132.088 L315.2847,133.7534 L314.3413,135.1653 L312.9294,136.1087 L311.264,136.44 L168.736,136.44 L167.0706,136.1087 L165.6587,135.1653 L164.7153,133.7534 L164.384,132.088 Z" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<path d="M158.4,182.952 L321.6,182.952 L338.464,216.136 L141.536,216.136 Z" fill="#121212" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M227.488,203.896 L252.512,203.896 L252.512,204.896 L227.488,204.896 Z" fill="#4d4d4d" stroke="none"/>
+<path d="M234.288,204.984 L245.712,204.984 L245.712,207.976 L234.288,207.976 Z" fill="#bdbdbd" stroke="none"/>
+<path id="wane_node_2" transform="matrix(1 0 0 1 192.672 209.064)" d="M-47.328,0 L-44.2746,0 L-41.2212,0 L-38.1677,0 L-35.1143,0 L-32.0609,0 L-29.0075,0 L-25.9541,0 L-22.9006,0 L-19.8472,0 L-16.7938,0 L-13.7404,0 L-10.687,0 L-7.6335,0 L-4.5801,0 L-1.5267,0 L1.5267,0 L4.5801,0 L7.6335,0 L10.687,0 L13.7404,0 L16.7938,0 L19.8472,0 L22.9006,0 L25.9541,0 L29.0075,0 L32.0609,0 L35.1143,0 L38.1677,0 L41.2212,0 L44.2746,0 L47.328,0 L47.328,0.7 L44.2746,0.7 L41.2212,0.7 L38.1677,0.7 L35.1143,0.7 L32.0609,0.7 L29.0075,0.7 L25.9541,0.7 L22.9006,0.7 L19.8472,0.7 L16.7938,0.7 L13.7404,0.7 L10.687,0.7 L7.6335,0.7 L4.5801,0.7 L1.5267,0.7 L-1.5267,0.7 L-4.5801,0.7 L-7.6335,0.7 L-10.687,0.7 L-13.7404,0.7 L-16.7938,0.7 L-19.8472,0.7 L-22.9006,0.7 L-25.9541,0.7 L-29.0075,0.7 L-32.0609,0.7 L-35.1143,0.7 L-38.1677,0.7 L-41.2212,0.7 L-44.2746,0.7 L-47.328,0.7 Z" fill="none" stroke="#a6a6a6" stroke-width="0.8"/>
+<path id="wane_node_3" transform="matrix(1 0 0 1 287.328 209.064)" d="M-47.328,0 L-44.2746,0 L-41.2212,0 L-38.1677,0 L-35.1143,0 L-32.0609,0 L-29.0075,0 L-25.9541,0 L-22.9006,0 L-19.8472,0 L-16.7938,0 L-13.7404,0 L-10.687,0 L-7.6335,0 L-4.5801,0 L-1.5267,0 L1.5267,0 L4.5801,0 L7.6335,0 L10.687,0 L13.7404,0 L16.7938,0 L19.8472,0 L22.9006,0 L25.9541,0 L29.0075,0 L32.0609,0 L35.1143,0 L38.1677,0 L41.2212,0 L44.2746,0 L47.328,0 L47.328,0.7 L44.2746,0.7 L41.2212,0.7 L38.1677,0.7 L35.1143,0.7 L32.0609,0.7 L29.0075,0.7 L25.9541,0.7 L22.9006,0.7 L19.8472,0.7 L16.7938,0.7 L13.7404,0.7 L10.687,0.7 L7.6335,0.7 L4.5801,0.7 L1.5267,0.7 L-1.5267,0.7 L-4.5801,0.7 L-7.6335,0.7 L-10.687,0.7 L-13.7404,0.7 L-16.7938,0.7 L-19.8472,0.7 L-22.9006,0.7 L-25.9541,0.7 L-29.0075,0.7 L-32.0609,0.7 L-35.1143,0.7 L-38.1677,0.7 L-41.2212,0.7 L-44.2746,0.7 L-47.328,0.7 Z" fill="none" stroke="#a6a6a6" stroke-width="0.8"/>
+<path d="M225.04,201.448 L254.96,201.448 L254.96,216.136 L225.04,216.136 Z" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<circle cx="191.584" cy="201.448" r="4.352" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<circle cx="288.416" cy="201.448" r="4.352" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<circle cx="170.912" cy="196.552" r="2.856" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<circle cx="309.088" cy="196.552" r="2.856" fill="none" stroke="#8c8c8c" stroke-width="1"/>
+<circle cx="112.976" cy="52.12" r="3.4" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M110.8,51.712 L115.152,51.712 L115.152,52.528 L110.8,52.528 Z" fill="#000000" stroke="none"/>
+<path d="M112.568,49.944 L113.384,49.944 L113.384,51.712 L112.568,51.712 Z" fill="#000000" stroke="none"/>
+<path d="M112.568,52.528 L113.384,52.528 L113.384,54.296 L112.568,54.296 Z" fill="#000000" stroke="none"/>
+<circle cx="367.024" cy="52.12" r="3.4" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M364.848,51.712 L369.2,51.712 L369.2,52.528 L364.848,52.528 Z" fill="#000000" stroke="none"/>
+<path d="M366.616,49.944 L367.432,49.944 L367.432,51.712 L366.616,51.712 Z" fill="#000000" stroke="none"/>
+<path d="M366.616,52.528 L367.432,52.528 L367.432,54.296 L366.616,54.296 Z" fill="#000000" stroke="none"/>
+<circle cx="112.976" cy="206.616" r="3.4" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M110.8,206.208 L115.152,206.208 L115.152,207.024 L110.8,207.024 Z" fill="#000000" stroke="none"/>
+<path d="M112.568,204.44 L113.384,204.44 L113.384,206.208 L112.568,206.208 Z" fill="#000000" stroke="none"/>
+<path d="M112.568,207.024 L113.384,207.024 L113.384,208.792 L112.568,208.792 Z" fill="#000000" stroke="none"/>
+<circle cx="367.024" cy="206.616" r="3.4" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M364.848,206.208 L369.2,206.208 L369.2,207.024 L364.848,207.024 Z" fill="#000000" stroke="none"/>
+<path d="M366.616,204.44 L367.432,204.44 L367.432,206.208 L366.616,206.208 Z" fill="#000000" stroke="none"/>
+<path d="M366.616,207.024 L367.432,207.024 L367.432,208.792 L366.616,208.792 Z" fill="#000000" stroke="none"/>
+<circle cx="240" cy="190.568" r="3.4" fill="#262626" stroke="#5c5c5c" stroke-width="1"/>
+<path d="M237.824,190.16 L242.176,190.16 L242.176,190.976 L237.824,190.976 Z" fill="#000000" stroke="none"/>
+<path d="M239.592,188.392 L240.408,188.392 L240.408,190.16 L239.592,190.16 Z" fill="#000000" stroke="none"/>
+<path d="M239.592,190.976 L240.408,190.976 L240.408,192.744 L239.592,192.744 Z" fill="#000000" stroke="none"/>
+<circle id="wane_node_63" cx="345.9127" cy="62.2756" r="1.0095" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_64" cx="234.6251" cy="134.6463" r="1.0255" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_65" cx="200.6002" cy="109.9788" r="1.0242" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_66" cx="237.1126" cy="159.5433" r="0.6146" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_67" cx="128.9" cy="172.9031" r="1.0817" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_68" cx="346.6232" cy="149.4946" r="1.0971" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_69" cx="185.5992" cy="148.2185" r="0.9259" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_70" cx="197.9739" cy="69.2146" r="1.2912" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_71" cx="269.9365" cy="122.8582" r="0.8765" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_72" cx="264.1494" cy="142.9907" r="0.9431" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_73" cx="243.0159" cy="76.4147" r="0.7924" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_74" cx="182.9091" cy="92.459" r="1.404" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_75" cx="354.4024" cy="200.5081" r="1.1777" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_76" cx="358.4263" cy="148.9881" r="1.3047" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_77" cx="145.3274" cy="156.1962" r="1.2936" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_node_78" cx="291.5179" cy="185.4162" r="0.6339" fill="#8c8c8c" stroke="none"/>
+<circle id="wane_palette_0" cx="640" cy="0" r="1" fill="#000000" stroke="#000000" stroke-width="0.3"/>
+<circle id="wane_palette_1" cx="640" cy="0" r="1" fill="#d9d9d9" stroke="#d9d9d9" stroke-width="0.3"/>
+<circle id="wane_palette_2" cx="640" cy="0" r="1" fill="#9a9a9a" stroke="#9a9a9a" stroke-width="0.3"/>
+<circle id="wane_palette_3" cx="640" cy="0" r="1" fill="#5c5c5c" stroke="#5c5c5c" stroke-width="0.3"/>
+<circle id="wane_palette_4" cx="640" cy="0" r="1" fill="#a6a6a6" stroke="#a6a6a6" stroke-width="0.3"/>
+<circle id="wane_palette_5" cx="640" cy="0" r="1" fill="#808080" stroke="#808080" stroke-width="0.3"/>
+<circle id="wane_palette_6" cx="640" cy="0" r="1" fill="#575757" stroke="#575757" stroke-width="0.3"/>
+<circle id="wane_palette_7" cx="640" cy="0" r="1" fill="#6b6b6b" stroke="#6b6b6b" stroke-width="0.3"/>
+<circle id="wane_palette_8" cx="640" cy="0" r="1" fill="#5e5e5e" stroke="#5e5e5e" stroke-width="0.3"/>
+<circle id="wane_palette_9" cx="640" cy="0" r="1" fill="#4f4f4f" stroke="#4f4f4f" stroke-width="0.3"/>
+<circle id="wane_palette_10" cx="640" cy="0" r="1" fill="#333333" stroke="#333333" stroke-width="0.3"/>
+<circle id="wane_palette_11" cx="640" cy="0" r="1" fill="#e6e6e6" stroke="#e6e6e6" stroke-width="0.3"/>
+<circle id="wane_palette_12" cx="640" cy="0" r="1" fill="#999999" stroke="#999999" stroke-width="0.3"/>
+<circle id="wane_palette_13" cx="640" cy="0" r="1" fill="#262626" stroke="#262626" stroke-width="0.3"/>
+<circle id="wane_palette_14" cx="640" cy="0" r="1" fill="#a6a6a6" stroke="#a6a6a6" stroke-width="0.8"/>
+<circle id="wane_palette_15" cx="640" cy="0" r="1" fill="#333333" stroke="#333333" stroke-width="0.8"/>
+</g>

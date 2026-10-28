@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "id": "wane",
+  "name": "Wane",
+  "parameters": [
+    {
+      "id": "shape",
+      "label": "Shape",
+      "default": 0.5,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "detune",
+      "label": "Detune",
+      "default": 0.4,
+      "mapping": {
+        "kind": "power",
+        "maximum": 50,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "drift",
+      "label": "Drift",
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 20,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "warmth",
+      "label": "Warmth",
+      "default": 0.35,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    },
+    {
+      "id": "wow",
+      "label": "Wow",
+      "control": 0,
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 40,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "flutter",
+      "label": "Flutter",
+      "control": 1,
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 12,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "sag",
+      "label": "Sag",
+      "control": 2,
+      "default": 0,
+      "mapping": {
+        "kind": "power",
+        "maximum": 45,
+        "exponent": 2
+      },
+      "display": "percent"
+    },
+    {
+      "id": "age",
+      "label": "Age",
+      "control": 3,
+      "default": 0,
+      "mapping": {
+        "kind": "linear",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "display": "percent"
+    }
+  ],
+  "presets": {
+    "Clean": {
+      "shape": 0.5,
+      "detune": 0.4,
+      "drift": 0,
+      "warmth": 0.35,
+      "wow": 0,
+      "flutter": 0,
+      "sag": 0,
+      "age": 0
+    },
+    "Worn": {
+      "shape": 0.5,
+      "detune": 0.4,
+      "drift": 0.45,
+      "warmth": 0.55,
+      "wow": 0.45,
+      "flutter": 0.35,
+      "sag": 0.4,
+      "age": 0.45
+    },
+    "Attic": {
+      "shape": 0.2,
+      "detune": 0.5,
+      "drift": 0.6,
+      "warmth": 0.7,
+      "wow": 0.7,
+      "flutter": 0.5,
+      "sag": 0.55,
+      "age": 0.8
+    },
+    "Glass": {
+      "shape": 0.88,
+      "detune": 0.3,
+      "drift": 0.3,
+      "warmth": 0.25,
+      "wow": 0.3,
+      "flutter": 0.25,
+      "sag": 0.2,
+      "age": 0.3
+    }
+  },
+  "resources": {
+    "voiceBytes": 76,
+    "voiceAlignment": 4,
+    "voiceCapacity": 8,
+    "sharedBytes": 28,
+    "outputPeakQ31": 1073741824,
+    "display": {
+      "stateBytes": 116,
+      "stateAlignment": 4,
+      "paths": 4,
+      "points": 64,
+      "nodes": 79,
+      "texts": 16,
+      "palette": 16
+    }
+  },
+  "press": "page"
+}

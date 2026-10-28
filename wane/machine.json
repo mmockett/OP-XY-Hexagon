@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "sdk": "1.4",
+  "kind": "synth",
+  "description": "Analogue-style pads heard through one worn, shared tape: detuned morphing oscillators that drift, with wow, flutter, sag and age.",
+  "identity": {
+    "engine": 36,
+    "page": 84
+  },
+  "presetDefaults": {
+    "amp": {
+      "attack": 9000,
+      "decay": 32767,
+      "sustain": 32767,
+      "release": 20000
+    }
+  }
+}
