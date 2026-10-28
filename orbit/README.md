@@ -207,6 +207,13 @@ Departures from the board:
 
 ## CPU
 
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs: one voice playing middle C with the first four controls at their
+midpoint costs **2.39%** of the 580,352-cycle audio block, about
+13,900 cycles, so eight voices take about 19%. The OP-XY's own engines
+measure 1.6–2.7% a voice in the same test. The test plays one setting;
+heavier settings cost more.
+
 Every sample loop compiles to a Blackfin zero-overhead hardware loop (checked
 in `bfin-elf-objdump -d voice.o`):
 
@@ -225,8 +232,7 @@ below 44.1 kHz. Counting every straight-line instruction in `render` as well,
 whichever branch it sits on, gives about 9,200, an upper bound.
 
 The SDK's host estimate is about 1,400. It sweeps one control at a time from
-the defaults, where the mix is still. None of these figures is measured on a
-device.
+the defaults, where the mix is still.
 
 ## Files
 

@@ -207,6 +207,13 @@ captions (`detune_tenths`, `lofi_rate_tens`, `lofi_bits`, `noise_depth`).
 
 ## CPU
 
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs: one voice playing middle C with the first four controls at their
+midpoint costs **2.58%** of the 580,352-cycle audio block, about
+14,900 cycles, so eight voices take about 21%. The OP-XY's own engines
+measure 1.6–2.7% a voice in the same test. The test plays one setting;
+heavier settings cost more.
+
 Each line runs in two passes over the block, pointer walks that the Blackfin
 compiler turns into zero-overhead hardware loops with nothing spilled to the
 stack: the map pass (9 to 33 instructions a sample, the most for dsine or
@@ -216,5 +223,4 @@ blocker, lofi, level) takes 24 to 36. At the heaviest setting (warp, noise,
 ring and lofi together) that is about 160 instructions a sample, 10,100 a
 block, plus about 1,200 for planning the block and smoothing the steps: about
 11,300 Blackfin instructions per voice block by static count. The SDK's host
-estimate (`sdk.py test`) is about 2,400 to 3,700. Neither is a device
-measurement.
+estimate (`sdk.py test`) is about 2,400 to 3,700.

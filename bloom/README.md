@@ -105,6 +105,20 @@ within 0.2 s, and with reduced motion the screen jumps straight to its end
 state. The screen keeps its own copy of the drift, timed from the controls,
 because it cannot read the audio.
 
+## CPU
+
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs: one voice playing middle C with the first four controls at their
+midpoint costs **6.24%** of the 580,352-cycle audio block, about
+36,200 cycles, so eight voices take about 50%. The OP-XY's own engines
+measure 1.6–2.7% a voice in the same test. The test plays one setting;
+heavier settings cost more.
+
+Bloom always runs its 24 partials, each a table-read sine at about 11
+Blackfin instructions a sample in a zero-overhead hardware loop, so a low
+note, with every partial below the cutoff, is its heaviest. High notes cost
+less as their upper partials pass the cutoff and stop.
+
 ## Files
 
 - `spectrum.h`: the sound's laws as pure functions (controls, drift, the

@@ -277,6 +277,13 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs: one voice playing middle C with the first four controls at their
+midpoint costs **4.91%** of the 580,352-cycle audio block, about
+28,500 cycles, so eight voices take about 39%. The OP-XY's own engines
+measure 1.6–2.7% a voice in the same test. The test plays one setting;
+heavier settings cost more.
+
 The host estimate (`sdk.py test`) is about 7,000 to 11,000 Blackfin
 instructions per voice block at the heaviest setting (it varies from run to
 run). By static count of the pinned Blackfin compiler's output, every sample
@@ -288,5 +295,4 @@ the once-a-block planning, 2,319 instructions of code (most of it on branches
 a block does not take) and a few divisions, so about 10,300 a block and at
 most about 12,000. The loops use
 32-bit integer products, one instruction each on the Blackfin and on a host,
-except the gate's two poles and the fade, which keep Q31's precision. These
-are estimates, not device measurements.
+except the gate's two poles and the fade, which keep Q31's precision.

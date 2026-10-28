@@ -83,8 +83,14 @@ the control slots and depths the captions use.
 
 ## CPU
 
-About 7,000 to 10,000 Blackfin instructions per voice block at the heaviest
-setting on the SDK's host estimate (`sdk.py test`, which varies from run to
-run on a busy host); not measured on a device. Each voice runs its
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs: one voice playing middle C with the first four controls at their
+midpoint costs **4.11%** of the 580,352-cycle audio block, about
+23,800 cycles, so eight voices take about 33%. The OP-XY's own engines
+measure 1.6–2.7% a voice in the same test. The test plays one setting;
+heavier settings cost more.
+
+The SDK's host estimate (`sdk.py test`) is about 7,000 to 10,000 Blackfin
+instructions per voice block at the heaviest setting. Each voice runs its
 oscillators and filters with 16 × 16 multiplies; the tape is computed once per
 block for all voices.

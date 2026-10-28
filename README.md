@@ -11,8 +11,7 @@ matched levels and a shared layout, so they layer and swap cleanly within a
 project.
 
 **Status: experimental.** All six pass the SDK's tests and have been played on
-the OP-XY. Their CPU use has only been estimated on a computer so far, not
-measured on the device.
+the OP-XY, and their CPU use has been measured on it (below).
 
 ## The synths
 
@@ -166,6 +165,28 @@ effects.
 
 Synth voices are mono in the Open-XY SDK, so Hollow's spread thickens each
 voice rather than panning. For width, send it to the OP-XY's chorus.
+
+## CPU
+
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
+runs each: one voice playing middle C with the first four controls at their
+midpoint, as a share of the OP-XY's audio block.
+
+| Synth | One voice | Eight voices |
+| --- | ---: | ---: |
+| Wane | 4.1% | ~33% |
+| Bloom | 6.2% | ~50% |
+| Hollow | 4.9% | ~39% |
+| Orbit | 2.4% | ~19% |
+| Bend | 2.6% | ~21% |
+| Moth | 4.9% | ~39% |
+
+The OP-XY's own engines measure 1.6–2.7% a voice in the same test. Orbit and
+Bend are in that range; Wane, Hollow and Moth cost about twice as much, and
+Bloom about two and a half times. A full chord on one track is fine; several
+tracks of big Bloom or Hollow chords at once, with effects, can run out. The
+test plays one setting; heavier settings cost more, and the screens are not
+included.
 
 ## Building
 
