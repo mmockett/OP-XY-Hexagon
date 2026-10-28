@@ -10,9 +10,9 @@ shows what the sound is doing. They are meant to be used together, with
 matched levels and a shared layout, so they layer and swap cleanly within a
 project.
 
-**Status: experimental.** All six pass the SDK's tests and compile for the
-OP-XY. Wane, Bloom and Hollow have been played on the device; Orbit, Bend and
-Moth are new. CPU use has only been estimated, not measured on the device.
+**Status: experimental.** All six pass the SDK's tests and have been played on
+the OP-XY. Their CPU use has only been estimated on a computer so far, not
+measured on the device.
 
 ## The synths
 
@@ -141,9 +141,9 @@ whether it filters, fades or both.
 **Page 1:** fold, fm, ratio, strike<br>
 **Page 2:** glow, bias, mode, drift
 
-The screen is a moth on a specimen plate. Its wing edges are the folded
-waveform, and its body is the vactrol's LED and photocell, glowing with each
-strike. *Shown: Ping, a plucked line, then fold turned up.*
+The screen is a moth on a specimen plate, drawn in outline. Its wing edges are
+the folded waveform, frayed by fm, and its body is the vactrol's LED and
+photocell; each strike lights an inner edge that fades at glow's pace. *Shown: Ping, a plucked line, then fold turned up.*
 [More about Moth](moth/README.md)
 
 </td>
