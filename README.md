@@ -1,4 +1,4 @@
-# OP-XY Hexagon
+# Hexagon Suite
 
 ![The six synths' screens playing together: Wane, Bloom and Hollow on top; Orbit, Bend and Moth below](docs/screens/hexagon.gif)
 
