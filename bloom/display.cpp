@@ -312,7 +312,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         u32 root_level = root(relative << 15);   // Q15
         if (root_level < 733) root_level = 733;
         i32 y = base * unit - 14 * unit - static_cast<i32>(132u * root_level >> 5);
-        if (alive) y += 3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2;
+        if (alive) y += (3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2) * (state.open >> 6) >> 10;   // in as they open
         p.x = x;
         p.y = whole(y);
         tip_x[tips] = x;
