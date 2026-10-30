@@ -207,8 +207,13 @@ void outline(Frame& frame, DisplayState& state, u32 path, u32 side, const i32* r
     for (u32 i = 0; i < 64; ++i) {
         i32 x, y;
         if (i == 0 || i == 63) {
+            // The root's two points, a pixel beyond the margin's ends: the closing edge
+            // between them, under the body, can't double back on the margin as a lit
+            // edge draws in.
+            const u32 end = i ? kMargin - 1 : 0;
             x = root_x;
-            y = i ? 13 * unit : -13 * unit;
+            y = kWingY[end] * reaches[end] >> 12;
+            y += i ? unit : -unit;
         } else {
             const i32 mx = kWingX[i - 1] * reaches[i - 1] >> 12;
             x = side ? -mx : mx;

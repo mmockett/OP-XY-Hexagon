@@ -1,7 +1,7 @@
 // Moth's cost on the OP-XY's screen, run by sdk.py test. Every control through
 // 0..127 with a note held 3 s at 60 fps and its release, then the settings that
 // load it most: each frame valid, every shown outline fit for the device (points
-// 1/8 px apart, a closing edge of at least 1/4 px, no turn straight back), on
+// 1/8 px apart, a closing edge of at least 1/4 px, no turn under 2.5 degrees), on
 // average at most 20 nodes changed a frame while it plays, a low peak, and none
 // at rest. A held note keeps the screen moving for as long as it is held, while
 // the moth still sounds. It also walks each control in steps of 8 with a note
@@ -61,8 +61,9 @@ const char* outline_fault(const moth::Frame::path_type& path) {
         const Point& c = path.points[(i + 2) % moth::Frame::point_count];
         const i32 dx = b.x - a.x, dy = b.y - a.y, ex = c.x - b.x, ey = c.y - b.y;
         if (dx > -apart && dx < apart && dy > -apart && dy < apart) return "points within 1/8 px";
-        if (static_cast<i64>(dx) * ey - static_cast<i64>(dy) * ex == 0 && static_cast<i64>(dx) * ex + static_cast<i64>(dy) * ey < 0)
-            return "a turn straight back";
+        // Under 2.5 degrees of straight back: a stroke's corner there can run far past the point.
+        const i64 cross = static_cast<i64>(dx) * ey - static_cast<i64>(dy) * ex, dot = static_cast<i64>(dx) * ex + static_cast<i64>(dy) * ey;
+        if (dot < 0 && (cross < 0 ? -cross : cross) * 23 < -dot) return "a turn under 2.5 degrees";
     }
     const i64 cx = path.points[0].x - path.points[moth::Frame::point_count - 1].x, cy = path.points[0].y - path.points[moth::Frame::point_count - 1].y;
     if (cx * cx + cy * cy < (unit / 4) * (unit / 4)) return "a closing edge under 1/4 px";
@@ -146,6 +147,24 @@ int main() {
                 if (r.mean > worst) worst = r.mean;
                 if (r.peak > peak) peak = r.peak;
             }
+    // The settings Bend's fault was seen on, and random settings, through the same
+    // checks, a turn under 2.5 degrees among them.
+    {
+        const double seen[8] = {0.3125, 0.30, 0.40, 0, 0.6875, 0.68, 0.79, 0};
+        for (u32 notes = 1; notes <= 8; notes += 7) play(seen, notes, 300, false, "the settings Max saw it on");
+        u32 seed = 0x1234567;
+        for (int n = 0; n < 1000; ++n) {
+            double c[8];
+            for (int k = 0; k < 8; ++k) {
+                seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+                const u32 x = seed % 8;
+                c[k] = x == 0 ? 0 : x == 1 ? 1 : ((seed >> 8) % 128) / 127.0;
+            }
+            char name[48];
+            std::snprintf(name, sizeof name, "random %d", n);
+            play(c, 1 + static_cast<u32>(n) % 8, 40, n % 2 != 0, name);
+        }
+    }
     // The animation lasts while a note is held, not a fixed time: at the defaults,
     // with no drift or strike, the last two seconds of a six-second note still
     // move the light; with reduced motion they don't.
