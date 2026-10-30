@@ -133,26 +133,30 @@ Ported from the design board. Below the two-page header:
   cycle with each wrap a vertical drop; noise jitters it. A new wave fades in
   over the last in 0.15 s.
 - **cos**: the cosine the map is read through.
-- **wave**: line 1 as 160 dots over two of its cycles, line 2 as 69 fainter
-  dots at its interval (gliding as the interval changes), sliding against line
-  1 at a quarter of detune's beat, in 24ths of a cycle, and turning into the
-  ring product as ring rises (brighter past half). lofi holds and steps the
-  dots as its DAC would; noise jitters their phases by its rms.
+- **wave**: line 1 as 86 dots over two of its cycles, 3 px across and 3 px
+  apart, line 2 as 41 rings at its interval, sliding against line 1 at a
+  quarter of detune's beat, in 24ths of a cycle, and turning into the ring
+  product as ring rises (brighter past half). lofi holds and steps the dots as
+  its DAC would; noise jitters their phases by its rms. A beam redraws them
+  from left to right in 0.13 s, like a scope's sweep, and that is how the trace
+  moves whatever moved it: a turn, a note's contour or the noise's roll.
 - **dcw**: a dial for each held note (up to eight), lit while it is held,
-  showing bend plus that note's contour, to the nearest degree.
+  showing bend plus that note's contour, in steps of 3 degrees; they take
+  turns, a quarter of them a frame.
 - The eight waves, the chosen one lit on its key, which slides to it.
 
 The screen is still until you play or turn something: the contours, line 2's
 slide and the noise's roll (4 times a second) run only while notes are held.
-Every turn eases out within 0.2 s; reduced motion and a track change jump
+Every turn settles within 0.2 s; reduced motion and a track change jump
 straight to the end state.
 
-The OP-XY redraws whatever changes in a frame, so the screen changes little
-while notes alone move it: the map follows the contour to 1/256 of bend, the
-dots sit on whole pixels and follow it in steps of 1/32, and a sixth of the
-dots is redrawn each frame (all of them while a control eases). With Haze,
-Wah Bass or Clean held, a frame changes 8 to 15 elements on average and at
-most about 40.
+The OP-XY redraws whatever changes in a frame, so the screen changes little,
+whether notes move it or a control does: the map follows the contour to 1/256
+of bend, the dots sit on whole pixels and follow it in steps of 1/32, and
+only the dots under the beam can change in a frame. `tests/churn.cpp` sweeps
+every control with notes held and checks at most 20 elements a frame on
+average and a peak of at most 30, playing or turning a control, and that all
+outlines are fit for the device.
 
 The display keeps its own copy of what the sound is doing, from the controls
 and elapsed time, because it cannot read the audio; its maps and waves are
@@ -160,13 +164,14 @@ and elapsed time, because it cannot read the audio; its maps and waves are
 
 ### Budget, and where it departs from the board
 
-256 nodes, the most a screen may have: the two map outlines (64 points
-each), the header's 8 bar steps, 160 + 69 dots, 8 needles, 8 wave icons and
-the key; the 16 text slots are the header. Everything else is static artwork,
-written by `tools/make_panel.py` from the board's geometry. To fit:
+154 nodes: the two map outlines (64 points each), the header's 8 bar steps,
+86 dots, 41 rings, 8 needles, 8 wave icons and the key; the 16 text slots are
+the header. Everything else is static artwork, written by
+`tools/make_panel.py` from the board's geometry. To fit:
 
-- Line 2 has 69 dots (the board's 72), and the dials' hubs are static (the
-  board lights them with the needle).
+- Line 1 has 86 dots and line 2 has 41 rings (the board's 160 and 72 small
+  dots, which were under 3 px across and redrew up to 226 nodes in a frame of a turn), and
+  the dials' hubs are static (the board lights them with the needle).
 - The map is simplified to 32 points from 64 samples (the board's 160), and
   drawn as a 0.6 px stroked ribbon, since an outline the frame reshapes has
   no fill.
@@ -176,8 +181,9 @@ written by `tools/make_panel.py` from the board's geometry. To fit:
 - The dials show the contour fading in over bend's first fifth, as the sound
   does.
 - Turns ease in 35 ms (the board's 45), so that everything settles within
-  0.2 s; the dots move in whole pixels and refresh a sixth at a time while
-  notes play, rather than easing every frame; line 2 slides at a quarter of the
+  0.2 s; the dots move in whole pixels and refresh under the beam rather than
+  easing every frame, and line 2 takes a new interval as the beam reaches it,
+  without gliding; line 2 slides at a quarter of the
   board's speed, in steps, and the noise rolls 4 times a second (the board's
   14).
 - The CZ's reso waves are captioned res1, res2 and res3, and the interval of

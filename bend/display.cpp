@@ -28,7 +28,10 @@ const u32 samples = 64, crossings = 15, outline = 32;
 // second for a time constant tau, 92.33 / tau.
 const u32 tau_35 = 2638, tau_30 = 3078;
 const i32 dots_step = 1024;   // the dots follow bend's contour in 1/32 steps
-const u32 slices = 6;         // the dots redrawn in sixths, one a frame: all within 0.1 s
+const u32 slices = 8;         // the beam crosses the scope in eight frames: 0.13 s
+const u32 dial_turns = 4;     // a dial is drawn every fourth frame, a quarter of them a frame
+const i32 needle_step = 3;    // and its needle in steps of 3 degrees, about 1/4 px at its tip
+const i32 apart = unit / 8;   // the closest two neighbouring points of an outline may be
 inline i32 left(i32 dt, u32 rate) { return pd::decay(static_cast<u32>(dt) * rate); }   // Q15 (32768 is all)
 // Within `near` (a hundredth of the travel) of the target it arrives: every
 // ease is there within 0.2 s.
@@ -196,24 +199,41 @@ inline void map_ribbon(Frame::path_type& path, const Point (&q)[outline], u32 n)
         path.points[2 * outline - 1 - i].x = b.x - ox + ((t1x * extra) >> 12);
         path.points[2 * outline - 1 - i].y = b.y - oy + ((t1y * extra) >> 12);
     }
+    // Neighbours within 1/8 px merge on the device and the path stops reshaping:
+    // each goes on the way it was heading. Then every point distinct.
+    for (u32 i = 1; i < 2 * outline; ++i) {
+        const i32 dx = path.points[i].x - path.points[i - 1].x, dy = path.points[i].y - path.points[i - 1].y;
+        if (pd::magnitude(dx) >= apart || pd::magnitude(dy) >= apart) continue;
+        if (pd::magnitude(dx) >= pd::magnitude(dy)) path.points[i].x = path.points[i - 1].x + (dx < 0 ? -apart : apart);
+        else path.points[i].y = path.points[i - 1].y + (dy < 0 ? -apart : apart);
+    }
     for (u32 i = 1; i < 2 * outline; ++i) {
         bool moved = true;
         while (moved) {
             moved = false;
             for (u32 k = 0; k < i; ++k)
                 if (path.points[i].x == path.points[k].x && path.points[i].y == path.points[k].y) {
-                    ++path.points[i].x;
+                    path.points[i].x += apart;
                     moved = true;
                     break;
                 }
         }
     }
 }
-inline void draw_map(Frame::path_type& path, u32 wave, i32 d, i32 warp, i32 noise, u32 roll) {
+// The map for this key. The key changes only if the points do: a new key with
+// the same points would make the device reload the outline for nothing.
+inline void draw_map(Frame::path_type& path, u32 key, u32 wave, i32 d, i32 warp, i32 noise, u32 roll) {
     pd::Line l;
     pd::shape(l, wave, d, warp);
     Point q[outline];
-    map_ribbon(path, q, map_points(q, l, noise, roll));
+    Frame::path_type next;
+    map_ribbon(next, q, map_points(q, l, noise, roll));
+    bool changed = !path.key;
+    for (u32 i = 0; i < 2 * outline; ++i) {
+        changed = changed || next.points[i].x != path.points[i].x || next.points[i].y != path.points[i].y;
+        path.points[i] = next.points[i];
+    }
+    if (changed) path.key = key;
 }
 }
 
@@ -271,19 +291,14 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // Turns and notes ease out within 0.15 s; reduced motion and resets snap.
     const bool snap = fresh || reduced;
     const i32 controls = snap ? 0 : left(dt, tau_35);
-    bool turning = false;   // a control still easing: the dots follow every frame
     for (u32 i = 0; i < 8; ++i) {
-        const i32 target = pd::q15(slot[i]), was = state.value[i];
+        const i32 target = pd::q15(slot[i]);
         state.value[i] = snap ? target : eased(state.value[i], target, controls, 328);
-        turning = turning || state.value[i] != was;
     }
     for (u32 k = 0; k < 8; ++k) {
         const i32 target = k < held ? 32768 : 0;
         state.lit[k] = snap ? target : eased(state.lit[k], target, left(dt, k < held ? tau_30 : tau_35), 328);
     }
-    const i32 octaves = pd::interval_octaves[interval];
-    turning = turning || state.octaves != octaves;
-    state.octaves = snap ? octaves : eased(state.octaves, octaves, controls, 655);
     if (fresh || state.wave != wave) {
         state.previous = fresh ? wave : state.wave;
         state.wave = wave;
@@ -293,18 +308,20 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const i32 key = static_cast<i32>(wave) << 12;
     state.key = snap ? key : eased(state.key, key, left(dt, tau_35), 256);
     const i32 bend = state.value[BEND], warp = state.value[WARP], noise = state.value[NOISE];
-    const i32 ring = state.value[RING], lofi = state.value[LOFI];
 
     // Each dial: bend, and while its note is held its contour's share of what
-    // bend leaves (none with reduced motion), turned to the nearest degree.
-    i32 bent[8];
+    // bend leaves (none with reduced motion), turned in steps of 3 degrees. The
+    // dials take turns, so eight swinging together change two nodes a frame.
+    i32 bent[8], contours[8];
     for (u32 k = 0; k < 8; ++k) {
-        const i32 contour = reduced ? 0 : (pd::contour(now - state.start[k], 0, breath(k)) * (state.lit[k] >> 1)) >> 14;
-        bent[k] = pd::bent(bend, contour);
+        contours[k] = reduced ? 0 : (pd::contour(now - state.start[k], 0, breath(k)) * (state.lit[k] >> 1)) >> 14;
+        bent[k] = pd::bent(bend, contours[k]);
+        if (!snap && (state.turn + k) % dial_turns) continue;
         const bool on = k < held || state.lit[k] > 1638;
         place(frame, node::needle + k, dial_x + static_cast<i32>(k) * dial_step, dial_y, unit,
               on ? shade::needle_lit : shade::needle_dim, fill_and_stroke);
-        turn(frame, node::needle + k, rotation((-135 + ((270 * bent[k] + 16384) >> 15)) * 10));
+        const i32 steps = (270 * bent[k] + needle_step * 16384) / (needle_step * 32768);
+        turn(frame, node::needle + k, rotation((-135 + steps * needle_step) * 10));
     }
     const i32 d = bent[state.newest];
 
@@ -326,11 +343,9 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
                                (noise ? state.roll * 0x68e31da4u : 0u) ^ wave << 28 ^ state.previous << 24 ^
                                static_cast<u32>(state.fade < 32768)) | 1u;
         if (fresh || state.map_key != drawn) {
-            draw_map(frame.paths[node::map], wave, drawn_d, warp, noise, state.roll);
-            frame.paths[node::map].key = drawn;
+            draw_map(frame.paths[node::map], drawn, wave, drawn_d, warp, noise, state.roll);
             if (state.fade < 32768) {
-                draw_map(frame.paths[node::fading], state.previous, drawn_d, warp, noise, state.roll);
-                frame.paths[node::fading].key = drawn ^ 2u;
+                draw_map(frame.paths[node::fading], drawn ^ 2u, state.previous, drawn_d, warp, noise, state.roll);
             } else if (fresh) {
                 frame.paths[node::fading] = frame.paths[node::map];
                 frame.paths[node::fading].key = drawn ^ 2u;
@@ -346,51 +361,57 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // Right: the two lines as dots over two of line 1's cycles, line 2 becoming
     // the ring product as ring rises. lofi holds and steps the dots as its DAC
     // would; noise jitters their phases by its depth. Each dot sits on a whole
-    // pixel. While a control eases (and on a reset, or with reduced motion)
-    // every dot follows each frame; while notes alone move the scene a sixth of
-    // the dots is redrawn a frame, so a frame changes only the dots that moved.
+    // pixel. A beam redraws them, an eighth of the way across a frame, from the
+    // controls as they are: whatever moved them, a frame changes at most the dots
+    // under the beam, and the sweep is all the easing a turn needs. On a reset
+    // and with reduced motion every dot is drawn at once.
     {
-        const bool all = snap || turning;
-        if (all || d - state.dots_bend >= dots_step || state.dots_bend - d >= dots_step) state.dots_bend = d;
+        const i32 ring = pd::q15(slot[RING]), lofi = pd::q15(slot[LOFI]);
+        const i32 aimed = pd::bent(pd::q15(slot[BEND]), contours[state.newest]);
+        if (snap || state.value[BEND] != pd::q15(slot[BEND]) || aimed - state.dots_bend >= dots_step || state.dots_bend - aimed >= dots_step)
+            state.dots_bend = aimed;
         pd::Line one;
-        pd::shape(one, wave, state.dots_bend, warp);
-        const i32 shake = pd::noise_depth(noise << 16);   // +-the noise's rms, Q16 cycles
+        pd::shape(one, wave, state.dots_bend, pd::q15(slot[WARP]));
+        const i32 shake = pd::noise_depth(pd::q15(slot[NOISE]) << 16);   // +-the noise's rms, Q16 cycles
         const bool coarse = lofi > 327;
         const u32 rate = pd::lofi_rate_tens(lofi << 16);               // tens of Hz: rate / 22 samples an A3 cycle
         const u32 bits = 16u - pd::lofi_bits(lofi << 16);             // the DAC's step, a power of two in Q15
-        const i32 whole = state.octaves >> 16;                          // line 2's pitch against line 1, Q16
-        const u32 ratio = static_cast<u32>(pd::exp2_fraction(static_cast<u32>(state.octaves & 0xffff)) >> 13);
+        const i32 octaves = pd::interval_octaves[interval];
+        const i32 whole = octaves >> 16;                                // line 2's pitch against line 1, Q16
+        const u32 ratio = static_cast<u32>(pd::exp2_fraction(static_cast<u32>(octaves & 0xffff)) >> 13);
         const u32 twin_ratio = whole >= 0 ? ratio << whole : ratio >> -whole;
-        const u32 offset = (static_cast<u32>(state.value[DETUNE]) * 3932u) << 1;   // 0.06 of a cycle at full detune, Q32
+        const u32 offset = (static_cast<u32>(pd::q15(slot[DETUNE])) * 3932u) << 1;   // 0.06 of a cycle at full detune, Q32
         const u32 ink2 = ring > 16384 ? shade::twin_ring : shade::twin;
-        const u32 slice = state.turn++ % slices;
-        for (u32 i = all ? 0 : slice; i < node::dots + node::twins; i += all ? 1 : slices) {
-            const bool first = i < node::dots;
-            const u32 k = first ? i : i - node::dots, count = first ? node::dots : node::twins;
-            u32 c = k * 131072u / (count - 1);   // Q16 cycles of line 1
-            if (coarse) c = (c * (rate >> 2) / (22u * 16384u)) * 22u * 65536u / rate;
-            const u32 shake1 = static_cast<u32>((shake * jitter(k * 13 + (first ? 7 : 11), state.roll)) >> 15) << 16;
-            i32 v = pd::output(one, wave, static_cast<i32>(c & 0xffffu), shake1);
-            if (!first) {
-                const u32 phase = c * twin_ratio + beat + offset;
-                const u32 shake2 = static_cast<u32>((shake * jitter(k * 29 + 3, state.roll ^ 0x5bd1e995u)) >> 15) << 16;
-                const i32 o2 = pd::output(one, wave, static_cast<i32>(phase >> 16), shake2);
-                v = o2 + (((((o2 * v) >> 15) - o2) * ring) >> 15);
+        const u32 slice = state.turn % slices;
+        for (u32 line = 0; line < 2; ++line) {
+            const bool first = line == 0;
+            const u32 count = first ? node::dots : node::twins;
+            const u32 from = snap ? 0 : slice * count / slices, to = snap ? count : (slice + 1) * count / slices;
+            for (u32 k = from; k < to; ++k) {
+                u32 c = k * 131072u / (count - 1);   // Q16 cycles of line 1
+                if (coarse) c = (c * (rate >> 2) / (22u * 16384u)) * 22u * 65536u / rate;
+                const u32 shake1 = static_cast<u32>((shake * jitter(k * 13 + (first ? 7 : 11), state.roll)) >> 15) << 16;
+                i32 v = pd::output(one, wave, static_cast<i32>(c & 0xffffu), shake1);
+                if (!first) {
+                    const u32 phase = c * twin_ratio + beat + offset;
+                    const u32 shake2 = static_cast<u32>((shake * jitter(k * 29 + 3, state.roll ^ 0x5bd1e995u)) >> 15) << 16;
+                    const i32 o2 = pd::output(one, wave, static_cast<i32>(phase >> 16), shake2);
+                    v = o2 + (((((o2 * v) >> 15) - o2) * ring) >> 15);
+                }
+                if (coarse) v = ((v + ((1 << bits) >> 1)) >> bits) << bits;
+                // Authored on the zero line at its place across: only its height moves, in whole pixels.
+                const i32 rise = (v * scope_half + 16384) >> 15;
+                if (first) place(frame, node::dot + k, 0, -rise * unit, unit, shade::dot, fill_and_stroke);
+                else place(frame, node::twin + k, 0, -rise * unit, unit, ink2, stroke);
             }
-            if (coarse) v = ((v + ((1 << bits) >> 1)) >> bits) << bits;
-            // Authored on the zero line at its place across: only its height moves, in whole pixels.
-            const i32 rise = (v * scope_half + 16384) >> 15;
-            place(frame, (first ? node::dot : node::twin) + k, 0, -rise * unit, unit, first ? shade::dot : ink2, fill_and_stroke);
         }
-        // Line 2's ink follows ring at once.
-        if (!all)
-            for (u32 k = 0; k < node::twins; ++k) opxy::draw::shade(frame, node::twin + k, ink2, fill_and_stroke);
     }
 
     // Below: the eight waves, the chosen one lit on its key.
     for (u32 k = 0; k < 8; ++k)
         place(frame, node::icon + k, 0, 0, unit, k == wave ? shade::icon_lit : shade::icon_dim, fill_and_stroke);
     place(frame, node::key, key_x + ((state.key * key_step) >> 12), key_y, unit, 0, keep);
+    ++state.turn;
     state.initialized = 1;
 }
 }

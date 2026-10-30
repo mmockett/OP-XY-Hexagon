@@ -10,6 +10,7 @@ a closed outline (or a circle) of distinct points, and the lines the board
 strokes are drawn as thin filled ribbons, so every outline encloses area."""
 import math
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -18,15 +19,15 @@ FONT = 'font-family="UniversNextPro-Light"'
 
 # Nodes (display.h).
 MAP, FADING, HEADER = 0, 1, 2
-DOT, DOTS = 10, 160
-TWIN, TWINS = 170, 69
-NEEDLE, ICON, KEY = 239, 247, 255
-NODES = 256
+DOT, DOTS = 10, 86
+TWIN, TWINS = 96, 41
+NEEDLE, ICON, KEY = 137, 145, 153
+NODES = 154
 
 # The board's geometry.
 FX, FY, FS = 20, 54, 124                 # the phase figure
 CX, CY = 166, 116                        # the cosine glyph
-X0, W, SY, A = 198, 258, 116, 51         # the scope's trace
+X0, W, SY, A = 200, 255, 116, 51         # the scope's trace: line 1's dots whole pixels apart
 DIAL_X, DIAL_STEP, DIAL_Y = 27, 15.8, 202
 KEY_X, KEY_STEP = 190, 34.25
 
@@ -174,8 +175,8 @@ o(path(ribbon([(CX - 7 + i * 14 / 16, CY + 4.5 * math.cos(2 * math.pi * i / 16))
 o(label(160.2, CY + 22, "cos"))
 
 # Right: the scope. Its window, the dotted zero line, ticks at full height,
-# line 1's one cycle marked, then line 2's dots (nodes 170-238, the fainter
-# twin) under line 1's (nodes 10-169).
+# line 1's one cycle marked, then line 2's rings (nodes 96-136) under line 1's
+# dots (nodes 10-95), each 3 px across so they read at 1:1, 3 px apart.
 o(label(190, 49, "wave"))
 o(label(450.4, 49, "1+2'"))
 o(path(rounded(190, 54, 274, 124, 3), "#111111", "#333333", 0.6))
@@ -189,12 +190,12 @@ for j in range(22):
 # Each dot is authored on the zero line at its place across; display.cpp moves
 # it up and down only.
 for k in range(TWINS):
-    o(circle(X0 + k * W / (TWINS - 1), SY, 0.75, "#666666", "#666666", 0.2, TWIN + k))
+    o(circle(X0 + k * W / (TWINS - 1), SY, 1.5, "none", "#777777", 0.5, TWIN + k))
 for k in range(DOTS):
-    o(circle(X0 + k * W / (DOTS - 1), SY, 0.9, "#eeeeee", "#eeeeee", 0.2, DOT + k))
+    o(circle(X0 + k * W / (DOTS - 1), SY, 1.5, "#eeeeee", "#eeeeee", 0.2, DOT + k))
 
-# Below: the strip's rule, a dial for each note (its arc, needle 239-246 and
-# hub) and "dcw"; then the chosen wave's key (255) and the eight waves (247-254)
+# Below: the strip's rule, a dial for each note (its arc, needle 137-144 and
+# hub) and "dcw"; then the chosen wave's key (153) and the eight waves (145-152)
 # as the CZ numbers them.
 o(path(rect(20, 186 - 0.3, 444, 0.6), "#222222"))
 for k in range(8):
@@ -220,13 +221,27 @@ for k in range(8):
 # Palette (display.h): the map's greys dim to bright (1-7, stroked 0.6), the
 # dots, the needles and the icons lit and dim. Parked off screen.
 palette = [("#000000", 0.3), ("#222222", 0.6), ("#444444", 0.6), ("#666666", 0.6), ("#888888", 0.6),
-           ("#aaaaaa", 0.6), ("#cccccc", 0.6), ("#eeeeee", 0.6), ("#eeeeee", 0.2), ("#666666", 0.2),
-           ("#888888", 0.2), ("#dddddd", 0.2), ("#555555", 0.2), ("#eeeeee", 0.1), ("#555555", 0.1),
+           ("#aaaaaa", 0.6), ("#cccccc", 0.6), ("#eeeeee", 0.6), ("#eeeeee", 0.2), ("#777777", 0.5),
+           ("#aaaaaa", 0.5), ("#dddddd", 0.2), ("#555555", 0.2), ("#eeeeee", 0.1), ("#555555", 0.1),
            ("#222222", 0.1)]
 for i, (grey, width) in enumerate(palette):
     o(f'<circle id="{ID}_palette_{i}" cx="640" cy="0" r="1" fill="{grey}" stroke="{grey}" stroke-width="{width}"/>')
 o("</g>")
 
+text = "\n".join(out_svg) + "\n"
+
+
+def check(artwork):
+    """What the device's loader needs of the artwork, and what it can read."""
+    for d in re.findall(r' d="([^"]*)"', artwork):
+        assert d.count("M") == 1, "more than one subpath"
+        assert d.count(",") <= 64, "more than 64 points"
+    for size in re.findall(r'font-size="([0-9.]+)px"', artwork):
+        assert float(size) >= 8, f"text at {size} px"
+    assert len(artwork.encode()) <= 64 * 1024, "artwork over 64 KB"
+
+
+check(text)
 target = ROOT / "panel.svg.fragment" if len(sys.argv) < 2 else pathlib.Path(sys.argv[1])
-target.write_text("\n".join(out_svg) + "\n")
+target.write_text(text)
 print("wrote", target, "nodes", NODES)

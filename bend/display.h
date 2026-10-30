@@ -4,17 +4,17 @@
 
 namespace bend {
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
-using Frame = opxy::draw::Frame<2, 64, 256, 16, 16>;
+using Frame = opxy::draw::Frame<2, 64, 154, 16, 16>;
 
 // Nodes, as tools/make_panel.py writes them into panel.svg.fragment.
 namespace node {
 const opxy::u32 map = 0, fading = 1,        // the bent map, and the last wave's fading out
                 header = 2,                 // the two-page header's eight bar steps
-                dot = 10, dots = 160,       // line 1's dots over two of its cycles
-                twin = 170, twins = 69,     // line 2's
-                needle = 239,               // each note's bend dial
-                icon = 247,                 // the eight waves
-                key = 255;                  // the chosen wave's key behind its icon
+                dot = 10, dots = 86,        // line 1's dots over two of its cycles
+                twin = 96, twins = 41,      // line 2's rings
+                needle = 137,               // each note's bend dial
+                icon = 145,                 // the eight waves
+                key = 153;                  // the chosen wave's key behind its icon
 }
 // Palette entries (tools/make_panel.py): the map's seven greys (1..7, dim to
 // bright), then the dots, the needles, the icons and the key.
@@ -26,8 +26,10 @@ const opxy::u32 map_dim = 1, map_bright = 7, dot = 8, twin = 9, twin_ring = 10, 
 // The screen keeps its own copy of what the sound is doing, from the controls
 // and elapsed time (the display cannot read the audio): each held note's
 // contour on its own dial, the controls eased, line 2's slide and the noise's
-// roll. The OP-XY redraws whatever changes, so the dots move in whole pixels,
-// a sixth of them a frame, and follow the contour in coarse steps.
+// roll. The OP-XY redraws whatever changes, so the dots sit on whole pixels and
+// a beam redraws them, an eighth of the way across a frame, like a scope's sweep,
+// whatever moved them; the dials take turns; and the dots follow the contour in
+// coarse steps.
 struct DisplayState {
     opxy::draw::PageHeader header;
     opxy::draw::NoteTracker notes;
@@ -37,7 +39,6 @@ struct DisplayState {
     opxy::i32 lit[8];            // each dial's light, Q15, easing on and off
     opxy::u32 held, newest;      // dials lit, and the latest note's
     opxy::i32 value[8];          // the controls, eased, Q15 (slots; the wave and interval unused)
-    opxy::i32 octaves;           // line 2's interval, Q16 octaves, gliding
     opxy::u32 wave, previous;    // the wave, and the one fading out
     opxy::i32 fade;              // the crossfade's progress, Q15 (32768 done)
     opxy::i32 key;               // the strip's key, Q12 waves, easing
@@ -45,6 +46,6 @@ struct DisplayState {
     opxy::u32 roll;              // the noise's roll
     opxy::u32 map_key;           // what the map outlines were drawn for
     opxy::i32 dots_bend;         // the bend the dots show, Q15: it follows in steps of 1/32
-    opxy::u32 turn;              // frames drawn: which sixth of the dots this frame redraws
+    opxy::u32 turn;              // frames drawn: where the beam is, and whose turn it is among the dials
 };
 }
