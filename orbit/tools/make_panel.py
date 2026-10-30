@@ -15,7 +15,8 @@ Every stroke width is the palette's 0.45 px, so filled shapes are authored
 that much smaller (0.225 px each side) and draw at the board's sizes. Every
 node is a closed outline of distinct points or a circle, and check() fails the
 build on an outline the device would draw badly: more than 64 points, points
-within 1/8 px, a closing edge under 1/4 px, a turn straight back, no area.
+within 1/8 px, a closing edge under 1/4 px, a turn within 2.5 degrees of
+straight back, no area.
 
 Nothing that moves has a large fill: the biggest filled part that can move is
 a corner wave, a 0.85 px ribbon of 30 px^2 or so, authored at its true size."""
@@ -85,7 +86,8 @@ def check(points, name):
         twice += a[0] * b[1] - b[0] * a[1]
         ux, uy, vx, vy = b[0] - a[0], b[1] - a[1], c[0] - b[0], c[1] - b[1]
         assert max(abs(ux), abs(uy)) >= 0.125, (name, "points within 1/8 px", i, a, b)
-        assert not (abs(ux * vy - uy * vx) < 1e-9 and ux * vx + uy * vy < 0), (name, "turns straight back", i)
+        dot = ux * vx + uy * vy   # within 2.5 degrees of straight back, the device's stroke mitres into a spike
+        assert not (dot < 0 and abs(ux * vy - uy * vx) * 23 < -dot), (name, "turns straight back", i)
     assert math.dist(points[0], points[-1]) >= 0.25, (name, "closes under 1/4 px")
     assert abs(twice) / 2 >= 0.05, (name, "no area")
 

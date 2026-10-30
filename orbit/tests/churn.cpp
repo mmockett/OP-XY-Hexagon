@@ -1,7 +1,8 @@
 // Orbit's cost on the OP-XY's screen, run by sdk.py test. Every control through
 // 0..127 with notes, the eight presets and the settings that load it most, at
 // 1, 4 and 8 notes struck together or one after another, at 60 fps. Every frame
-// valid and every outline one the device can draw; on average at most 20 nodes
+// valid and every outline one the device can draw, with no turn within 2.5
+// degrees of straight back; on average at most 20 nodes
 // changed a frame while notes sound, a peak of at most 24, none at rest; eight
 // notes costing little more than one. A held note keeps something moving to the
 // end, and every control moves the drawing.
@@ -43,7 +44,10 @@ const char* outline_fault(const orbit::Frame& f, unsigned p) {
         const long long ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
         twice += static_cast<long long>(a.x) * b.y - static_cast<long long>(b.x) * a.y;
         if (ux > -128 && ux < 128 && uy > -128 && uy < 128) return "points within 1/8 px";
-        if (ux * vy - uy * vx == 0 && ux * vx + uy * vy < 0) return "a turn straight back";
+        // Under about 2.5 degrees from straight back the device's stroke mitres
+        // into a long spike. Wane's 2.57 and Coin's 3.45 draw fine.
+        const long long cross = ux * vy - uy * vx, dot = ux * vx + uy * vy;
+        if (dot < 0 && (cross < 0 ? -cross : cross) * 23 < -dot) return "a turn within 2.5 degrees of straight back";
     }
     const long long cx = q[0].x - q[n - 1].x, cy = q[0].y - q[n - 1].y;
     if (cx * cx + cy * cy < 256 * 256) return "a closing edge under 1/4 px";

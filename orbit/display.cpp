@@ -78,8 +78,11 @@ struct Mixer {
 // one: the device draws a closing edge under 1/4 px as a long sliver. Points
 // are kept apart in x, as neighbours within 1/8 px merge.
 inline void ribbon(opxy::draw::Point* top, u32 n, i32 h, opxy::draw::Point* out) {
-    for (u32 i = 1; i < n; ++i)
-        if (top[i].x < top[i - 1].x + 256) top[i].x = top[i - 1].x + 256;
+    // The end edges are wider, to leave room for the square ends.
+    for (u32 i = 1; i < n; ++i) {
+        const i32 least = i == 1 || i + 1 == n ? 512 : 256;
+        if (top[i].x < top[i - 1].x + least) top[i].x = top[i - 1].x + least;
+    }
     opxy::draw::Point loop[64];
     for (u32 i = 0; i < n; ++i) {
         loop[i] = top[i];
@@ -88,12 +91,16 @@ inline void ribbon(opxy::draw::Point* top, u32 n, i32 h, opxy::draw::Point* out)
         const i32 tx = (b.x - a.x) >> 4, ty = (b.y - a.y) >> 4;
         const i32 length = static_cast<i32>(root(static_cast<u32>(tx * tx + ty * ty)));
         opxy::draw::Point& back = loop[2 * n - 1 - i];
-        // Sideways no further than half way to a neighbour, or it crosses the line.
-        const i32 room = (b.x - top[i].x < top[i].x - a.x ? b.x - top[i].x : top[i].x - a.x) / 2;
-        // The ends are cut square; peaks and valleys take the back straight below.
-        const bool end = !i || i + 1 == n || (a.y < top[i].y) == (b.y < top[i].y);
-        back.x = top[i].x - (end ? 0 : clamp(length ? ty * h / length : 0, -room, room));
-        back.y = top[i].y + (end || !length ? h : tx * h / length);
+        // The ends are cut square to the line: a cut straight down would fold
+        // back on a steep end edge, and the device mitres a fold into a long
+        // spike. Peaks and valleys take the back straight below. Elsewhere it
+        // goes sideways no further than half way to a neighbour, or it crosses
+        // the line.
+        const bool end = !i || i + 1 == n;
+        const bool turning = !end && (a.y < top[i].y) == (b.y < top[i].y);
+        const i32 room = end ? h : (b.x - top[i].x < top[i].x - a.x ? b.x - top[i].x : top[i].x - a.x) / 2;
+        back.x = top[i].x - (turning ? 0 : clamp(length ? ty * h / length : 0, -room, room));
+        back.y = top[i].y + (turning || !length ? h : tx * h / length);
         if (i && back.x < loop[2 * n - i].x + 192) back.x = loop[2 * n - i].x + 192;
     }
     u32 start = 1;
