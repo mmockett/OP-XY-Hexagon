@@ -79,8 +79,9 @@ different settings and need their sound remade.
 ## Screen
 
 Below the two-page header, a meadow of partials stands under a low striped
-sun. Each partial is a stem with a blossom, placed across the screen by its
-pitch (log scale) and as tall as its level. The levels and pitches come from
+sun, drawn in fine outline. Each partial is a stem with a blossom, placed
+across the screen by its pitch (log scale) and as tall as its level. The levels
+and pitches come from
 `spectrum.h`, for C3, so the meadow follows the controls the way the sound
 does:
 
@@ -96,14 +97,22 @@ does:
   which shimmers while notes are held.
 - **haze** splits each blossom into its detuned pair, apart by the detune;
   while notes are held the pair swells and shrinks in turn, a slowed-down beat.
-- **time** sets how fast the drift moves. At `hold` the scene turns white and
-  stands still.
+- **time** sets how fast the drift moves, and a breeze that runs across the
+  meadow. At `hold` the scene turns white and stands still, but for a little
+  pollen.
 
 Holding notes opens and brightens the blossoms, and each new note swells
-them briefly. When no notes are held the screen stays still. Motion settles
-within 0.2 s, and with reduced motion the screen jumps straight to its end
-state. The screen keeps its own copy of the drift, timed from the controls,
-because it cannot read the audio.
+them briefly. A slow breeze and a little pollen keep moving for as long as a
+note is held, whatever the controls. When no notes are held the screen stays
+still. With reduced motion the screen jumps straight to its end state. The
+screen keeps its own copy of the drift, timed from the controls, because it
+cannot read the audio; past a 0.6 s period it is drawn slower than it sounds.
+
+The device redraws what changes, so the screen is built to change little:
+everything moves in whole pixels and stepped sizes, nothing large that moves is
+filled, and each frame redraws only the partials furthest from where they should
+be, within a budget, so a change sweeps across the meadow in about 0.15 s.
+`tests/churn.cpp` holds it to at most 20 changed nodes a frame on average.
 
 ## CPU
 
@@ -128,7 +137,7 @@ less as their upper partials pass the cutoff and stop.
 - `engine.cpp`, `core.h`: the voice. Once a block it takes the spectrum, adds
   blur's pitch noise and haze's beat to each partial, then ramps each
   partial's level across the 64-sample block and sums the sines.
-- `display.cpp`, `display.h`: the screen.
+- `display.cpp`, `display.h`: the screen. `tests/churn.cpp` checks what it costs.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run the script after changing a shape, and commit both.
 - `tests/sound.cpp`: the sound checks, run by `sdk.py test`.
