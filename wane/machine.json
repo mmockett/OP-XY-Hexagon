@@ -14,5 +14,6 @@
       "sustain": 32767,
       "release": 20000
     }
-  }
+  },
+  "presets": "presets"
 }
