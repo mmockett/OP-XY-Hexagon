@@ -1,7 +1,7 @@
 // Bend's cost on the OP-XY's screen, run by sdk.py test. Every control through
 // 0..127 with notes held at 60 fps and their release, then the settings that load
 // it most: each frame valid, the map outlines fit for the device (points 1/8 px
-// apart, a closing edge of at least 1/4 px, no turn straight back), and none at
+// apart, a closing edge of at least 1/4 px, no turn under 2.5 degrees), and none at
 // rest. Bend keeps its 160 + 69 dots for their look, over the usual 20 nodes a
 // frame at its heaviest: the caps below hold it to what the beam gives it, so a
 // frame never redraws most of the dots, playing or turning a control, slowly or
@@ -71,8 +71,9 @@ const char* outline_fault(const bend::Frame::path_type& path) {
         const Point& c = path.points[(i + 2) % n];
         const i32 dx = b.x - a.x, dy = b.y - a.y, ex = c.x - b.x, ey = c.y - b.y;
         if (i + 1 < n && dx > -apart && dx < apart && dy > -apart && dy < apart) return "points within 1/8 px";
-        if (static_cast<i64>(dx) * ey - static_cast<i64>(dy) * ex == 0 && static_cast<i64>(dx) * ex + static_cast<i64>(dy) * ey < 0)
-            return "a turn straight back";
+        // Under 2.5 degrees of straight back: a stroke's corner there can run far past the point.
+        const i64 cross = static_cast<i64>(dx) * ey - static_cast<i64>(dy) * ex, dot = static_cast<i64>(dx) * ex + static_cast<i64>(dy) * ey;
+        if (dot < 0 && (cross < 0 ? -cross : cross) * 23 < -dot) return "a turn under 2.5 degrees";
     }
     const i64 cx = path.points[0].x - path.points[n - 1].x, cy = path.points[0].y - path.points[n - 1].y;
     if (cx * cx + cy * cy < (unit / 4) * (unit / 4)) return "a closing edge under 1/4 px";
@@ -104,7 +105,7 @@ Result play(const double* c, u32 notes, int hold, bool stagger, const char* name
     double sum = 0;
     if (!stagger) { input.note_serial += notes; input.held_notes = notes; }
     for (int t = 0; t < hold + 60; ++t) {
-        if (stagger && t % 12 == 0 && t / 12 < static_cast<int>(notes)) { ++input.note_serial; ++input.held_notes; }
+        if (stagger && t < hold && t % 12 == 0 && t / 12 < static_cast<int>(notes)) { ++input.note_serial; ++input.held_notes; }
         if (t == hold) { input.note_off_serial += input.held_notes; input.held_notes = 0; }
         const int changed = step(input, name, t);
         if (changed < 0) return r;
@@ -153,6 +154,38 @@ int main() {
                 if (r.mean > worst) worst = r.mean;
                 if (r.peak > peak) peak = r.peak;
             }
+    // Max's settings from the device, where Bend showed escaping lines, exactly, and
+    // random settings, every wave across bend and warp. Each frame goes through the
+    // same checks, a turn under 2.5 degrees among them.
+    {
+        const double seen[8] = {0.3125, 0.30, 0.40, 0, 0.6875, 0.68, 0.79, 0};
+        for (u32 notes = 1; notes <= 8; notes += 7) play(seen, notes, 300, false, "the settings Max saw it on");
+        for (int w = 0; w < 8; ++w)
+            for (int b = 0; b < 128; b += 8)
+                for (int r = 0; r < 128; r += 8) {
+                    double c[8];
+                    std::memcpy(c, init, sizeof c);
+                    c[bend::WAVE] = (w + 0.5) / 8;
+                    c[bend::BEND] = b / 127.0;
+                    c[bend::WARP] = r / 127.0;
+                    c[bend::NOISE] = (b + r) % 3 == 0 ? 0.8 : 0;
+                    char name[48];
+                    std::snprintf(name, sizeof name, "wave %d bend %d warp %d", w, b, r);
+                    play(c, 1, 20, false, name);
+                }
+        u32 seed = 0x1234567;
+        for (int n = 0; n < 2000; ++n) {
+            double c[8];
+            for (int k = 0; k < 8; ++k) {
+                seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+                const u32 x = seed % 8;
+                c[k] = x == 0 ? 0 : x == 1 ? 1 : ((seed >> 8) % 128) / 127.0;
+            }
+            char name[48];
+            std::snprintf(name, sizeof name, "random %d", n);
+            play(c, 1 + static_cast<u32>(n) % 8, 40, n % 2 != 0, name);
+        }
+    }
     // Turning a control: up and down a step a frame, then from end to end at once,
     // at rest and over a held chord.
     int turning = 0;

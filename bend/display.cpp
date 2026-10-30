@@ -31,6 +31,8 @@ const i32 dots_step = 1024;   // the dots follow bend's contour in 1/32 steps
 const u32 slices = 8;         // the beam crosses the scope in eight frames: 0.13 s
 const u32 dial_turns = 4;     // a dial is drawn every fourth frame, a quarter of them a frame
 const i32 apart = unit / 8;   // the closest two neighbouring points of an outline may be
+const i32 lean_floor = 18;    // a wrap leans where the map's turn is within 3.2 degrees of straight back (1/tan)
+const i32 fold_floor = 22;    // and the ribbon's edge has no turn within 2.6 degrees of it
 inline i32 left(i32 dt, u32 rate) { return pd::decay(static_cast<u32>(dt) * rate); }   // Q15 (32768 is all)
 // Within `near` (a hundredth of the travel) of the target it arrives: every
 // ease is there within 0.2 s.
@@ -108,6 +110,38 @@ inline i32 area(const Point& a, const Point& b, const Point& c) {
     const i32 s = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
     return s < 0 ? -s : s;
 }
+// Teeth drawn closer than about 5.7 px have tips too sharp for a stroke, however
+// the wrap between them leans: a tip's angle is the gap between its neighbouring
+// wraps over the tooth's height. So a crowd of wraps spreads out, from the left
+// and then back from the right if it ran past the end, and everything between
+// keeps its order. Maps whose teeth are wider stay exactly where they are.
+inline void spread_wraps(Point* p, u32 n) {
+    const i32 gap = 190, nudge = 8;   // Q12 of the figure
+    const i32 end = p[n - 1].x;
+    i32 last = p[0].x + nudge - gap;
+    for (u32 i = 1; i < n; ++i) {
+        if (i + 1 < n && p[i].keep && p[i + 1].keep && p[i].x == p[i + 1].x) {
+            if (p[i].x < last + gap) p[i].x = p[i + 1].x = last + gap;
+            last = p[i].x;
+            ++i;
+        } else if (p[i].x <= p[i - 1].x) {
+            p[i].x = p[i - 1].x + nudge;
+        }
+    }
+    p[n - 1].x = end;
+    i32 limit = end + gap - nudge;
+    for (u32 i = n - 1; i-- > 1;) {
+        if (p[i - 1].keep && p[i].keep && p[i - 1].x == p[i].x && i >= 2) {
+            i32 x = p[i].x < limit - gap ? p[i].x : limit - gap;
+            if (x >= p[i + 1].x) x = p[i + 1].x - nudge;
+            p[i].x = p[i - 1].x = x;
+            limit = x;
+            --i;
+        } else if (p[i].x >= p[i + 1].x) {
+            p[i].x = p[i + 1].x - nudge;
+        }
+    }
+}
 // The map as at most 32 points: the output phase wrapped to one cycle, each
 // wrap a vertical drop, noise's jitter on the samples between, simplified by
 // least area (the board's mapPoints).
@@ -155,6 +189,7 @@ inline u32 map_points(Point (&kept)[outline], const pd::Line& l, i32 noise, u32 
     }
     if (n > outline) n = outline;
     for (u32 i = 0; i < n; ++i) kept[i] = p[i];
+    spread_wraps(kept, n);
     return n;
 }
 // A unit vector along (x, y) (Q10 px), Q12; (0, 0) if there is none.
@@ -165,15 +200,60 @@ inline void unit_of(i32 x, i32 y, i32& ux, i32& uy) {
     ux = sx * 4096 / static_cast<i32>(length);
     uy = sy * 4096 / static_cast<i32>(length);
 }
+// Whether the turn a, b, c doubles back to within the floor's angle (1/tan) of
+// straight back. Each side is scaled to fit 32 bits, as the module has no 64-bit
+// multiply: the angle is what counts.
+inline bool folds(const opxy::draw::Point& a, const opxy::draw::Point& b, const opxy::draw::Point& c, i32 floor) {
+    i32 ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
+    while (pd::magnitude(ux) > 16383 || pd::magnitude(uy) > 16383) { ux >>= 1; uy >>= 1; }
+    while (pd::magnitude(vx) > 16383 || pd::magnitude(vy) > 16383) { vx >>= 1; vy >>= 1; }
+    const i32 dot = ux * vx + uy * vy;
+    return dot < 0 && pd::magnitude(ux * vy - uy * vx) <= -dot / floor;
+}
+// Moves point i across by a step, in direction way (1 or -1), carrying along any
+// neighbours it would come too close to; false if that would reach the map's ends.
+inline bool nudge(opxy::draw::Point* p, u32 n, u32 i, i32 way) {
+    const i32 step = unit / 4, clear = unit / 2;
+    if (i == 0 || i + 1 >= n) return false;
+    i32 x = p[i].x + way * step;
+    u32 last = i;
+    for (u32 k = i + way; k > 0 && k + 1 < n && (p[k].x - x) * way < clear; k += way) { x += way * clear; last = k; }
+    const u32 end = way > 0 ? n - 1 : 0;
+    if ((p[end].x - x) * way < clear) return false;
+    x = p[i].x + way * step;
+    for (u32 k = i;; k += way) {
+        p[k].x = x;
+        if (k == last) break;
+        x += way * clear;
+    }
+    return true;
+}
+// Opens the map's turn at i a little: the far end of its shorter side, where that
+// gains most, moves away from it. False if neither can.
+inline bool widen(opxy::draw::Point* p, u32 n, u32 i) {
+    const i32 before = pd::magnitude(p[i].x - p[i - 1].x) + pd::magnitude(p[i].y - p[i - 1].y);
+    const i32 after = pd::magnitude(p[i + 1].x - p[i].x) + pd::magnitude(p[i + 1].y - p[i].y);
+    if (before < after) return nudge(p, n, i - 1, -1) || nudge(p, n, i + 1, 1);
+    return nudge(p, n, i + 1, 1) || nudge(p, n, i - 1, -1);
+}
+// A stroke's corner at a turn nearly straight back can run a long way past it,
+// so the tips of steep teeth open up: where the map doubles back too sharply a
+// wrap's vertical leans, by the least that does it. Maps with wider teeth never
+// come here and are drawn as they are.
+inline void lean_tips(opxy::draw::Point* p, u32 n) {
+    for (u32 pass = 0; pass < 32; ++pass) {
+        bool moved = false;
+        for (u32 i = 1; i + 1 < n; ++i)
+            if (folds(p[i - 1], p[i], p[i + 1], lean_floor)) moved = widen(p, n, i) || moved;
+        if (!moved) break;
+    }
+}
 // The points as a closed ribbon about the figure's centre: each offset both
 // ways along its mitred normal, the mitre held at sharp turns, out along one
 // edge and back along the other (the board's ribbon). Every point distinct.
-inline void map_ribbon(Frame::path_type& path, const Point (&q)[outline], u32 n) {
+inline void offset_ribbon(Frame::path_type& path, const opxy::draw::Point* centre, u32 n) {
     Point px[outline];
-    for (u32 i = 0; i < n; ++i) {
-        px[i].x = q[i].x * figure_size / 4 - figure_size * 512;   // Q12 of 124 px about the centre, Q10
-        px[i].y = figure_size * 512 - q[i].y * figure_size / 4;
-    }
+    for (u32 i = 0; i < n; ++i) { px[i].x = centre[i].x; px[i].y = centre[i].y; }
     for (u32 i = 0; i < outline; ++i) {
         const u32 j = i < n ? i : n - 1;
         const Point& a = px[j ? j - 1 : 0];
@@ -198,25 +278,53 @@ inline void map_ribbon(Frame::path_type& path, const Point (&q)[outline], u32 n)
         path.points[2 * outline - 1 - i].x = b.x - ox + ((t1x * extra) >> 12);
         path.points[2 * outline - 1 - i].y = b.y - oy + ((t1y * extra) >> 12);
     }
-    // Neighbours within 1/8 px merge on the device and the path stops reshaping:
-    // each goes on the way it was heading. Then every point distinct.
-    for (u32 i = 1; i < 2 * outline; ++i) {
-        const i32 dx = path.points[i].x - path.points[i - 1].x, dy = path.points[i].y - path.points[i - 1].y;
-        if (pd::magnitude(dx) >= apart || pd::magnitude(dy) >= apart) continue;
-        if (pd::magnitude(dx) >= pd::magnitude(dy)) path.points[i].x = path.points[i - 1].x + (dx < 0 ? -apart : apart);
-        else path.points[i].y = path.points[i - 1].y + (dy < 0 ? -apart : apart);
+}
+inline void map_ribbon(Frame::path_type& path, const Point (&q)[outline], u32 n) {
+    opxy::draw::Point centre[outline];
+    for (u32 i = 0; i < n; ++i) {
+        centre[i].x = q[i].x * figure_size / 4 - figure_size * 512;   // Q12 of 124 px about the centre, Q10
+        centre[i].y = figure_size * 512 - q[i].y * figure_size / 4;
     }
-    for (u32 i = 1; i < 2 * outline; ++i) {
-        bool moved = true;
-        while (moved) {
-            moved = false;
-            for (u32 k = 0; k < i; ++k)
-                if (path.points[i].x == path.points[k].x && path.points[i].y == path.points[k].y) {
-                    path.points[i].x += apart;
-                    moved = true;
-                    break;
-                }
+    lean_tips(centre, n);
+    // The ribbon's edges turn a little sharper than the map where a side is short:
+    // open the map's turn wherever an edge's is still too sharp, and draw it again.
+    for (u32 attempt = 0; attempt < 12; ++attempt) {
+        offset_ribbon(path, centre, n);
+        bool moved = false;
+        for (u32 i = 1; i + 1 < 2 * outline; ++i) {
+            const u32 j = i < outline ? i : 2 * outline - 1 - i;
+            if (j >= 1 && j + 1 < n && folds(path.points[i - 1], path.points[i], path.points[i + 1], fold_floor))
+                moved = widen(centre, n, j) || moved;
         }
+        if (!moved) break;
+    }
+    // What the device needs of it. Neighbours within 1/8 px merge and the path
+    // stops reshaping: each goes on the way it was heading. A short side next to a
+    // long one can fold the ribbon's inner edge back on itself: that point goes on
+    // the line between its neighbours, where it draws nothing. Moving one can upset
+    // the next, so this repeats until none is left; then every point distinct. The
+    // ribbon's two ends (0, 63) stay.
+    Frame::path_type& r = path;
+    for (u32 pass = 0; pass < 24; ++pass) {
+        bool moved = false;
+        for (u32 i = 1; i < 2 * outline; ++i) {
+            const i32 dx = r.points[i].x - r.points[i - 1].x, dy = r.points[i].y - r.points[i - 1].y;
+            if (pd::magnitude(dx) < apart && pd::magnitude(dy) < apart) {
+                if (pd::magnitude(dx) >= pd::magnitude(dy)) r.points[i].x = r.points[i - 1].x + (dx < 0 ? -apart : apart);
+                else r.points[i].y = r.points[i - 1].y + (dy < 0 ? -apart : apart);
+                moved = true;
+            }
+            if (i + 1 < 2 * outline && folds(r.points[i - 1], r.points[i], r.points[i + 1], fold_floor)) {
+                r.points[i].x = (r.points[i - 1].x + r.points[i + 1].x) >> 1;
+                r.points[i].y = (r.points[i - 1].y + r.points[i + 1].y) >> 1;
+                moved = true;
+            }
+        }
+        if (moved) continue;
+        for (u32 i = 1; i < 2 * outline; ++i)
+            for (u32 k = 0; k < i; ++k)
+                if (r.points[i].x == r.points[k].x && r.points[i].y == r.points[k].y) { r.points[i].x += apart; moved = true; }
+        if (!moved) break;
     }
 }
 // The map for this key. The key changes only if the points do: a new key with

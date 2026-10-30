@@ -175,6 +175,10 @@ written by `tools/make_panel.py` from the board's geometry. To fit:
 - The map is simplified to 32 points from 64 samples (the board's 160), and
   drawn as a 0.6 px stroked ribbon, since an outline the frame reshapes has
   no fill.
+- The map's turns stay at least 2.5 degrees from straight back, since a stroke's
+  corner at a sharper turn can run far past it. Where teeth are steep and narrow
+  the wraps spread apart and lean by the least that does it, and a fold in the
+  ribbon's edge beside a short side goes straight. Wider teeth are unchanged.
 - The figure and scope draw the engine's maps, so the saw, square and pulse
   look more bent than the board's at the same bend (bend's taper), and the
   scope's noise follows the sound's depth (the board's grew to 0.06 of a cycle).
