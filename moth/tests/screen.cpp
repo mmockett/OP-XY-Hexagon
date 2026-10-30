@@ -4,7 +4,8 @@
 // still when nothing sounds; a strike lights the wings and they fade at
 // glow's pace; reduced motion, a reset and a track change show the end
 // state at once; drift sways the moth while it sounds, a group of pieces a
-// frame, and no frame redraws much of the moth.
+// frame, and no frame redraws much of the moth; a held note's light breathes
+// for as long as it is held, with nothing else moving.
 #include "../display.cpp"
 #include <cstdio>
 #include <cstring>
@@ -168,16 +169,34 @@ void swaying() {
     check("the sway moves in steps, a few a second", steps <= 10 * 60);
     check("no frame redraws more than a group of pieces", peak <= 16);
     check("on average a held, swaying pad redraws under six pieces a frame", total < 6 * 600);
-    // Without drift, a held note is still.
-    const double still[8] = {0.45, 0.15, 0.41, 0, 0.95, 0.3, 0, 0};
+    const double still[8] = {0.45, 0.15, 0.0938, 0, 0.95, 0.3, 0, 0};
     moth::display_reset(state);
     Player quiet(still, 0);
     quiet.tick();
     quiet.hold(2);
     for (u32 f = 0; f < 120; ++f) quiet.tick();
-    before = frame;
-    quiet.tick();
-    check("without drift, a held harmonic note is still", same(before, frame));
+    // Without drift a held harmonic note's edges, veins and body hold still; the
+    // light breathes for as long as the note is held, an edge at a time.
+    u32 reloads = 0, others = 0, most = 0, late = 0;
+    for (u32 f = 0; f < 360; ++f) {
+        before = frame;
+        quiet.tick();
+        const u32 n = changed(before, frame);
+        most = n > most ? n : most;
+        u32 edges = 0;
+        for (u32 p = 2; p < 4; ++p) edges += before.paths[p].key != frame.paths[p].key;
+        check("the two lit edges step in turn", edges < 2);
+        reloads += edges;
+        if (f >= 240) late += edges;
+        others += before.paths[0].key != frame.paths[0].key || before.paths[1].key != frame.paths[1].key;
+        for (u32 k = moth::kVeinFirst; k < moth::kEyeFirst; ++k)
+            others += std::memcmp(&before.nodes[k], &frame.nodes[k], sizeof frame.nodes[k]) != 0;
+        for (u32 k = moth::kBodyFirst; k < moth::kScaleFirst; ++k)
+            others += std::memcmp(&before.nodes[k], &frame.nodes[k], sizeof frame.nodes[k]) != 0;
+    }
+    check("a held note's light keeps breathing to the end of the hold", late >= 8 && reloads >= 24);
+    check("nothing but the light and the pupils moves for it", others == 0);
+    check("the breath redraws at most a few pieces a frame", most <= 4);
 }
 
 void header() {
@@ -190,7 +209,7 @@ void header() {
     check("header: fm 0.36", is(frame.texts[5].chars, "0.36"));
     check("header: ratio 3.50", is(frame.texts[6].chars, "3.50"));
     check("header: strike 85", is(frame.texts[7].chars, "85"));
-    check("header: glow 180ms", is(frame.texts[12].chars, "180ms"));
+    check("header: glow 0.18s", is(frame.texts[12].chars, "0.18s"));
     check("header: mode both", is(frame.texts[14].chars, "both"));
     check("header: titles", is(frame.texts[0].chars, "fold") && is(frame.texts[8].chars, "glow"));
 }

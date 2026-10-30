@@ -33,7 +33,7 @@ and the drift.
 | fm | index 0 to 4 (4 x²) | 0 | index, `0.36` | How far the modulator moves the carrier's phase: from a pure sine, through the first sidebands, to a dense FM spectrum. |
 | ratio | 0.50, 1.00, 1.01, 1.41, 1.50, 2.00, 2.02, 2.50, 2.76, 3.00, 3.50, 4.00, 4.70, 5.00, 6.00, 7.00 | 1.00 | the ratio, `3.50` | The modulator's frequency over the carrier's, sixteen stops: harmonic (0.50, 1, 1.5, 2...), near-harmonic (1.01 and 2.02 beat slowly) and inharmonic (1.41, 2.76, 4.70: bells and bongos). It glides between stops over a few milliseconds. Heard through fm. |
 | strike | 0 to 100 | 0 | amount | How hard a note strikes the vactrol. The LED is held at 1 - strike while the note is held, and every strike above 0 pulses it fully for 4 ms, so the gate pings over the held level: 2.5 dB at 25, 6 dB at 50, 12 dB at 75, a pluck that dies away at 100. A harder strike is also up to 1.6 dB louder. Below 12.5 the pulse is gentler, so a light touch eases in. |
-| glow | 40 ms to 6.0 s, exponentially | 1.3 s | time, `180ms` or `1.3s` | The photocell's memory: how long a struck gate takes to close, from fully open to -60 dB (in vca mode; it is measured within a third of the caption at every setting). It closes three times faster while still bright and slower as it darkens, as a vactrol does. An unstruck note opens at a twentieth of glow's pace, so a long glow also swells in (2 ms at 0, 0.6 s at 100). |
+| glow | 40 ms to 6.0 s, exponentially | 1.3 s | time, `0.18s` or `1.3s` | The photocell's memory: how long a struck gate takes to close, from fully open to -60 dB (in vca mode; it is measured within a third of the caption at every setting). It closes three times faster while still bright and slower as it darkens, as a vactrol does. An unstruck note opens at a twentieth of glow's pace, so a long glow also swells in (2 ms at 0, 0.6 s at 100). |
 | bias | 0 to 100 | 0 | amount | Offsets the folder's input by up to half its swing, so the wave folds one way more than the other and gains even harmonics. Its offset is predicted (sin(c) J0(A)) and removed, so a biased note starts without a thump. |
 | mode | lp to combo to vca | combo | the nearest of `lp`, `both` (combo) and `vca` | How the gate acts: at lp it only closes a low-pass, at vca it only fades, at combo it does both, and between them each follows the cell's light to that power, so the morph is even in decibels. The low-pass is two one-poles whose cutoff follows the light (open from 0.8 up, about 9 kHz times the light below, never under 3 Hz). |
 | drift | 0 to 25 cents, 12.5 (x + x²) | 0 | cents, `3.9c` | Slow seeded wander (0.11 to 0.16 Hz and 0.29 to 0.39 Hz, each voice its own): the pitch up to the cents shown, the modulator on its own as far again, so FM's sidebands drift against the carrier, and the fold's drive up to 25% either way. |
@@ -169,12 +169,16 @@ toward a smooth wing. A strike flicks the antennae out and back within 0.2 s.
 It also knocks up to two scales off the wings' edges, faster the harder it
 pings; they tumble out and settle as they fade. Drift makes the edges wander
 and sways the whole moth, up to 2.9 degrees and 2.2 px at full drift, while
-it sounds. Fine static veins run from the root toward the margin.
+it sounds. For as long as a note sounds, the light breathes: the lit edges
+swell and draw in with a ripple running along them, slower the longer glow is
+and deeper the brighter the gate, and each lit pupil throbs on its voice's own
+turn. Fine static veins run from the root toward the margin.
 
 Controls ease in over about 0.15 s and the ratio glides between stops. The
 screen cannot hear the voices: it follows the held notes (a note started and
 released between frames still pings the next vactrol) and the controls. When
-nothing sounds the screen is still. Reduced motion, a reset and a track change
+nothing sounds the screen is still, and a note that has died away under a
+held key (strike 100) is nothing sounding. Reduced motion, a reset and a track change
 show the end state at once.
 
 ### Redrawing little
@@ -200,6 +204,9 @@ The OP-XY redraws whatever changes, so the screen changes little:
   and the cell) has sixteen steps, the LED eight and each eyespot eight, each
   redrawn only when it steps. The antennae flick in 2 degree steps. The
   scales are drawn at whole pixels and in 30 degree turns.
+- **The breath is stepped too.** A lit edge is taken 64 times a breath (0.7 to
+  0.17 breaths a second), the two half a step apart so they never redraw in one
+  frame, and a pupil has four sizes. That costs about one node a frame.
 
 Measured with the preview's real frames, a note every half second held for a
 quarter second (`mothcost.mjs`), at drift 50 then 100:
@@ -214,7 +221,10 @@ The build before this one changed 26, 38 and 33 nodes a frame on average
 (peaks 120, 103 and 77) and re-keyed 2.2, 4.0 and 3.6 outlines. With two
 notes held under a pad at full drift, about 3 nodes change a frame (peak 9)
 and 0.5 outlines are re-keyed. The tests check that a held, swaying pad never
-changes more than 16 nodes in a frame and averages under six.
+changes more than 16 nodes in a frame and averages under six, and
+`tests/churn.cpp` sweeps every control with notes held: every frame valid and
+its outlines fit for the device, at most 20 nodes a frame on average, none at
+rest, and every caption inside its column.
 
 `tools/make_panel.py` writes `panel.svg.fragment` and `wing.h` (the wing's
 margin and the eyespots' places) with the node numbers `display.h` names. The

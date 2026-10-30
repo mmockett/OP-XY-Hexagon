@@ -246,16 +246,19 @@ inline void index_caption(char* out, u32 capacity, i32 fm) {
     fixed_caption(out, capacity, static_cast<u32>(((fm * fm >> 15) * 400 + 16384) >> 15), 2, "");
 }
 inline void ratio_caption(char* out, u32 capacity, i32 ratio) { put(out, capacity, kRatioLabel[ratio_stop(ratio)]); }
-// glow: "40ms" to "990ms", then "1.0s" to "6.0s".
+// glow: "40ms" to "99ms", then "0.10s" to "0.99s" and "1.0s" to "6.0s": three
+// figures of ms overflow the header's value column ("100ms" is 61 px of 53).
 inline void glow_caption(char* out, u32 capacity, i32 glow) {
     const u32 ms = (exp2_q16(glow_log2(glow) + 653083) + 32768u) >> 16;  // seconds times 1000
-    if (ms < 995) {
+    if (ms < 100) {
         char text[8];
         const u32 at = put_number(text, 0, ms);
         text[at] = 'm';
         text[at + 1] = 's';
         text[at + 2] = 0;
         put(out, capacity, text);
+    } else if (ms < 995) {
+        fixed_caption(out, capacity, (ms + 5) / 10, 2, "s");
     } else {
         fixed_caption(out, capacity, (ms + 50) / 100, 1, "s");
     }

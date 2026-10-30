@@ -35,6 +35,7 @@ struct DisplayState {
     Lamp lamps[8];
     opxy::u32 tau;        // the moth's clock, Q16 seconds: it runs while the moth sounds
     opxy::u32 psi;        // the strobe's crawl, Q32 cycles
+    opxy::u32 breath;     // the light's breath, Q32 cycles: it runs while the moth sounds
     opxy::u32 beat;       // the clock's step as drawn: the wave and the sway move in eighths of a second
     opxy::u32 crawl;      // the crawl as drawn, taken each step
     Sway sway;            // where the sway is heading, in its steps

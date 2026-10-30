@@ -24,6 +24,12 @@
 // sway move in steps of an eighth of a second, the sway in whole pixels and
 // steps of 0.4 degrees, reaching one group of pieces a frame, and the light,
 // the LED and the eyespots are drawn in steps, redrawn only when they step.
+//
+// While a note sounds the light breathes: each lit edge swells and draws in,
+// a ripple running along it, slower the longer glow is and deeper the brighter
+// the gate, and each voice's pupil throbs with it. The dark edges, the veins
+// and the body hold still for it. The two lit edges step in turn, in 64 steps
+// a breath, so this costs about one piece a frame and stops with the sound.
 #include "display.h"
 #include "laws.h"
 #include "wing.h"
@@ -40,6 +46,11 @@ const i32 kEaseLog2 = -293206;  // log2 of 45 ms, Q16: controls settle within 0.
 const u32 kStepShift = 13;      // the wave and the sway step every 2^13 Q16 seconds: an eighth of a second
 const i32 kTilt = 4;            // the sway's steps, tenths of a degree
 const u32 kWingGroup[2] = {0, 1}, kLedGroup = 2, kCellGroup = 3, kEyeGroup[2] = {4, 5}, kCellFirst = 9;
+const i32 kBreathFast = 45875, kBreathSpan = 34734;  // breaths a second, Q16: 0.7 at glow 0, 0.17 at glow 100
+const i32 kSwell = 655, kRipple = 393, kThrob = 4915;  // their depths: 2% and 1.2% of the reach, 15% of a pupil, Q15
+const u32 kBreathStep = 26;     // a lit edge is taken 64 times a breath (a Q32 cycle's top six bits)
+const i32 kApart = unit / 8;    // the closest two neighbouring points may be
+const i32 kRootClear = 3584;    // the margin keeps 3.5 px from the moth's axis beside the root, Q10
 
 // Greys are palette entries 0..15 (tools/make_panel.py): black to white.
 inline u32 grey(i32 q8) { const i32 g = (q8 + 128) >> 8; return static_cast<u32>(g < 0 ? 0 : g > 15 ? 15 : g); }
@@ -144,13 +155,55 @@ inline i32 reach(i32 y) {
     return (32768 - (kDepth * (32768 - a) >> 15)) >> 3;
 }
 
+inline i32 magnitude(i32 v) { return v < 0 ? -v : v; }
+
+// What the device needs of an outline, without changing its look: neighbouring
+// points at least 1/8 px apart (nearer ones merge and the path stops
+// reshaping), and no turn straight back on itself (it draws as a streak). A
+// folded edge's steep flanks can do either. A point too near the last goes on
+// the way it was heading; a turn within about 3.6 degrees of straight back has
+// its tip moved aside by an eighth of its shorter side. Moving one can upset
+// its neighbour, so this repeats until none is left. The root's two points
+// (0, 63) stay.
+void keep_whole(Point (&p)[64]) {
+    for (u32 pass = 0; pass < 8; ++pass) {
+        bool moved = false;
+        for (u32 i = 1; i < 63; ++i) {
+            const i32 dx = p[i].x - p[i - 1].x, dy = p[i].y - p[i - 1].y;
+            if (magnitude(dx) < kApart && magnitude(dy) < kApart) {
+                if (magnitude(dx) >= magnitude(dy)) p[i].x = p[i - 1].x + (dx < 0 ? -kApart : kApart);
+                else p[i].y = p[i - 1].y + (dy < 0 ? -kApart : kApart);
+                moved = true;
+            }
+            const i32 ux = p[i].x - p[i - 1].x, uy = p[i].y - p[i - 1].y, vx = p[i + 1].x - p[i].x, vy = p[i + 1].y - p[i].y;
+            // Each side scaled to fit 32 bits (the module has no 64-bit multiply): the angle is what counts.
+            u32 us = 0, vs = 0;
+            while (magnitude(ux >> us) > 16383 || magnitude(uy >> us) > 16383) ++us;
+            while (magnitude(vx >> vs) > 16383 || magnitude(vy >> vs) > 16383) ++vs;
+            const i32 cross = (ux >> us) * (vy >> vs) - (uy >> us) * (vx >> vs), dot = (ux >> us) * (vx >> vs) + (uy >> us) * (vy >> vs);
+            if (dot >= 0 || magnitude(cross) > -dot / 16) continue;
+            // Aside, on the side it already leans to.
+            const bool first = magnitude(ux) + magnitude(uy) <= magnitude(vx) + magnitude(vy);
+            const i32 ax = first ? -uy : -vy, ay = first ? ux : vx;
+            p[i].x += (cross < 0 ? -ax : ax) / 8;
+            p[i].y += (cross < 0 ? -ay : ay) / 8;
+            moved = true;
+        }
+        // The margin's ends stay off the closing edge, the straight line between the root's points.
+        const i32 away = p[63].x > 0 ? -kApart : kApart;
+        if (p[62].x == p[63].x) { p[62].x += away; moved = true; }
+        if (p[1].x == p[0].x) { p[1].x += away; moved = true; }
+        if (!moved) break;
+    }
+}
+
 // A wing's outline at the reaches (Q12), one a margin point: the root's two
 // points and the margin, from the wing's middle at half size (the node is
 // drawn at scale 2). The key changes when the points do.
 void outline(Frame& frame, DisplayState& state, u32 path, u32 side, const i32* reaches) {
     Frame::path_type& out = frame.paths[path];
     const i32 middle = side ? 90 * unit : -90 * unit, root_x = (side ? 3 : -3) * unit;
-    bool changed = !state.keys[path];
+    Point points[64];
     for (u32 i = 0; i < 64; ++i) {
         i32 x, y;
         if (i == 0 || i == 63) {
@@ -160,12 +213,17 @@ void outline(Frame& frame, DisplayState& state, u32 path, u32 side, const i32* r
             const i32 mx = kWingX[i - 1] * reaches[i - 1] >> 12;
             x = side ? -mx : mx;
             y = kWingY[i - 1] * reaches[i - 1] >> 12;
+            // A small lit edge stays out of the root's closing line, so it can't cross it.
+            if (magnitude(y) < 13 * unit && magnitude(x) < kRootClear) x = side ? kRootClear : -kRootClear;
         }
-        x = (x - middle) >> 1;
-        y >>= 1;
-        changed = changed || out.points[i].x != x || out.points[i].y != y;
-        out.points[i].x = x;
-        out.points[i].y = y;
+        points[i].x = (x - middle) >> 1;
+        points[i].y = y >> 1;
+    }
+    keep_whole(points);
+    bool changed = !state.keys[path];
+    for (u32 i = 0; i < 64; ++i) {
+        changed = changed || out.points[i].x != points[i].x || out.points[i].y != points[i].y;
+        out.points[i] = points[i];
     }
     if (changed) state.keys[path] = state.keys[path] + 1 ? state.keys[path] + 1 : 1;
     out.key = state.keys[path];
@@ -278,6 +336,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 ratio = static_cast<i32>(kRatioQ16[ratio_stop(control(input.slots[kRatio]))]);
         const i32 off = ratio - static_cast<i32>((static_cast<u32>(ratio) + 16384u) >> 15 << 15);  // Q16
         state.psi += static_cast<u32>(off * 3 * static_cast<i32>(run >> 4)) << 4;
+        state.breath += run * static_cast<u32>(kBreathFast - (kBreathSpan * glow >> 15));
     }
 
     // The wave and the sway move in steps: the clock as drawn, and the crawl
@@ -356,9 +415,17 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         pose(frame, side, p, middle.x, middle.y, 2 * unit, level, 9, stroke);
         if (glowing) {
             melt(lit_wave[side], k);
+            // The light breathes: this wing's step of the breath, half a step after
+            // the other's, so the two edges never redraw in one frame.
+            const u32 breath = ((state.breath + (side ? 1u << (kBreathStep - 1) : 0u)) >> kBreathStep) << kBreathStep;
+            const i32 live = input.reduced_motion ? 0 : drawn;
+            const i32 swell = kSwell * sine15(kSine15, breath) >> 15;
             // Melted, a dip's light could pass the edge: it stays a few pixels inside.
             for (u32 i = 0; i < kMargin; ++i) {
-                const i32 r = reach(lit_wave[side][i]) * rho >> 15, edge = reaches[i] * 31 >> 5;
+                const i32 ripple = kRipple * sine15(kSine15, breath * 2 + i * (0x80000000u / (kMargin - 1)) * 4u) >> 15;
+                i32 r = reach(lit_wave[side][i]) * rho >> 15;
+                r += r * ((swell + ripple) * live >> 15) >> 15;
+                const i32 edge = reaches[i] * 31 >> 5;
                 reaches[i] = r < edge ? r : edge;
             }
             outline(frame, state, 2 + side, side, reaches);
@@ -378,7 +445,12 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             const u32 node = kEyeFirst + 2 * (2 * j + side);
             const i32 x = side ? -kEyeX[j] : kEyeX[j];
             pose(frame, node, e, x, kEyeY[j], 2 * unit, level, on ? 10 : 7, stroke);
-            pose(frame, node + 1, e, x, kEyeY[j], (1434 + (1638 * (g > 32767 ? 32767 : g) >> 15)) / 3, level,
+            // A lit pupil throbs with its voice's own turn of the breath, in four steps.
+            const i32 size = (1434 + (1638 * (g > 32767 ? 32767 : g) >> 15)) / 3;
+            const i32 throb = on && !input.reduced_motion
+                                  ? kThrob * (((sine15(kSine15, state.breath + (2 * j + side) * 0x20000000u) + 32768) >> 14) - 2) >> 16
+                                  : 0;
+            pose(frame, node + 1, e, x, kEyeY[j], size + (size * throb >> 15), level,
                  on ? grey(1280 + (2560 * g >> 15)) : 4, fill_and_stroke);
         }
     }

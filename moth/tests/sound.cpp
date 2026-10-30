@@ -524,7 +524,7 @@ void captions() {
     moth::ratio_caption(text, sizeof text, 0);
     check("ratio caption at 0: 0.50", is("0.50"));
     moth::glow_caption(text, sizeof text, 9830);  // 30
-    check("glow caption at 30: 180ms", is("180ms"));
+    check("glow caption at 30: 0.18s", is("0.18s"));
     moth::glow_caption(text, sizeof text, 22937);  // 70
     check("glow caption at 70: 1.3s", is("1.3s"));
     moth::glow_caption(text, sizeof text, 0);

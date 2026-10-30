@@ -241,7 +241,7 @@ for b, (pts, ink) in enumerate(body):
 # box leaves room for the OP-XY's Univers, which sets the name wider than the
 # browser's stand-in fonts.
 out.append(f'<path d="{outline([(384, 200), (472, 200), (472, 214), (384, 214)])}" fill="none" stroke="{GREYS[5]}" stroke-width="0.6"/>')
-out.append(f'<text transform="matrix(1 0 0 1 388 209.4)" fill="{GREYS[8]}" {FONT} font-size="6.5px">Phalaena vactrolis</text>')
+out.append(f'<text transform="matrix(1 0 0 1 388 209.8)" fill="{GREYS[8]}" {FONT} font-size="8px">Phalaena vactrolis</text>')
 
 # Scales knocked loose: a pool, parked off screen until a strike sheds them.
 scale_d = outline(ellipse(0, 0, 1.6, 0.7, 10))
@@ -257,6 +257,19 @@ for i, grey in enumerate(GREYS):
 out.append("</g>")
 
 text = "\n".join(out) + "\n"
+
+
+def check(artwork):
+    """What the device's loader needs of the artwork, and what it can read."""
+    import re
+    for d in re.findall(r' d="([^"]*)"', artwork):
+        assert d.count("M") == 1, "more than one subpath"
+        assert d.count(",") <= POINTS, "more than 64 points"
+    for size in re.findall(r'font-size="([0-9.]+)px"', artwork):
+        assert float(size) >= 8, f"text at {size} px"
+
+
+check(text)
 target = ROOT / "panel.svg.fragment" if ID == "moth" else pathlib.Path(sys.argv[2])
 target.write_text(text)
 
