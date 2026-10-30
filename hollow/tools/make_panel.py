@@ -17,8 +17,8 @@ needs, feeding a manometric flame that burns as high as its mode rings.
 Every node is one closed outline of distinct points (or a circle), so every
 outline encloses area: thin lines are thin closed ribbons. check() holds every
 path to the device's rules: one subpath, at most 64 points, neighbours at least
-1/8 px apart, a closing edge of at least 1/4 px and no turn straight back. What
-moves is drawn unfilled, and display.cpp moves it in turns (see its top)."""
+1/8 px apart, a closing edge of at least 1/4 px and no turn straight back.
+display.cpp moves what moves in turns (see its top)."""
 import math
 import pathlib
 import re
@@ -138,12 +138,6 @@ def offset(points, d, closed=True):
 def ribbon(points, width=0.3):
     """A line as a thin closed ribbon: out along one side, back along the other."""
     return offset(points, width / 2, False) + list(reversed(offset(points, -width / 2, False)))
-
-
-def inset(points, d):
-    """A closed outline moved d px inward, whichever way round it runs."""
-    twice = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(points, points[1:] + points[:1]))
-    return offset(points, d if twice > 0 else -d)
 
 
 def resample(points, n):
@@ -373,9 +367,7 @@ def vox():
     # (low and back), about its root.
     tongue = spline([(207, 115), (200, 110.5), (190, 108.5), (178, 109.5), (166, 113), (157, 119.5), (152, 131),
                      (153, 142), (159, 148), (167, 147), (181, 140), (196, 129), (205, 122)], 4, closed=True)
-    # Its flesh stays put, drawn a little inside it; only its outline moves.
-    f.shape("tongueflesh", inset(tongue, 2.5), "#212121", "#212121", 0.3)
-    f.shape("tongue", tongue, "none", INK, 0.6, at=(158, 146))
+    f.shape("tongue", tongue, "#262626", INK, 0.6, at=(158, 146))
     SPECIAL["tongue"] = (0, len(f.items) - 1)
     # The lips' opening: a dark lens over the profile, scaled by the vowel.
     f.shape("mouth", [(220.5 + 3.2 * math.cos(a), 108 + 1.3 * math.sin(a)) for a in
@@ -476,13 +468,13 @@ def violin():
     # node display.cpp slides along its length and fades as Breath takes over.
     bx = V(172, 0)[0]
     hair = [(bx - 1.1, 58), (bx + 1.1, 58.5), (bx + 1.1, 240), (bx - 1.1, 240)]
-    f.shape("bowhair", hair, "none", "#c8c8c8", 0.5, at=(bx, VY))
+    f.shape("bowhair", hair, "#0d0d0d", "#c8c8c8", 0.5, at=(bx, VY))
     SPECIAL["bowhair"] = (1, len(f.items) - 1)
     # The stick, cambered toward the hair, ending in the head at the tip.
     stick = [(bx + 2.2 + 1.3 * math.sin(math.pi * (y - 56) / 184), y) for y in range(56, 241, 23)]
     head = [(bx + 3.4, 54), (bx + 3, 50.5), (bx + 0.5, 49.5), (bx - 1.6, 52), (bx - 1.6, 58), (bx + 1.4, 58.5)]
     outline_pts = head + [(x + 0.2, y) for x, y in stick[1:]] + [(x + 1.1, y) for x, y in reversed(stick[1:])]
-    f.shape("bowstick", outline_pts, "none", "#c8c8c8", 0.5, at=(bx, VY))
+    f.shape("bowstick", outline_pts, "#0d0d0d", "#c8c8c8", 0.5, at=(bx, VY))
     SPECIAL["bowstick"] = (1, len(f.items) - 1)
     # The D string sounds; the open G beside it rings in sympathy.
     strand(1, 0, resample(Vs([(-130, -2.8), (195, -5.5)]), 32), None)
@@ -525,7 +517,7 @@ def gedackt(f, tag, cx, b, t, top, lip, scale):
     h = lip - upper
     jet = [(cx - b - 0.5, lip), (cx - b - 1.3, lip - h * 0.5), (cx - b - 1.9, upper + 0.6), (cx - b - 1.0, upper + 0.4),
            (cx - b - 0.3, lip - h * 0.5), (cx - b + 0.4, lip)]
-    f.shape(f"{tag}jet", jet, "none", "#9a9a9a", 0.3, at=(cx - b - 0.5, lip))
+    f.shape(f"{tag}jet", jet, "#9a9a9a", "#9a9a9a", 0.25, at=(cx - b - 0.5, lip))
     SPECIAL[f"{tag}jet"] = (2, len(f.items) - 1)
     JETS[tag] = (cx - b - 0.5, lip)
     return (cx, lip - 2, top + 13 * scale + 1)
@@ -633,9 +625,7 @@ FIGURES = [vox(), violin(), pipes(), glasses()]
 SLOT_X = [330 + 19 * k for k in range(8)]
 RAIL_Y, NECK_Y = 150, 168
 RES_R = 9.5
-FLAME_H, FLAME_SMALL, PILOT_H = 52, 26, 5.2   # a tall flame, a low one and the pilot, px
-FLAME_LOWEST = 8                               # under this only the pilot burns
-RES_SIZE = [1.0, 0.7, 0.48, 0.42, 0.34, 0.3, 0.25, 0.2]   # each resonator's usual size, of the fundamental's
+FLAME_H = 52
 
 
 def analyser_static():
@@ -655,53 +645,41 @@ def analyser_static():
         # Burner on the rail, its capsule under it, and the tube to the resonator.
         a.shape(f"burner{k}", [(x - 1.5, RAIL_Y), (x - 0.8, RAIL_Y - 4.5), (x + 0.8, RAIL_Y - 4.5), (x + 1.5, RAIL_Y)],
                 DARK, MID, 0.4, node=False)
-        # The pilot that always burns; display.cpp's flame stands over it.
-        a.shape(f"pilot{k}", thin(flame(x, PILOT_H), 8), "#4d4d4d", "#7a7a7a", 0.3, node=False)
         a.shape(f"capsule{k}", [(x - 3.2, RAIL_Y + 3), (x + 3.2, RAIL_Y + 3), (x + 3.2, RAIL_Y + 5.5), (x + 2, RAIL_Y + 7),
                                 (x - 2, RAIL_Y + 7), (x - 3.2, RAIL_Y + 5.5)], DARK, MID, 0.4, node=False)
         a.line(f"tube{k}", [(x, RAIL_Y + 7), (x, NECK_Y)], DIM, 0.55, node=False)
     return a
 
 
-def resonator(x, s=1.0):
+def resonator(x):
     """A Helmholtz resonator hanging from its neck at (x, NECK_Y): the neck,
-    the sphere, and the nipple below it that goes to the ear. Authored at about
-    the size it's drawn (s of the fundamental's), for a steady line."""
-    r, neck, nip = RES_R * s, 1.7 * max(s, 0.5), 1.1 * max(s, 0.5)
+    the sphere, and the nipple below it that goes to the ear."""
+    r, neck, nip = RES_R, 1.7, 1.1
     a0 = math.degrees(math.asin(neck / r))
     a1 = math.degrees(math.asin(nip / r))
-    cy = NECK_Y + 2.4 * max(s, 0.5) + r * math.cos(math.radians(a0))
+    cy = NECK_Y + 2.4 + r * math.cos(math.radians(a0))
     left = [(x - r * math.sin(math.radians(a)), cy - r * math.cos(math.radians(a)))
             for a in [a0 + (180 - a1 - a0) * i / 10 for i in range(11)]]
     right = [(2 * x - px, py) for px, py in reversed(left)]
-    foot = cy + r + 2.2 * max(s, 0.5)
-    return ([(x - neck, NECK_Y)] + left + [(x - nip, foot), (x + nip, foot)] + right +
+    return ([(x - neck, NECK_Y)] + left + [(x - nip, cy + r + 2.2), (x + nip, cy + r + 2.2)] + right +
             [(x + neck, NECK_Y)])
 
 
-def shine(x, s=1.0):
+def shine(x):
     """The light on a resonator's sphere: a crescent at its upper left."""
-    r = RES_R * s
-    knee = max(s, 0.5)
-    cy = NECK_Y + 2.4 * knee + r * math.cos(math.asin(1.7 * knee / r))
+    r = RES_R
+    cy = NECK_Y + 2.4 + r * math.cos(math.asin(1.7 / r))
     outer = arc(x, cy, r * 0.72, r * 0.72, 200, 265, 6)
-    inner = arc(x - 0.6 * knee, cy + 0.6 * knee, r * 0.66, r * 0.66, 262, 203, 6)
+    inner = arc(x - 0.6, cy + 0.6, r * 0.66, r * 0.66, 262, 203, 6)
     return outer + inner
 
 
-def flame(x, h=FLAME_H, core=False, detail=2):
-    """A flame standing on its burner, as a single outline. With `core` the line
-    runs on from the left of its foot up round a slender inner flame, whose two
-    close edges read as the flame's bright heart with no fill to redraw."""
+def flame(x, h=FLAME_H):
     w = h * 0.16
     side = [(w * 0.55, -0.0), (w * 0.95, -h * 0.12), (w, -h * 0.25), (w * 0.8, -h * 0.45), (w * 0.45, -h * 0.7), (0.0, -h)]
-    right = spline(side, detail)
+    right = spline(side, 2)
     left = [(-px, py) for px, py in reversed(right[:-1])]
-    points = right + left
-    if core:
-        inner = spline([(w * 0.14, -h * 0.03), (w * 0.27, -h * 0.13), (w * 0.26, -h * 0.26), (w * 0.14, -h * 0.42), (0.0, -h * 0.58)], 4)
-        points += [(-px, py) for px, py in inner] + [(px, py) for px, py in reversed(inner[:-1])]
-    return [(x + px, RAIL_Y - 4.5 + py) for px, py in points]
+    return [(x + px, RAIL_Y - 4.5 + py) for px, py in right + left]
 
 
 # ---------------------------------------------------------------------------
@@ -774,28 +752,28 @@ def build():
     # Fig. 2's resonators and flames.
     res = Layer()
     for k, x in enumerate(SLOT_X):
-        res.shape(f"res{k}", thin(resonator(x, RES_SIZE[k]), 28 if RES_SIZE[k] > 0.5 else 22), "#1a1a1a", "#7a7a7a", 0.5, at=(x, NECK_Y))
+        res.shape(f"res{k}", resonator(x), "#1a1a1a", "#7a7a7a", 0.5, at=(x, NECK_Y))
     tables["resonator"] = emit(res)
     glint = Layer()
     for k, x in enumerate(SLOT_X):
-        glint.shape(f"shine{k}", thin(shine(x, RES_SIZE[k]), 8), "#8c8c8c", "#8c8c8c", 0.2, at=(x, NECK_Y))
+        glint.shape(f"shine{k}", shine(x), "#8c8c8c", "#8c8c8c", 0.2, at=(x, NECK_Y))
     tables["shine"] = emit(glint)
     fl = Layer()
     for k, x in enumerate(SLOT_X):
-        fl.shape(f"flame{k}", thin(flame(x, FLAME_SMALL), 15), "none", "#8c8c8c", 0.5, at=(x, RAIL_Y - 4.5))
+        fl.shape(f"flame{k}", flame(x), "#3a3a3a", "#8c8c8c", 0.5, at=(x, RAIL_Y - 4.5))
     tables["flame"] = emit(fl)
     core = Layer()
     for k, x in enumerate(SLOT_X):
-        core.shape(f"core{k}", thin(flame(x, FLAME_H, core=True, detail=5), 32), "none", "#d9d9d9", 0.5, at=(x, RAIL_Y - 4.5))
+        core.shape(f"core{k}", flame(x, FLAME_H * 0.45), "#d9d9d9", "#d9d9d9", 0.2, at=(x, RAIL_Y - 4.5))
     tables["core"] = emit(core)
     # Breath motes and air's streaks.
     motes = Layer()
     for m in range(MOTES):
-        motes.circle(f"mote{m}", 0, 0, 0.9, "#9a9a9a", "#9a9a9a", 0.2)
+        motes.circle(f"mote{m}", 0, 0, 0.75, "#9a9a9a", "#9a9a9a", 0.2)
     tables["mote"] = emit(motes)
     air = Layer()
     for m in range(STREAKS):
-        air.shape(f"air{m}", [(-3, -0.2), (3, -0.2), (3.3, 0), (3, 0.2), (-3, 0.2), (-3.3, 0)], "none", "#6e6e6e", 0.25)
+        air.shape(f"air{m}", [(-3, -0.2), (3, -0.2), (3.3, 0), (3, 0.2), (-3, 0.2), (-3.3, 0)], "#6e6e6e", "#6e6e6e", 0.15)
     tables["air"] = emit(air)
     tables["nodes"] = counter[0]
 
@@ -812,18 +790,17 @@ PALETTE = [
     ("#7a7a7a", "#7a7a7a", 0.25),   # 2 the sympathetic strand (the second glass's rim at rest)
     ("#b4b4b4", "#b4b4b4", 0.3),    # 3 the first glass's rim at rest, or the second's ringing
     ("#8a8a8a", "#8a8a8a", 0.22),   # 4 Spread's copies
-    # A flame's line scales with it, so each step has its own width: about 0.5 px low to 0.9 px tall.
-    ("#7a7a7a", "#7a7a7a", 1.1),    # 5, 6 a low flame, 8 to 15 px and 15 to 26 px
-    ("#9a9a9a", "#9a9a9a", 0.75),
-    ("#c8c8c8", "#c8c8c8", 1.1),    # 7, 8 a tall flame, 26 to 40 px and over 40 px
-    ("#f2f2f2", "#f2f2f2", 0.95),
-    ("#6b6b6b", "#6b6b6b", 0.5),    # 9 a resonator at rest
-    ("#c8c8c8", "#c8c8c8", 0.5),    # 10 a resonator ringing
+    ("#1f1f1f", "#4d4d4d", 0.5),    # 5..8 flames, dim to bright
+    ("#2e2e2e", "#7a7a7a", 0.5),
+    ("#4a4a4a", "#b4b4b4", 0.5),
+    ("#6e6e6e", "#f2f2f2", 0.5),
+    ("#141414", "#6b6b6b", 0.5),    # 9 a resonator at rest
+    ("#262626", "#c8c8c8", 0.5),    # 10 a resonator ringing
     ("#a6a6a6", "#a6a6a6", 0.2),    # 11 breath mote
     ("#4d4d4d", "#4d4d4d", 0.2),    # 12 breath mote, fading
-    ("#707070", "#707070", 0.25),   # 13 air streak
-    ("#c8c8c8", "#c8c8c8", 0.5),    # 14 the bow
-    ("#3d3d3d", "#3d3d3d", 0.5),    # 15 the bow, faint
+    ("#707070", "#707070", 0.15),   # 13 air streak
+    ("#0d0d0d", "#c8c8c8", 0.5),    # 14 the bow
+    ("#0d0d0d", "#3d3d3d", 0.5),    # 15 the bow, faint
 ]
 
 
@@ -918,11 +895,7 @@ def display_block(tables):
         f"const u32 resonator_first = {tables['resonator']}, shine_first = {tables['shine']}, flame_first = {tables['flame']}, core_first = {tables['core']},",
         f"          mote_first = {tables['mote']}, mote_count = {MOTES}, air_first = {tables['air']}, air_count = {STREAKS};",
         f"const u32 node_count = {tables['nodes']};",
-        "// Fig. 2: the slots' x, the burners' tips, the resonators' necks and their",
-        "// authored sizes (Q10 of the fundamental's), and the flames' heights (px):",
-        "// a tall flame's, a low flame's, and the lowest that shows over the pilot.",
-        f"const i32 resonator_size[kModes] = {c_array([round(s * 1024) for s in RES_SIZE])};",
-        f"const i32 flame_height = {FLAME_H}, flame_small = {FLAME_SMALL}, flame_lowest = {FLAME_LOWEST};",
+        "// Fig. 2: the slots' x, the burners' tips and the resonators' necks (px).",
         f"const i32 slot_x[kModes] = {c_array([round(x * 1024) for x in SLOT_X])};  // Q10",
         f"const i32 burner_y = {round((RAIL_Y - 4.5) * 1024)}, neck_y = {NECK_Y * 1024};  // Q10",
         "// The bow's and the jets' authored origins (px, Q10).",

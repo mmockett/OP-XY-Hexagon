@@ -9,9 +9,9 @@
 // arithmetic only; nothing moves while nothing rings.
 //
 // The device redraws what changes, so the screen spends its redraws in turns.
-// A part is only looked at on its turn, moves in whole pixels and stepped
-// greys, and nothing that moves is filled. That bounds a frame however hard
-// the controls are set: four flames, six motes, four streaks, two strands.
+// A part is only looked at on its turn and moves in whole pixels and stepped
+// greys. That bounds a frame however hard the controls are set: four flames
+// and their cores, six motes, four streaks, two strands.
 #include "display.h"
 
 namespace hollow {
@@ -359,8 +359,8 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         // The bow draws while the string sounds, and lifts away as Breath takes over.
         const i32 travel = ringing ? whole(10 * sin14(tau * 13107u) >> 4) : 0;   // 0.2 Hz, +-10 px (Q10)
         const u32 ink = sound.bowed > 16384 ? bow_ink : bow_faint;
-        if (bow_hair_node < built_to) place(frame, bow_hair_node, bow_x, bow_y + travel, unit, ink, stroke);
-        if (bow_stick_node < built_to) place(frame, bow_stick_node, bow_x, bow_y + travel, unit, ink, stroke);
+        if (bow_hair_node < built_to) place(frame, bow_hair_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
+        if (bow_stick_node < built_to) place(frame, bow_stick_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
     } else if (family == 2) {
         // Each pipe's wind sheet sways across its mouth as the pipe speaks.
         for (u32 j = 0; j < 2; ++j) {
@@ -468,38 +468,26 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         if (jump || k % kResonatorTurns == tick % kResonatorTurns) {
             const Shape shape = body_mode(body, k);
             const i32 size = static_cast<i32>(exp2_q16(-(shape.log2_ratio * 2 / 3)) >> 6);   // Q10
-            const i32 scale = clamp((size << 10) / resonator_size[k], 240, 2048) & ~15;
+            const i32 scale = (size > 120 ? size : 120) & ~15;
             // It lights above 0.2 and dims below 0.15, so it doesn't chatter on the line.
             const u32 node = resonator_first + k;
             const bool lit = rings > (frame.nodes[node].shade == resonator_lit ? 4915 : 6554);
-            place(frame, node, slot_x[k], neck_y, scale, lit ? resonator_lit : resonator_rest, stroke);
+            place(frame, node, slot_x[k], neck_y, scale, lit ? resonator_lit : resonator_rest, fill_and_stroke);
             place(frame, shine_first + k, slot_x[k], neck_y, scale, 0, keep);
         }
         if (!(jump || k % kFlameTurns == tick % kFlameTurns)) continue;
-        i32 height = 102 + (922 * rings >> 15);   // Q10 of a full flame: the pilot's height at rest
+        i32 height = 102 + (922 * rings >> 15);   // Q10: a pilot flame at rest
         if (ringing) {
             const i32 lick = 40 * sin14(tau * 458752u + k * 0x2f000000u) >> 14;
             const i32 gust = ((32767 - sound.bowed) * 180 >> 15) * noise(k + 61, tau * 4) >> 14;
             height += height * (lick + gust) >> 10;
         }
-        // In whole pixels of height; under flame_lowest only the pilot burns.
-        // A low flame is the small outline, a tall one the outline with its core.
-        const i32 px = (clamp(height, 60, 1100) * flame_height + 512) >> 10;
-        const bool tall = px >= flame_small;
-        const u32 low = flame_first + k, high = core_first + k;
-        if (px < flame_lowest) {
-            hide(frame, low);
-            hide(frame, high);
-            continue;
-        }
-        const u32 ink = flame_ink + static_cast<u32>(tall ? (px >= 40 ? 3 : 2) : (px >= 15 ? 1 : 0));
-        if (tall) {
-            place(frame, high, slot_x[k], burner_y, (px << 10) / flame_height, ink, stroke);
-            hide(frame, low);
-        } else {
-            place(frame, low, slot_x[k], burner_y, (px << 10) / flame_small, ink, stroke);
-            hide(frame, high);
-        }
+        // In steps of about a pixel, starting from the pilot's exact height.
+        height = 102 + (clamp(height, 60, 1100) + 1908) / 20 * 20 - 2000;
+        const u32 ink = flame_ink + static_cast<u32>(clamp((height - 102) * 4 / 922, 0, 3));
+        place(frame, flame_first + k, slot_x[k], burner_y, height, ink, fill_and_stroke);
+        if (height > 260) place(frame, core_first + k, slot_x[k], burner_y, height, 0, keep);
+        else hide(frame, core_first + k);
     }
 
     // Breath leaves the body as motes (more with more breath), and Air's hiss
@@ -521,7 +509,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 sway = 2 * sin14(tau * 32768u + m * 0x3b000000u) >> 4;                           // Q10 px, 0.5 Hz
         const i32 x = sx + vx * along - uy * across + (sway * -uy >> 10);
         const i32 y = sy + vy * along + ux * across + (sway * ux >> 10);
-        place(frame, node, whole(x), whole(y), unit, age < 560 ? mote_ink : mote_fading, fill_and_stroke);
+        place(frame, node, x, y, unit, age < 560 ? mote_ink : mote_fading, fill_and_stroke);
     }
     const u32 streaks = ringing ? static_cast<u32>((air * static_cast<i32>(air_count) + 16384) >> 15) : 0;
     for (u32 m = 0; m < air_count; ++m) {
@@ -534,7 +522,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 across = (static_cast<i32>(hash(m + 29)) - 32768) * (6 + 22 * age / 1024) >> 15;
         const i32 x = sx + (vx * 3 >> 1) * along - uy * across;
         const i32 y = sy + (vy * 3 >> 1) * along + ux * across;
-        place(frame, node, whole(x), whole(y), unit, air_ink, stroke);
+        place(frame, node, x, y, unit, air_ink, fill_and_stroke);
         const Turn way = {ux, uy};
         turn(frame, node, way);
     }
