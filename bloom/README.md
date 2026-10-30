@@ -79,9 +79,8 @@ different settings and need their sound remade.
 ## Screen
 
 Below the two-page header, a meadow of partials stands under a low striped
-sun, drawn in fine outline. Each partial is a stem with a blossom, placed
-across the screen by its pitch (log scale) and as tall as its level. The levels
-and pitches come from
+sun. Each partial is a stem with a blossom, placed across the screen by its
+pitch (log scale) and as tall as its level. The levels and pitches come from
 `spectrum.h`, for C3, so the meadow follows the controls the way the sound
 does:
 
@@ -97,22 +96,20 @@ does:
   which shimmers while notes are held.
 - **haze** splits each blossom into its detuned pair, apart by the detune;
   while notes are held the pair swells and shrinks in turn, a slowed-down beat.
-- **time** sets how fast the drift moves, and a breeze that runs across the
-  meadow. At `hold` the scene turns white and stands still, but for a little
-  pollen.
+- **time** sets how fast the drift moves, and a breeze that nods the meadow.
+  At `hold` the scene turns white and stands still, but for a little pollen.
 
 Holding notes opens and brightens the blossoms, and each new note swells
 them briefly. A slow breeze and a little pollen keep moving for as long as a
 note is held, whatever the controls. When no notes are held the screen stays
-still. With reduced motion the screen jumps straight to its end state. The
-screen keeps its own copy of the drift, timed from the controls, because it
-cannot read the audio; past a 0.6 s period it is drawn slower than it sounds.
+still. Motion settles within 0.2 s, and with reduced motion the screen jumps
+straight to its end state. The screen keeps its own copy of the drift, timed
+from the controls, because it cannot read the audio.
 
-The device redraws what changes, so the screen is built to change little:
-everything moves in whole pixels and stepped sizes, nothing large that moves is
-filled, and each frame redraws only the partials furthest from where they should
-be, within a budget, so a change sweeps across the meadow in about 0.15 s.
-`tests/churn.cpp` holds it to at most 20 changed nodes a frame on average.
+The device redraws what changes, so what moves does so in whole pixels and
+stepped sizes, and a frame redraws at most 48 of the meadow's nodes, the partials
+furthest from where they should be first. `tests/churn.cpp` holds what it costs:
+the fast presets, such as Frost, are the dearest.
 
 ## CPU
 
