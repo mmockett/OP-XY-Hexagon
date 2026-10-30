@@ -30,7 +30,6 @@ const u32 tau_35 = 2638, tau_30 = 3078;
 const i32 dots_step = 1024;   // the dots follow bend's contour in 1/32 steps
 const u32 slices = 8;         // the beam crosses the scope in eight frames: 0.13 s
 const u32 dial_turns = 4;     // a dial is drawn every fourth frame, a quarter of them a frame
-const i32 needle_step = 3;    // and its needle in steps of 3 degrees, about 1/4 px at its tip
 const i32 apart = unit / 8;   // the closest two neighbouring points of an outline may be
 inline i32 left(i32 dt, u32 rate) { return pd::decay(static_cast<u32>(dt) * rate); }   // Q15 (32768 is all)
 // Within `near` (a hundredth of the travel) of the target it arrives: every
@@ -310,7 +309,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const i32 bend = state.value[BEND], warp = state.value[WARP], noise = state.value[NOISE];
 
     // Each dial: bend, and while its note is held its contour's share of what
-    // bend leaves (none with reduced motion), turned in steps of 3 degrees. The
+    // bend leaves (none with reduced motion), turned to the nearest degree. The
     // dials take turns, so eight swinging together change two nodes a frame.
     i32 bent[8], contours[8];
     for (u32 k = 0; k < 8; ++k) {
@@ -320,8 +319,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const bool on = k < held || state.lit[k] > 1638;
         place(frame, node::needle + k, dial_x + static_cast<i32>(k) * dial_step, dial_y, unit,
               on ? shade::needle_lit : shade::needle_dim, fill_and_stroke);
-        const i32 steps = (270 * bent[k] + needle_step * 16384) / (needle_step * 32768);
-        turn(frame, node::needle + k, rotation((-135 + steps * needle_step) * 10));
+        turn(frame, node::needle + k, rotation((-135 + ((270 * bent[k] + 16384) >> 15)) * 10));
     }
     const i32 d = bent[state.newest];
 
@@ -402,7 +400,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
                 // Authored on the zero line at its place across: only its height moves, in whole pixels.
                 const i32 rise = (v * scope_half + 16384) >> 15;
                 if (first) place(frame, node::dot + k, 0, -rise * unit, unit, shade::dot, fill_and_stroke);
-                else place(frame, node::twin + k, 0, -rise * unit, unit, ink2, stroke);
+                else place(frame, node::twin + k, 0, -rise * unit, unit, ink2, fill_and_stroke);
             }
         }
     }
