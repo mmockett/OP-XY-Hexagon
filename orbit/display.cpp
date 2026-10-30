@@ -9,7 +9,16 @@
 // The screen cannot hear the voices: it moves each note's point from the
 // controls and the time since the note started, as the audio does
 // (vector.h). Every turn eases in about 0.15 s; it is still when nothing
-// plays. Integer arithmetic only.
+// plays, and a bead sweeps the scope's wave for as long as a note sounds.
+// Integer arithmetic only.
+//
+// The device redraws what changes, so the screen spends a budget: at most
+// `budget_per_frame` nodes change a frame, however many notes sound. Every part
+// works out where it should be each frame and asks; what the budget refuses
+// asks again next frame, so the picture always arrives. A point moves only by
+// whole pixels. Trails are dots dropped behind a point that stay where they
+// fell and dim in steps, not dots that all move every frame. Older notes share
+// what the newest leaves, and notes struck together draw once.
 namespace orbit {
 namespace screen {
 using namespace opxy::draw;
@@ -21,6 +30,8 @@ const i32 scope_scale = 1659;                                   // 1.62: they ar
 // Authored sizes (tools/make_panel.py): each radius as drawn, its stroke included.
 const i32 trail_r = 1254, point_r = 2790, ring_r = 4096, ping_r = 7168;   // Q10 px
 const u32 long_ago = 1u << 20;   // Q10 s: a note older than any motion
+const i32 budget_per_frame = 18;  // nodes changed a frame
+const u32 older_points = 3;       // older notes' points redrawn a frame
 
 inline i32 shade_of(i32 grey_q10) { return clamp((grey_q10 + 512) >> 10, 0, 15); }   // grey(i), rounded
 
@@ -61,33 +72,139 @@ struct Mixer {
     }
 };
 
-// A ribbon (the board's thin line): the points out, then back along each
-// point's normal by h (Q10), into an outline of 2n points.
-inline void ribbon(const opxy::draw::Point* top, u32 n, i32 h, opxy::draw::Point* out) {
+// A ribbon (the board's thin line): the points, running left to right, out and
+// then back along each point's normal by h (Q10), into an outline of 2n points.
+// It starts on the longest edge of the way out, so that edge is the closing
+// one: the device draws a closing edge under 1/4 px as a long sliver. Points
+// are kept apart in x, as neighbours within 1/8 px merge.
+inline void ribbon(opxy::draw::Point* top, u32 n, i32 h, opxy::draw::Point* out) {
+    for (u32 i = 1; i < n; ++i)
+        if (top[i].x < top[i - 1].x + 256) top[i].x = top[i - 1].x + 256;
+    opxy::draw::Point loop[64];
     for (u32 i = 0; i < n; ++i) {
-        out[i] = top[i];
+        loop[i] = top[i];
         const opxy::draw::Point& a = top[i ? i - 1 : 0];
         const opxy::draw::Point& b = top[i + 1 < n ? i + 1 : n - 1];
         const i32 tx = (b.x - a.x) >> 4, ty = (b.y - a.y) >> 4;
         const i32 length = static_cast<i32>(root(static_cast<u32>(tx * tx + ty * ty)));
-        opxy::draw::Point& back = out[2 * n - 1 - i];
-        back.x = top[i].x - (length ? ty * h / length : 0);
-        back.y = top[i].y + (length ? tx * h / length : h);
+        opxy::draw::Point& back = loop[2 * n - 1 - i];
+        // Sideways no further than half way to a neighbour, or it crosses the line.
+        const i32 room = (b.x - top[i].x < top[i].x - a.x ? b.x - top[i].x : top[i].x - a.x) / 2;
+        // The ends are cut square; peaks and valleys take the back straight below.
+        const bool end = !i || i + 1 == n || (a.y < top[i].y) == (b.y < top[i].y);
+        back.x = top[i].x - (end ? 0 : clamp(length ? ty * h / length : 0, -room, room));
+        back.y = top[i].y + (end || !length ? h : tx * h / length);
+        if (i && back.x < loop[2 * n - i].x + 192) back.x = loop[2 * n - i].x + 192;
     }
+    u32 start = 1;
+    i32 longest = -1;
+    for (u32 i = 1; i < n; ++i) {
+        const i32 dx = top[i].x - top[i - 1].x, dy = top[i].y - top[i - 1].y;
+        const i32 size = dx + (dy < 0 ? -dy : dy);
+        if (size > longest) { longest = size; start = i; }
+    }
+    for (u32 i = 0; i < 2 * n; ++i) out[i] = loop[(start + i) % (2 * n)];
 }
-// Sets an outline when its points change.
+// Sets an outline when its points change; says if they did.
 template <class P>
-inline void outline(P& path, const opxy::draw::Point* points) {
+inline bool outline(P& path, const opxy::draw::Point* points) {
     bool same = true;
     for (u32 i = 0; i < Frame::point_count; ++i)
         same = same && path.points[i].x == points[i].x && path.points[i].y == points[i].y;
-    if (same && path.key) return;
+    if (same && path.key) return false;
     for (u32 i = 0; i < Frame::point_count; ++i) path.points[i] = points[i];
     path.key = path.key + 1 ? path.key + 1 : 1;
+    return true;
 }
-inline void dot(Frame& frame, u32 node, const Point& p, i32 scale, i32 grey, Paint paint) {
-    if (scale < 16 || (paint == stroke && grey < 512)) { hide(frame, node); return; }
-    place(frame, node, screen_x(p), screen_y(p), clamp(scale, 16, 2 * unit), static_cast<u32>(shade_of(grey)), paint);
+
+// What this frame may still change.
+struct Budget { i32 left; };
+
+inline bool concealed(const opxy::draw::Node& n) { return n.x >= hidden_x * unit; }
+inline i32 distance(i32 a, i32 b) { return a > b ? a - b : b - a; }
+// Sets a node if it has strayed further than slack (Q10 px, Q10 of scale) or
+// its grey has changed, and the budget allows.
+inline void ask(Frame& frame, Budget& budget, u32 node, i32 x, i32 y, i32 scale, u32 grey, Paint paint,
+                i32 slack = 0, i32 scale_slack = 0) {
+    const Node& now = frame.nodes[node];
+    if (!concealed(now) && now.shade == grey && now.paint == paint && distance(now.x, x) <= slack &&
+        distance(now.y, y) <= slack && distance(now.scale, scale) <= scale_slack) return;
+    if (budget.left <= 0) return;
+    --budget.left;
+    place(frame, node, x, y, scale, grey, paint);
+}
+inline void conceal(Frame& frame, Budget& budget, u32 node) {
+    if (concealed(frame.nodes[node]) || budget.left <= 0) return;
+    --budget.left;
+    hide(frame, node);
+}
+// A dot in the field; too small or too dim to see, hidden.
+inline void dot(Frame& frame, Budget& budget, u32 node, const Point& p, i32 scale, i32 grey, Paint paint,
+                i32 slack = 0, i32 scale_slack = 0) {
+    if (scale < 16 || (paint == stroke && grey < 512)) { conceal(frame, budget, node); return; }
+    ask(frame, budget, node, screen_x(p), screen_y(p), clamp(scale, 16, 2 * unit), static_cast<u32>(shade_of(grey)), paint, slack, scale_slack);
+}
+
+// The path as it is drawn this frame, and each trail's length.
+struct Field {
+    Point centre;
+    i32 radius, path, span;   // span: how far back a trail reaches, Q16 cycles
+    bool reduced;
+};
+// A dot of a trail, by how far back it lies (a quarter of the trail each): its
+// radius, Q10 px, and its share of the point's grey, Q10.
+const i32 trail_radius[4] = {1618, 1321, 1024, 737}, trail_share[4] = {653, 499, 346, 192};
+
+inline bool settled_on(const Node& n, const Point& p) {
+    return !concealed(n) && distance(n.x, screen_x(p)) < 512 && distance(n.y, screen_y(p)) < 512;
+}
+// A note's trail. The newest note keeps eight dots, older ones four over the
+// same reach. A dot stays where it fell, and steps down the taper as newer
+// ones land, so each new dot changes the dot itself and the ones that cross a
+// step. When dots cannot land often enough (a fast rate, or a thin budget) the
+// ring shortens, so the trail never reaches further than it should.
+inline void trail(Frame& frame, Budget& budget, Note& v, u32 k, u32 rank, const Field& f, const Point& here, i32 bright) {
+    const u32 first = node::trail + k * node::trails, most = rank ? 4u : 8u;
+    const u32 gap = static_cast<u32>(f.span) / most;   // Q16 cycles
+    const u32 since = (v.phase - v.laid) >> 16;
+    if (v.count > most) v.count = most;
+    if (f.reduced) {   // no motion: the trail is laid out behind the point at once
+        v.count = most;
+        if (v.filled < most && budget.left > 0) {
+            const u32 s = (v.head + most - v.filled) % most;
+            const Point p = point_at(f.centre, v.phase - ((v.filled + 1) * gap << 16), f.radius, f.path, true);
+            --budget.left;
+            place(frame, first + s, screen_x(p), screen_y(p), unit, 0, fill_and_stroke);
+            ++v.filled;
+        }
+    } else if (since >= gap && gap && budget.left > 0) {
+        const u32 ring = since < 2 * gap ? most : static_cast<u32>(clamp(static_cast<i32>(static_cast<u32>(f.span) / since), 1, static_cast<i32>(most)));
+        const bool held = v.filled && settled_on(frame.nodes[first + v.head], here) &&
+                          (v.filled < v.count || settled_on(frame.nodes[first + (v.head + 1) % v.count], here));
+        v.laid = since < 2 * gap ? v.laid + (gap << 16) : v.phase;
+        if (!held) {   // not a point that has stopped with its trail caught up
+            v.count = ring;
+            v.head = (v.head + 1) % ring;
+            v.filled = v.filled + 1 < ring ? v.filled + 1 : ring;
+            --budget.left;
+            place(frame, first + v.head, screen_x(here), screen_y(here), (trail_radius[0] << 10) / trail_r,
+                  static_cast<u32>(shade_of((bright * trail_share[0]) >> 10)), fill_and_stroke);
+        }
+    }
+    for (u32 s = 0; s < node::trails; ++s) {
+        const u32 d = s < v.count ? (v.head + v.count - s) % v.count : node::trails;
+        if (d >= v.filled) { conceal(frame, budget, first + s); continue; }
+        const u32 step = d * 4 / v.count;   // an older note's four dots take every other step
+        const u32 t = rank ? step & 2u : step;
+        const i32 scale = (trail_radius[t] << 10) / trail_r;
+        const u32 grey = static_cast<u32>(shade_of((bright * trail_share[t]) >> 10));
+        Node& n = frame.nodes[first + s];
+        if ((n.scale != scale || n.shade != grey) && budget.left > 0) {
+            --budget.left;
+            n.scale = scale;
+            n.shade = grey;
+        }
+    }
 }
 }
 
@@ -157,16 +274,26 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             v.on = on;
             v.level = on ? unit : 0;
             v.age = static_cast<i32>(long_ago);
-            v.phase = 0;
+            v.phase = v.laid = 0;
+            v.head = v.filled = 0;
+            v.count = node::trails;
             continue;
         }
-        if (on && !v.on) { v.phase = 0; v.age = 0; state.newest = k; }
+        if (on && !v.on) {
+            v.phase = v.laid = 0;
+            v.age = 0;
+            v.head = v.filled = 0;
+            v.count = node::trails;
+            state.newest = k;
+        }
         v.on = on;
     }
     if (started && lit_count && lit_count <= state.held) {
         Note& v = state.voices[lit_count - 1];
-        v.phase = 0;
+        v.phase = v.laid = 0;
         v.age = 0;
+        v.head = v.filled = 0;
+        v.count = node::trails;
         state.newest = lit_count - 1;
     }
     if (fresh) state.newest = lit_count ? lit_count - 1 : 0;
@@ -200,94 +327,15 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     i32 w[4];
     weights(here, w);
 
-    // The corner waves: each brightens and swells with its share; a bank
-    // change shrinks the old ones as the new ones grow. Grit past half holds
-    // them in steps. The gate's corner ticks brighten too.
-    for (u32 n = node::glyph; n < node::tick; ++n) hide(frame, n);
-    const u32 stepped = state.eased[GRIT] > 16384 ? 32u : 0u;
-    for (u32 k = 0; k < 4; ++k) {
-        const i32 root_w = static_cast<i32>(root(static_cast<u32>(w[k]) << 14));   // Q14
-        const i32 grey = 6 * unit + ((9 * root_w >> 4) * (563 + (461 * lit >> 10)) >> 10);
-        // 0.9 + 0.25 w, Q10, of the waves' artwork, authored ten times larger.
-        const i32 scale = (922 + (w[k] * 256 >> 14)) / 10;
-        const i32 grown = scale * (state.change >> 5) >> 10;
-        if (state.change < 32767) {
-            const i32 shrunk = scale - grown;
-            if (shrunk > 4) place(frame, node::glyph + stepped + state.from * 4 + k, spot_x[k] * unit, spot_y[k] * unit, shrunk,
-                                   static_cast<u32>(shade_of(grey)), fill_and_stroke);
-        }
-        if (grown > 4) place(frame, node::glyph + stepped + state.bank * 4 + k, spot_x[k] * unit, spot_y[k] * unit, grown,
-                              static_cast<u32>(shade_of(grey)), fill_and_stroke);
-        place(frame, node::tick + k, 0, 0, unit, static_cast<u32>(shade_of(4 * unit + (w[k] * 6 >> 4))), fill_and_stroke);
-    }
-
-    // The orbit, dotted; with steps, its four stations ringed; the centre's cross.
-    for (u32 i = 0; i < node::dots; ++i)
-        dot(frame, node::dot + i, point_at(centre, static_cast<u32>(i) * 89478485u, radius, path, false), unit, 7 * unit, fill_and_stroke);
-    const i32 steps = clamp(path * 3 - 2 * 32768, 0, 32768);   // Q15
-    for (u32 k = 0; k < 4; ++k) {
-        if (steps > 1638) dot(frame, node::station + k, point_at(centre, k << 30, radius, path, true), unit,
-                              3 * unit + (steps * 5 >> 5), stroke);
-        else hide(frame, node::station + k);
-    }
-    const Point middle = gate(centre);
-    dot(frame, node::cross, middle, unit, 10 * unit, fill_and_stroke);
-
-    // The vector: a dotted spoke from the centre to the newest point.
-    for (u32 i = 0; i < node::spokes; ++i) {
-        if (lit <= 20) { hide(frame, node::spoke + i); continue; }
-        const Point p = {middle.x + (here.x - middle.x) * static_cast<i32>(i + 1) / 7, middle.y + (here.y - middle.y) * static_cast<i32>(i + 1) / 7};
-        dot(frame, node::spoke + i, p, unit, 2 * unit + 3 * lit, fill_and_stroke);
-    }
-
-    // The points: each held note's, the newest brightest, with a trail of
-    // where it has just been (never longer than the note has played), a ring
-    // round the newest and a ping as each starts.
-    const u32 root_h = root(hundredths << 16);   // sqrt(hundredths), Q8
-    const i32 span = clamp(3932 + static_cast<i32>(1311 * root_h >> 8), 0, 29491);   // Q16 cycles: 0.06 + 0.2 sqrt(Hz), at most 0.45
-    bool ringed = false;
-    for (u32 k = 0; k < 8; ++k) {
-        const Note& v = state.voices[k];
-        if (!v.level) {
-            for (u32 i = 0; i < node::trails; ++i) hide(frame, node::trail + k * node::trails + i);
-            hide(frame, node::point + k);
-            hide(frame, node::ping + k);
-            continue;
-        }
-        u32 rank = 0;
-        for (u32 j = 0; j < 8; ++j)
-            if (j != k && state.voices[j].level && (state.voices[j].age < v.age || (state.voices[j].age == v.age && j > k))) ++rank;
-        const i32 bright = (15 * unit - static_cast<i32>(rank) * 1331) * v.level >> 10;   // Q10 grey
-        const i32 age = v.age < 10240 ? v.age : 10240;
-        const i32 back = clamp(age * static_cast<i32>(hundredths) * 41 >> 6, 0, span);   // Q16 cycles: age x Hz
-        for (u32 i = 1; i <= node::trails; ++i) {
-            const u32 at = v.phase - (static_cast<u32>(back * static_cast<i32>(i) >> 3) << 16);
-            const i32 r = 512 + 1331 * (9 - static_cast<i32>(i)) / 9;   // Q10: 0.5 + 1.3 (1 - i / 9)
-            dot(frame, node::trail + k * node::trails + i - 1, point_at(centre, at, radius, path, true),
-                (r << 10) / trail_r, (bright * (10 - static_cast<i32>(i)) / 10) * 3 >> 2, fill_and_stroke);
-        }
-        const Point p = point_at(centre, v.phase, radius, path, true);
-        const i32 pop = reduced ? unit : unit + (717 * pop_decay(v.age) >> 10);
-        dot(frame, node::point + k, p, ((rank ? 1843 : 2662) * pop >> 10 << 10) / point_r, bright, fill_and_stroke);
-        if (!rank && !ringed) {
-            dot(frame, node::ring, p, (4710 * pop >> 10 << 10) / ring_r, bright * 614 >> 10, stroke);
-            ringed = true;
-        }
-        if (!reduced && v.age < 205) {   // a ping, 0.2 s
-            const i32 q = v.age * 5;      // Q10
-            dot(frame, node::ping + k, p, ((3 * unit + 11 * q) << 10) / ping_r, 12 * (unit - q) * v.level >> 10, stroke);
-        } else {
-            hide(frame, node::ping + k);
-        }
-    }
-    if (!ringed) hide(frame, node::ring);
-    // At rest, a hollow ring where the next note will start.
-    if (lit < 1003) dot(frame, node::home, home, unit, 10 * (unit - lit), stroke);
-    else hide(frame, node::home);
-
     // The scope: one cycle of the wave the newest point mixes, normalised;
     // grit holds it in steps and coarsens its levels; detune draws the twin
-    // behind it, drifting; the body under the wave is a comb of strokes.
+    // behind it, drifting; the body under the wave is a comb of strokes. One
+    // outline is redrawn a frame: the wave every other frame, the twin and the
+    // comb taking turns in between.
+    Budget budget = {budget_per_frame + (fresh ? 1 << 20 : 0)};
+    const u32 turn = state.frames++;
+    if (events.hold_started) state.sweep = 0;
+    if (!reduced) state.sweep += static_cast<u32>(dt) * 3145728u;   // 0.75 sweeps a second
     Mixer mixer;
     for (u32 k = 0; k < 4; ++k) {
         mixer.now[k] = face[state.bank][k];
@@ -337,37 +385,201 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     };
     const Scope scope = {&mixer, norm, morph, hold, levels};
     opxy::draw::Point line[32], points[64];
-    for (u32 i = 0; i < 32; ++i) line[i] = scope.at(i, 0);
-    ribbon(line, 32, 307, points);
-    outline(frame.paths[node::wave], points);
-    place(frame, node::wave, scope_x, scope_y, scope_scale, static_cast<u32>(shade_of(8 * unit + 6 * lit)), stroke);
-    // The twin, drawn whenever detune is up (and kept shaped, hidden, when it is not).
-    const bool twin = state.eased[DETUNE] > 328;
-    const i32 drift = twin ? (2621 + (spread * 26214 >> 15)) * sine(state.beat >> 2) >> 15 : 0;   // Q16 cycles: (0.04 + 0.4 c/30) sin
-    for (u32 i = 0; i < 32; ++i) line[i] = scope.at(i, static_cast<u32>(drift));
-    ribbon(line, 32, 179, points);
-    outline(frame.paths[node::twin], points);
-    if (twin) place(frame, node::twin, scope_x, scope_y, scope_scale, static_cast<u32>(shade_of(4 * unit + 3 * lit)), stroke);
-    else hide(frame, node::twin);
-    for (u32 i = 0; i < 32; ++i) {
-        const i32 x = static_cast<i32>((2 * i + 1) * 1024);   // (i + 0.5) / 32, Q16
-        i32 t = scope.top(x);
-        if (t > 0 && t < 410) t = 410;            // clear of the base
-        else if (t <= 0 && t > -205) t = -205;
-        const opxy::draw::Point base = {(x - 32768) * 2014 >> 10, 205}, tip = {base.x, t};
-        points[2 * i] = i & 1 ? tip : base;
-        points[2 * i + 1] = i & 1 ? base : tip;
+    const u32 slot = turn & 3u;
+    if (fresh || !(slot & 1u)) {
+        for (u32 i = 0; i < 32; ++i) line[i] = scope.at(i, 0);
+        ribbon(line, 32, 307, points);
+        if (outline(frame.paths[node::wave], points)) --budget.left;
+        place(frame, node::wave, scope_x, scope_y, scope_scale, static_cast<u32>(shade_of(8 * unit + 6 * lit)), stroke);
+        // The beam: as long as a note sounds a bead sweeps the wave, whatever
+        // the controls are, so a held note never looks finished. It rides the
+        // line just drawn.
+        if (lit > 20 && !reduced) {
+            const u32 along = (state.sweep >> 16) * 31;   // Q16 of the line's 31 spans
+            const u32 i = along >> 16;
+            const i32 f = static_cast<i32>((along >> 6) & 1023u);
+            const i32 bx = line[i].x + ((line[i + 1].x - line[i].x) * f >> 10), by = line[i].y + ((line[i + 1].y - line[i].y) * f >> 10);
+            ask(frame, budget, node::beam, scope_x + (bx * scope_scale >> 10), scope_y + (by * scope_scale >> 10), unit,
+                static_cast<u32>(shade_of(9 * lit + 6 * unit)), fill_and_stroke);
+        } else {
+            conceal(frame, budget, node::beam);
+        }
     }
-    outline(frame.paths[node::comb], points);
-    place(frame, node::comb, scope_x, scope_y, scope_scale,
-          static_cast<u32>(shade_of(unit + ((2 * morph >> 5) * (410 + (614 * lit >> 10)) >> 10))), stroke);
+    // The twin, drawn whenever detune is up.
+    const bool twin = state.eased[DETUNE] > 328;
+    if (fresh || slot == 1) {
+        const i32 drift = twin ? (2621 + (spread * 26214 >> 15)) * sine(state.beat >> 2) >> 15 : 0;   // Q16 cycles: (0.04 + 0.4 c/30) sin
+        if (twin || fresh) {
+            for (u32 i = 0; i < 32; ++i) line[i] = scope.at(i, static_cast<u32>(drift));
+            ribbon(line, 32, 192, points);
+            if (outline(frame.paths[node::twin], points)) --budget.left;
+        }
+        if (twin) place(frame, node::twin, scope_x, scope_y, scope_scale, static_cast<u32>(shade_of(4 * unit + 3 * lit)), stroke);
+        else hide(frame, node::twin);
+    }
+    if (fresh || slot == 3) {
+        i32 tips[32], sum = 0;
+        for (u32 i = 0; i < 32; ++i) {
+            const i32 x = static_cast<i32>((2 * i + 1) * 1024);   // (i + 0.5) / 32, Q16
+            i32 t = scope.top(x);
+            if (t > 0 && t < 410) t = 410;            // clear of the base
+            else if (t <= 0 && t > -205) t = -205;
+            // A pair of strokes is joined across its tips: they stay on one side
+            // of the base, or the outline crosses itself there.
+            if (i & 1) {
+                if (tips[i - 1] > 205 && t < 205) t = 410;
+                else if (tips[i - 1] < 205 && t > 205) t = -205;
+            }
+            tips[i] = t;
+            sum += t - 205;
+            const opxy::draw::Point base = {(x - 32768) * 2014 >> 10, 205}, tip = {base.x, t};
+            points[2 * i] = i & 1 ? tip : base;
+            points[2 * i + 1] = i & 1 ? base : tip;
+        }
+        // Strokes up and strokes down can cancel to no area at all, which the
+        // device draws as streaks: the first pair's a pixel longer.
+        if (sum > -1024 && sum < 1024) {
+            const i32 longer = tips[0] > 205 ? 1024 : -1024;
+            points[1].y += longer;
+            points[2].y += longer;
+        }
+        if (outline(frame.paths[node::comb], points)) --budget.left;
+        place(frame, node::comb, scope_x, scope_y, scope_scale,
+              static_cast<u32>(shade_of(unit + ((2 * morph >> 5) * (410 + (614 * lit >> 10)) >> 10))), stroke);
+    }
+    // The notes, from the newest. Each is a point with a trail; the newest has
+    // a ring and a spoke, and each has a ping as it starts. A note struck with a
+    // newer one, or with no orbit to travel, lies under it and draws nothing.
+    const u32 root_h = root(hundredths << 16);   // sqrt(hundredths), Q8
+    const i32 span = clamp(3932 + static_cast<i32>(1311 * root_h >> 8), 0, 29491);   // Q16 cycles: 0.06 + 0.2 sqrt(Hz), at most 0.45
+    const Field field = {centre, radius, path, span, reduced};
+    u32 rank[8];
+    bool under[8];
+    u32 first = 8;
+    for (u32 k = 0; k < 8; ++k) {
+        const Note& v = state.voices[k];
+        rank[k] = 0;
+        under[k] = false;
+        if (!v.level) continue;
+        for (u32 j = 0; j < 8; ++j) {
+            const Note& u = state.voices[j];
+            if (j == k || !u.level || !(u.age < v.age || (u.age == v.age && j > k))) continue;
+            ++rank[k];
+            const i32 apart = static_cast<i32>(v.phase - u.phase);
+            if (radius < 256 || (apart > -(1 << 25) && apart < (1 << 25))) under[k] = true;
+        }
+        if (!rank[k]) first = k;
+    }
+    const auto bright_of = [&](u32 k) { return (15 * unit - static_cast<i32>(rank[k]) * 1331) * state.voices[k].level >> 10; };
+    const auto draw_point = [&](u32 k, const Point& p, bool newest) {
+        const Note& v = state.voices[k];
+        const i32 pop = reduced ? unit : unit + (717 * pop_decay(v.age) >> 10);
+        dot(frame, budget, node::point + k, p, ((newest ? 2662 : 1843) * pop >> 10 << 10) / point_r, bright_of(k), fill_and_stroke, unit, 48);
+        if (newest) dot(frame, budget, node::ring, p, (4710 * pop >> 10 << 10) / ring_r, bright_of(k) * 614 >> 10, stroke, unit, 48);
+        if (!reduced && v.age < 205) {   // a ping, 0.2 s
+            const i32 q = v.age * 5;      // Q10
+            dot(frame, budget, node::ping + k, p, ((3 * unit + 11 * q) << 10) / ping_r, 12 * (unit - q) * v.level >> 10, stroke, 2 * unit, 200);
+        } else {
+            conceal(frame, budget, node::ping + k);
+        }
+    };
+    Point newest_at = home;
+    if (first < 8) {
+        newest_at = point_at(centre, state.voices[first].phase, radius, path, true);
+        draw_point(first, newest_at, true);
+    } else {
+        conceal(frame, budget, node::ring);
+    }
 
-    // Each corner's share, as a row of eight pips.
+    // The vector: a dotted spoke from the centre to the newest point, its odd
+    // and even dots taking turns.
+    const Point middle = gate(centre);
+    for (u32 i = 0; i < node::spokes; ++i) {
+        if (lit <= 20) { conceal(frame, budget, node::spoke + i); continue; }
+        if (!fresh && (i & 1u) != (turn & 1u)) continue;
+        const Point p = {middle.x + (here.x - middle.x) * static_cast<i32>(i + 1) / 7, middle.y + (here.y - middle.y) * static_cast<i32>(i + 1) / 7};
+        dot(frame, budget, node::spoke + i, p, unit, 2 * unit + 3 * lit, fill_and_stroke, unit);
+    }
+
+    // The corner waves: each brightens and swells with its share, by whole
+    // pixels of its width; a bank change shrinks the old ones as the new ones
+    // grow. Grit past half holds them in steps. The gate's corner ticks brighten
+    // too. A corner a frame, or all four while the bank changes.
+    const u32 stepped = state.eased[GRIT] > 16384 ? 32u : 0u;
     for (u32 k = 0; k < 4; ++k) {
+        if (!fresh && state.change == 32767 && (turn & 3u) != k) continue;
+        const i32 root_w = static_cast<i32>(root(static_cast<u32>(w[k]) << 14));   // Q14
+        const i32 grey = 6 * unit + ((9 * root_w >> 4) * (563 + (461 * lit >> 10)) >> 10);
+        // 0.9 + 0.25 w, Q10.
+        const i32 scale = 922 + ((w[k] * 256 >> 14) + 20) / 40 * 40;
+        const i32 grown = scale * (state.change >> 5) >> 10;
+        const u32 now = node::glyph + stepped + state.bank * 4 + k, was = node::glyph + stepped + state.from * 4 + k;
+        const i32 shrunk = state.change < 32767 && was != now ? scale - grown : 0;
+        for (u32 b = 0; b < 16; ++b) {
+            const u32 n = node::glyph + (b >> 3) * 32 + (b & 7u) * 4 + k;
+            if ((n != now || grown <= 40) && (n != was || shrunk <= 40)) conceal(frame, budget, n);
+        }
+        if (grown > 40) ask(frame, budget, now, spot_x[k] * unit, spot_y[k] * unit, grown, static_cast<u32>(shade_of(grey)), fill_and_stroke);
+        if (shrunk > 40) ask(frame, budget, was, spot_x[k] * unit, spot_y[k] * unit, shrunk, static_cast<u32>(shade_of(grey)), fill_and_stroke);
+        ask(frame, budget, node::tick + k, 0, 0, unit, static_cast<u32>(shade_of(4 * unit + (w[k] * 6 >> 4))), fill_and_stroke);
+    }
+
+    // Each corner's share, as a row of eight pips, a row a frame. They light in
+    // three greys as a note comes and goes.
+    for (u32 k = 0; k < 4; ++k) {
+        if (!fresh && ((turn >> 1) & 3u) != k) continue;
         const i32 n = (w[k] * 8 + 8192) >> 14;
+        const u32 on = static_cast<u32>(8 + 5 * (lit >> 9) / 2);
         for (u32 j = 0; j < 8; ++j)
-            place(frame, node::pip + k * 8 + j, 0, 0, unit,
-                  static_cast<u32>(static_cast<i32>(j) < n ? shade_of(8 * unit + 5 * lit) : 3), fill_and_stroke);
+            ask(frame, budget, node::pip + k * 8 + j, 0, 0, unit, static_cast<u32>(j) < static_cast<u32>(n) ? on : 3u, fill_and_stroke);
+    }
+
+    // The orbit. While a control moves it, parts go by the whole pixel and a
+    // quarter of the dots at a time; once it stops all land exactly.
+    const bool moving = state.eased[X] != q15(slots[X]) || state.eased[Y] != q15(slots[Y]) ||
+                        state.eased[ORBIT] != q15(slots[ORBIT]) || state.eased[PATH] != q15(slots[PATH]);
+    const i32 slack = moving ? unit : 0;
+    dot(frame, budget, node::cross, middle, unit, 10 * unit, fill_and_stroke, slack);
+    // At rest, a hollow ring where the next note will start.
+    if (lit < 1003) dot(frame, budget, node::home, home, unit, 10 * (unit - lit), stroke, slack);
+    else conceal(frame, budget, node::home);
+    const i32 steps = clamp(path * 3 - 2 * 32768, 0, 32768);   // Q15
+    for (u32 k = 0; k < 4; ++k) {
+        if (steps > 1638) dot(frame, budget, node::station + k, point_at(centre, k << 30, radius, path, true), unit,
+                              3 * unit + (steps * 5 >> 5), stroke, slack);
+        else conceal(frame, budget, node::station + k);
+    }
+    for (u32 i = 0; i < node::dots; ++i) {
+        if (!fresh && (i & 3u) != (turn & 3u)) continue;
+        dot(frame, budget, node::dot + i, point_at(centre, static_cast<u32>(i) * 89478485u, radius, path, false), unit, 7 * unit, fill_and_stroke, slack);
+    }
+
+    // The newest note's trail, then the older notes: a few points a frame in
+    // turn, and their trails with what the budget has left.
+    if (first < 8) trail(frame, budget, state.voices[first], first, 0, field, newest_at, bright_of(first));
+    u32 points_left = fresh ? 8u : older_points;
+    for (u32 n = 0; n < 8; ++n) {
+        const u32 k = (turn * 3 + n) & 7u;
+        if (k == first) continue;
+        Note& v = state.voices[k];
+        if (!v.level || under[k]) {
+            conceal(frame, budget, node::point + k);
+            conceal(frame, budget, node::ping + k);
+            for (u32 i = 0; i < node::trails; ++i) conceal(frame, budget, node::trail + k * node::trails + i);
+            v.filled = 0;
+            v.laid = v.phase;
+            continue;
+        }
+        if (points_left) {
+            const i32 left = budget.left;
+            draw_point(k, point_at(centre, v.phase, radius, path, true), false);
+            if (budget.left != left) --points_left;
+        }
+    }
+    for (u32 n = 0; n < 8; ++n) {
+        const u32 k = (turn * 3 + n) & 7u;
+        if (k == first || !state.voices[k].level || under[k]) continue;
+        trail(frame, budget, state.voices[k], k, rank[k], field, point_at(centre, state.voices[k].phase, radius, path, true), bright_of(k));
     }
 }
 }

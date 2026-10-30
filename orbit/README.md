@@ -162,16 +162,17 @@ The screen is the design board's (`Orbit.dc.html`), at the OP-XY's 480 × 220.
 - **The orbit** is dotted round its centre, marked with a cross, and moves as
   x, y, orbit and path turn. With steps, the four stations are ringed.
 - **Each held note** (up to eight) sets a point travelling the path from its
-  top, at the rate. The point trails where it has just been, never further
-  back than the note has played. The newest point is brightest, has a ring,
-  and a dotted spoke joins it to the centre. A ping spreads as each note
-  starts. Released, a point coasts to a stop and fades in about 0.15 s. At
-  rest, a hollow ring marks where the next note will start.
+  top, at the rate. The point drops dots behind it that stay where they fall
+  and dim in steps, so its trail never reaches further back than the note has
+  played. The newest point is brightest, has a ring, and a dotted spoke joins
+  it to the centre; older points keep four dots to its eight. A ping spreads as
+  each note starts. Released, a point coasts to a stop and fades in about
+  0.15 s. At rest, a hollow ring marks where the next note will start.
 - **The scope** (right) draws one cycle of the wave the newest point mixes,
   normalised, on a graticule. Grit holds it in steps and coarsens its levels;
   both are exaggerated so they can be read. Detune draws the twin behind it,
   drifting at a pace set by the detune. The body under the wave is a comb of
-  upright strokes.
+  upright strokes. For as long as a note sounds, a bright bead sweeps the wave.
 - **Pips** under the scope show each corner's share in eighths.
 
 The screen cannot hear the voices. It moves each point from the controls
@@ -181,22 +182,30 @@ When nothing plays and nothing turns, the screen is still. Reduced motion
 holds the points at the top of the path and drops the pings. A reset or a
 track change shows the end state at once. `NoteTracker` follows the notes.
 
+The device redraws what changes, so `display.cpp` spends a budget: at most 18
+nodes change a frame, however many notes sound. Each part works out where it
+should be and asks; what the budget refuses asks again next frame. Points move
+by whole pixels, the scope redraws one outline a frame, and notes struck
+together draw once. `tests/churn.cpp` holds it to 20 a frame on average with a
+peak of 24, at every control value and at 1, 4 and 8 notes, and none at rest.
+
 `tools/make_panel.py` writes `panel.svg.fragment` with the node numbers
 `display.h` names. The budget used:
 
 - **Outlines:** 3 of 64 points: the scope's wave, its twin and the body's
   comb. They span 204 px, past an outline's 128, so they are authored at
   1/1.62 and placed at 1.62 times.
-- **Nodes:** 252 of 256. These are the 8 header-bar nodes; the 64 corner
+- **Nodes:** 253 of 256. These are the 8 header-bar nodes; the 64 corner
   waves (eight banks × four corners, smooth and stepped); 4 gate ticks; 48
   orbit dots; 4 stations; the cross; 6 spoke dots; 8 trails of 8; 8 points;
-  the ring; 8 pings; the rest ring; and 32 pips.
+  the ring; 8 pings; the rest ring; 32 pips; and the scope's bead.
 - **Text slots:** all 16, for the two-page header.
 - **Palette:** the board's 16 greys, each stroked 0.45 px. Filled shapes are
   authored that much smaller.
 
-The artwork is 61 KB of its 64 KB; the corner waves are authored ten times
-larger, in whole numbers, to fit. The labels A to D are static text.
+The artwork is 64.4 KB of its 65.5 KB (65,536 bytes). The corner waves are
+authored at their true size to a tenth of a pixel. The labels A to D are static
+text, at 8 px.
 
 Departures from the board:
 
@@ -246,3 +255,4 @@ the defaults, where the mix is still.
   `tools/make_panel.py`. Run it after changing a shape or a wave, and commit
   both.
 - `tests/sound.cpp`: the sound and screen checks, run by `sdk.py test`.
+- `tests/churn.cpp`: the screen's cost and outlines, run by `sdk.py test`.
