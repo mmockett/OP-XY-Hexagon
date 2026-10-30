@@ -148,7 +148,8 @@ its capsule under a rail of burners. Each resonator is as large as its
 mode's pitch needs (its radius by the ratio to the -2/3, as for a fixed
 neck), so Body visibly retunes the set: harmonic for vox and str, the odd
 harmonics' fast-shrinking row for pipe, matched pairs for glass. Each
-flame burns as high as its mode rings, a pilot flame when it is still.
+flame burns as high as its mode rings, a pilot flame when it is still, read
+against a rod graduated every 10 px on the left post.
 
 What each control does:
 
@@ -161,7 +162,7 @@ What each control does:
 | air | Streaks of hiss spraying from the same place, faster than the breath (none to 16). |
 | vowel | The formants: the levels of every body's modes, so the wave's shape and the flames. On vox the tongue moves (high and back for oo, low for ah, high and front for ee), the lips round or part, and the tract over the tongue follows it. |
 | spread | The ensemble: two fainter copies of the wave either side (1 px out and 4 px at 30 cents on the string and pipe, closer in the vocal tract, and only a hair off the glass's rim, where the wave itself stays on the rim), each beating ahead of or behind the note at a rate set by the detune and swaying at the engine's slow rates. |
-| sympathy | With two or more notes held, the partner rings: the nasal cavity, the open G string, the neighbouring pipe's air column or the second glass's rim, blooming slowly and ringing up to 2.8 times longer, louder with Sympathy and with more notes. |
+| sympathy | The partner (the nasal cavity, the open G string, the neighbouring pipe's air column or the second glass's rim) shows as soon as Sympathy couples it, at rest or with one note: leaning toward the body as far as it's coupled, brighter from 50. With two or more notes held it rings, blooming slowly and ringing up to 2.8 times longer, louder with Sympathy and with more notes. |
 
 Notes: the screen cannot hear the voices, so the modes bloom while any
 note is held and ring out once all are released; a note played and released
@@ -174,10 +175,24 @@ still picture of the wave). Controls ease within about 0.15 s.
 and writes `panel.svg.fragment` (about 60 KB) and the generated block of
 `display.h` (node numbers, the strands' rest lines and the modes' shapes).
 The frame uses 4 outlines of 64 points (the wave, the partner and the
-ensemble's two copies), 207 nodes including the header's 8, all 16 text
+ensemble's two copies), 210 nodes including the header's 8, all 16 text
 slots for the two-page header, and 16 palette entries. Figure nodes keep
 their authored paint; the palette shades the strands, flames, resonators,
-motes, streaks and bow.
+motes, streaks and bow. The generator checks every path against the device's
+rules (`check()`): one subpath, at most 64 points, neighbours 1/8 px apart,
+a closing edge of at least 1/4 px and no turn straight back.
+
+The screen spends its redraws in turns, so the frame's cost is bounded however
+hard the controls are set (`tests/churn.cpp`). Each part is only looked at on
+its turn: four flames a frame, six motes, four streaks, the wave and partner on
+one frame and the copies on the next, each reloading only once a point has moved
+1/4 px. Parts move in whole pixels and stepped greys. Nothing that moves while
+playing is filled except the motes (2.5 px²): flames and the bow are outlines,
+the flame's core a second contour on the same outline, the pilots static, and
+the tongue's flesh stays put under its moving outline. The resonators keep
+their dark fill because they only scale while Body is turned, and then only in
+turns. A change of body takes the old figure down and draws the new one up, 16
+nodes a frame.
 
 ## For the screen
 

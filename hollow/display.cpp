@@ -7,6 +7,11 @@
 // Everything is drawn from modes.h, so the picture is the sound's: each
 // mode's level, ratio, ring and widening are the engine's own. Integer
 // arithmetic only; nothing moves while nothing rings.
+//
+// The device redraws what changes, so the screen spends its redraws in turns.
+// A part is only looked at on its turn, moves in whole pixels and stepped
+// greys, and nothing that moves is filled. That bounds a frame however hard
+// the controls are set: four flames, six motes, four streaks, two strands.
 #include "display.h"
 
 namespace hollow {
@@ -23,6 +28,13 @@ const u32 kReference = 21426141u;
 const u32 wave_ink = 0, rest_ink = 1, partner_ink = 2, rim_ink = 3, copy_ink = 4, flame_ink = 5, resonator_rest = 9,
           resonator_lit = 10, mote_ink = 11, mote_fading = 12, air_ink = 13, bow_ink = 14, bow_faint = 15;
 const i32 lit_floor = 820;   // 0.025: below this a mode is still
+// A part's turn comes round every this many frames (the jets every two).
+const u32 kFlameTurns = 2, kResonatorTurns = 4, kMoteTurns = 4, kStreakTurns = 4;
+// A change of body takes the old figure down and draws the new one up, this
+// many nodes a frame.
+const u32 kFigureStep = 16;
+// A strand reloads once a point has moved a quarter of a pixel (Q10, path units at scale 2).
+const i32 kStrandStill = 128;
 
 // A quarter of a sine, Q14, 64 steps.
 const opxy::i16 kQuarter[65] = {
@@ -80,6 +92,10 @@ inline u32 isqrt(u32 v) {
     }
     return r;
 }
+
+// To the nearest whole pixel (Q10), so a slow part moves only when it visibly does.
+inline i32 whole(i32 v) { return (v + 512) & ~1023; }
+inline bool showing(const Frame& frame, u32 node) { return frame.nodes[node].x < hidden_x * unit; }
 
 // What the body sounds like this frame: each mode's bow and breath amplitude
 // (as engine.cpp drives them, for the reference note), its ring time and the
@@ -143,28 +159,38 @@ inline void sum_modes(i32* d, u32 samples, const i32* amp, const u32 (*shape)[2]
 }
 
 // Draws a strand into outline p: each rest point moved along its way by d
-// (plus a fixed shift), as a thin ribbon, or a loop round a rim.
-inline void draw_strand(Frame& frame, u32 p, u32 family, u32 which, const i32* d, i32 shift, const i32* lift, u32 key) {
+// (plus a fixed shift), as a thin ribbon, or a loop round a rim. The ribbon is
+// 0.4 px wide, so its ends stay 1/8 px across at any angle, and it starts
+// halfway along one side, so it closes over a long edge. Unless a point has
+// moved at least `still` the outline keeps its points and its key.
+inline void draw_strand(Frame& frame, u32 p, u32 family, u32 which, const i32* d, i32 shift, const i32* lift, u32 key, i32 still) {
     Frame::path_type& path = frame.paths[p];
     const opxy::i16 (*rest)[2] = strand_rest[family][which];
     const opxy::i16 (*way)[2] = strand_way[family][which];
     const u32 n = strand_samples[family];
     const i32 limit = strand_reach[family][which] + 3072;   // the artwork's room either side
+    Point next[64];
     for (u32 i = 0; i < n; ++i) {
         const i32 move = clamp(d[i] + shift, -limit, limit);
         const i32 x = (static_cast<i32>(rest[i][0]) << 6) + (way[i][0] * move >> 12);
         const i32 y = (static_cast<i32>(rest[i][1]) << 6) + (way[i][1] * move >> 12) + (lift ? lift[i] : 0);
         if (n == 64) {
-            path.points[i].x = x >> 1;
-            path.points[i].y = y >> 1;
+            next[i].x = x >> 1;
+            next[i].y = y >> 1;
         } else {
-            // Out along the strand, and back 0.3 px to its side.
-            path.points[i].x = x >> 1;
-            path.points[i].y = y >> 1;
-            path.points[63 - i].x = (x + (way[i][0] * 307 >> 12)) >> 1;
-            path.points[63 - i].y = (y + (way[i][1] * 307 >> 12)) >> 1;
+            next[(i + 48) & 63].x = x >> 1;
+            next[(i + 48) & 63].y = y >> 1;
+            next[(63 - i + 48) & 63].x = (x + (way[i][0] * 410 >> 12)) >> 1;
+            next[(63 - i + 48) & 63].y = (y + (way[i][1] * 410 >> 12)) >> 1;
         }
     }
+    bool moved = still <= 0;
+    for (u32 i = 0; i < 64 && !moved; ++i) {
+        const i32 dx = next[i].x - path.points[i].x, dy = next[i].y - path.points[i].y;
+        moved = dx >= still || dx <= -still || dy >= still || dy <= -still;
+    }
+    if (!moved) return;
+    for (u32 i = 0; i < 64; ++i) path.points[i] = next[i];
     path.key = key;
 }
 
@@ -174,6 +200,8 @@ inline void place_strand(Frame& frame, u32 p, u32 family, u32 which, u32 ink) {
 
 // How far Spread's copies sit out from the wave, per body (Q10 of 1 to 4 px).
 const i32 kApart[kBodies] = {614, 1024, 1024, 256};
+// How far Sympathy leans the partner toward the body before it rings (Q10 px at full).
+const i32 kPoise[kBodies] = {2560, 4096, 4608, 1434};
 
 // The vowel's poses for the tongue (dx, dy px Q10, turn in tenths of a
 // degree) and the lips' opening (scale Q10): oo, oh, ah, eh, ee.
@@ -192,6 +220,7 @@ inline void display_reset(DisplayState& state) {
     state.header.reset();
     state.notes.reset();
     state.started = 0;
+    state.tick = 0;
 }
 
 inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& frame) {
@@ -227,8 +256,9 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     }
     const i32 breath = state.shown[0], body = state.shown[1], bright = state.shown[2], ring = state.shown[3];
     const i32 air = state.shown[4], vowel = state.shown[5], spread = state.shown[6], sympathy = state.shown[7];
-    u32 family = static_cast<u32>((body * 3 + 16384) >> 15);
-    if (family > 3) family = 3;
+    u32 wanted = static_cast<u32>((body * 3 + 16384) >> 15);
+    if (wanted > 3) wanted = 3;
+    const u32 tick = state.tick++;
     const Sound sound = hear(breath, body, bright, ring, vowel);
     const i32 widen = breath_widen_log2(breath);
 
@@ -272,21 +302,49 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const u32 tau = state.tau;
     const bool ringing = loud >= lit_floor;
 
-    // Fig. 1: the current body, in place; the others hidden.
-    for (u32 f = 0; f < kBodies; ++f)
-        for (u32 n = figure_first[f]; n < figure_first[f] + figure_count[f]; ++n) {
-            if (f == family) place(frame, n, 0, 0, unit, 0, keep);
-            else hide(frame, n);
+    // Fig. 1: the current body, in place; the others hidden. A change of body
+    // takes the old figure down nearest part first, then draws the new one up
+    // from the back, a few nodes a frame.
+    if (jump) {
+        for (u32 f = 0; f < kBodies; ++f)
+            for (u32 n = figure_first[f]; n < figure_first[f] + figure_count[f]; ++n) {
+                if (f == wanted) place(frame, n, 0, 0, unit, 0, keep);
+                else hide(frame, n);
+            }
+        state.figure = wanted;
+        state.built = figure_count[wanted];
+    } else {
+        u32 room = kFigureStep;
+        if (wanted != state.figure) {
+            while (state.built && room) {
+                --state.built;
+                --room;
+                hide(frame, figure_first[state.figure] + state.built);
+            }
+            if (!state.built) state.figure = wanted;
         }
+        if (wanted == state.figure)
+            while (state.built < figure_count[wanted] && room) {
+                place(frame, figure_first[wanted] + state.built, 0, 0, unit, 0, keep);
+                ++state.built;
+                --room;
+            }
+    }
+    const u32 family = state.figure;
+    const u32 built_to = figure_first[family] + state.built;   // this figure's nodes below this are up
+    const bool new_body = fresh || state.strand_body != family;
+    state.strand_body = family;
     i32 lift[32];
     const i32* follow = 0;
     if (family == 0) {
         // The tongue takes the vowel's place; the lips round and part; the
         // tract over the tongue follows it.
-        const i32 dx = vowel_pose(&kTongue[0][0], 3, vowel), dy = vowel_pose(&kTongue[0][1], 3, vowel);
-        const i32 tenths = vowel_pose(&kTongue[0][2], 3, vowel);
-        place(frame, tongue_node, tongue_origin[0] + dx, tongue_origin[1] + dy, unit, 0, keep);
-        turn(frame, tongue_node, rotation(tenths));
+        const i32 dx = whole(vowel_pose(&kTongue[0][0], 3, vowel)), dy = whole(vowel_pose(&kTongue[0][1], 3, vowel));
+        const i32 tenths = (vowel_pose(&kTongue[0][2], 3, vowel) + 505) / 10 * 10 - 500;   // whole degrees
+        if (tongue_node < built_to) {
+            place(frame, tongue_node, tongue_origin[0] + dx, tongue_origin[1] + dy, unit, 0, keep);
+            turn(frame, tongue_node, rotation(tenths));
+        }
         for (u32 i = 0; i < 32; ++i) {
             // The tongue's rise under this sample: its shift, and its turn about the root.
             const i32 x = strand_anchor[0][0][0] * unit + (static_cast<i32>(strand_rest[0][0][i][0]) << 6) - tongue_origin[0];
@@ -294,23 +352,26 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             lift[i] = rise * tract_follow[i] >> 8;
         }
         follow = lift;
-        place(frame, mouth_node, mouth_origin[0] + vowel_pose(&kLips[0][1], 2, vowel), mouth_origin[1],
-              vowel_pose(&kLips[0][0], 2, vowel), 0, keep);
+        if (mouth_node < built_to)
+            place(frame, mouth_node, mouth_origin[0] + whole(vowel_pose(&kLips[0][1], 2, vowel)), mouth_origin[1],
+                  vowel_pose(&kLips[0][0], 2, vowel) & ~31, 0, keep);
     } else if (family == 1) {
         // The bow draws while the string sounds, and lifts away as Breath takes over.
-        const i32 travel = ringing ? 10 * sin14(tau * 13107u) >> 4 : 0;   // 0.2 Hz, +-10 px (Q10)
+        const i32 travel = ringing ? whole(10 * sin14(tau * 13107u) >> 4) : 0;   // 0.2 Hz, +-10 px (Q10)
         const u32 ink = sound.bowed > 16384 ? bow_ink : bow_faint;
-        place(frame, bow_hair_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
-        place(frame, bow_stick_node, bow_x, bow_y + travel, unit, ink, fill_and_stroke);
+        if (bow_hair_node < built_to) place(frame, bow_hair_node, bow_x, bow_y + travel, unit, ink, stroke);
+        if (bow_stick_node < built_to) place(frame, bow_stick_node, bow_x, bow_y + travel, unit, ink, stroke);
     } else if (family == 2) {
         // Each pipe's wind sheet sways across its mouth as the pipe speaks.
         for (u32 j = 0; j < 2; ++j) {
+            const u32 jet = j ? side_jet_node : main_jet_node;
+            if (jet >= built_to || !(jump || new_body || (tick & 1) == j)) continue;
             const i32 e = j ? state.echo : state.energy[0];
             const i32 sway = (e >> 5) * sin14(tau * (j ? 340787u : 262144u)) >> 14;   // 4 and 5.2 Hz, up to 10 degrees
             const i32 flutter = (e >> 6) * (32767 - sound.bowed) >> 15;
-            const i32 tenths = (sway * 100 >> 10) + ((flutter * noise(j + 7, tau * 3) >> 14) * 100 >> 10);
-            place(frame, j ? side_jet_node : main_jet_node, jet_origin[j][0], jet_origin[j][1], unit, 0, keep);
-            turn(frame, j ? side_jet_node : main_jet_node, rotation(tenths));
+            const i32 tenths = ((sway * 100 >> 10) + ((flutter * noise(j + 7, tau * 3) >> 14) * 100 >> 10) + 1012) / 25 * 25 - 1000;
+            place(frame, jet, jet_origin[j][0], jet_origin[j][1], unit, 0, keep);
+            turn(frame, jet, rotation(tenths));
         }
     }
 
@@ -351,36 +412,43 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             const i32 blown = ((32767 - sound.bowed) * ((w.a * cos14(phase) + w.b * sin14(phase)) >> 14) >> 14);
             echo_amp[j] = (r * parts[j] >> 15) * ((bowed + blown) >> 3) >> 12;
         }
+        // Before it rings it leans toward the body as far as Sympathy couples them.
+        echo_amp[0] += (kPoise[family] * (coupling >> 3) >> 12) * ((32768 - state.echo) >> 3) >> 12;
     }
-    // Redraw only when something moved: a still picture keeps its keys.
-    u32 digest = tau * 3u + family * 7919u + static_cast<u32>(held) * 131u + static_cast<u32>(vowel) * 7u;
-    for (u32 k = 0; k < kModes; ++k) digest = digest * 31u + static_cast<u32>(amp[k] + up[k] * 3 + down[k] * 5);
-    for (u32 j = 0; j < 3; ++j) digest = digest * 31u + static_cast<u32>(echo_amp[j]);
-    digest = digest * 31u + static_cast<u32>(cents + wet * 7);
-    const bool redraw = fresh || digest != state.drawn;
-    state.drawn = digest;
-    if (redraw) state.key = state.key + 4 > state.key ? state.key + 4 : 4;
+    // The wave and its partner reload on one frame, the copies on the next, and
+    // each only once it has moved. Fading out, they settle exactly on rest.
+    state.key = state.key + 4 > state.key ? state.key + 4 : 4;
     const u32 n = strand_samples[family];
     const bool glass = family == 3;
     const bool ensemble = wet > lit_floor && ringing;
-    if (redraw) {
-        i32 d[64];
+    const bool partnered = glass || coupling > 0 || state.echo >= lit_floor;
+    const i32 still = fresh ? 0 : new_body || !ringing ? 1 : kStrandStill;
+    i32 d[64];
+    if (new_body || !(tick & 1)) {
         sum_modes(d, n, amp, mode_shape[family], kModes);
-        draw_strand(frame, 0, family, 0, d, 0, follow, state.key);
+        draw_strand(frame, 0, family, 0, d, 0, follow, state.key, still);
+    }
+    if (new_body || (partnered && (!(tick & 1) || !showing(frame, 1)))) {
         sum_modes(d, n, echo_amp, partner_shape[family], 3);
-        draw_strand(frame, 1, family, 1, d, 0, 0, state.key + 1);
+        draw_strand(frame, 1, family, 1, d, 0, 0, state.key + 1, showing(frame, 1) || fresh ? still : 1);
+    }
+    if (new_body || (ensemble && ((tick & 1) || !showing(frame, 2)))) {
         // The copies sit either side, as far out as the detune (closer in the
         // airway, and barely off the rim).
         const i32 apart = (1024 + (cents * 13 >> 5)) * kApart[family] >> 10;
+        const i32 copy_still = showing(frame, 2) || fresh ? still : 1;
         sum_modes(d, n, up, mode_shape[family], kModes);
-        draw_strand(frame, 2, family, 0, d, apart, follow, state.key + 2);
+        draw_strand(frame, 2, family, 0, d, apart, follow, state.key + 2, copy_still);
         sum_modes(d, n, down, mode_shape[family], kModes);
-        draw_strand(frame, 3, family, 0, d, -apart, follow, state.key + 3);
+        draw_strand(frame, 3, family, 0, d, -apart, follow, state.key + 3, copy_still);
     }
     place_strand(frame, 0, family, 0, ringing ? wave_ink : glass ? rim_ink : rest_ink);
-    // The partner shows while it rings; the second glass's rim always shows.
-    if (glass) place_strand(frame, 1, family, 1, state.echo >= lit_floor ? rim_ink : partner_ink);
-    else if (state.echo >= lit_floor) place_strand(frame, 1, family, 1, rim_ink);
+    // The partner shows once Sympathy couples it, brighter with more and
+    // brightest ringing; the second glass's rim always shows.
+    const u32 partner_shade = state.echo >= lit_floor ? rim_ink
+                              : glass ? (sympathy > 16384 ? rim_ink : partner_ink)
+                                      : (sympathy > 16384 ? partner_ink : rest_ink);
+    if (partnered) place_strand(frame, 1, family, 1, partner_shade);
     else hide(frame, 1);
     for (u32 p = 2; p < 4; ++p) {
         if (ensemble) place_strand(frame, p, family, 0, copy_ink);
@@ -396,23 +464,42 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         peak = strength[k] > peak ? strength[k] : peak;
     }
     for (u32 k = 0; k < kModes; ++k) {
-        const Shape shape = body_mode(body, k);
-        const i32 size = static_cast<i32>(exp2_q16(-(shape.log2_ratio * 2 / 3)) >> 6);   // Q10
         const i32 rings = (strength[k] << 15) / peak * (state.energy[k] >> 3) >> 12;    // Q15
-        place(frame, resonator_first + k, slot_x[k], neck_y, size > 120 ? size : 120,
-              rings > 6554 ? resonator_lit : resonator_rest, fill_and_stroke);
-        place(frame, shine_first + k, slot_x[k], neck_y, size > 120 ? size : 120, 0, keep);
-        i32 height = 102 + (922 * rings >> 15);   // Q10: a pilot flame at rest
+        if (jump || k % kResonatorTurns == tick % kResonatorTurns) {
+            const Shape shape = body_mode(body, k);
+            const i32 size = static_cast<i32>(exp2_q16(-(shape.log2_ratio * 2 / 3)) >> 6);   // Q10
+            const i32 scale = clamp((size << 10) / resonator_size[k], 240, 2048) & ~15;
+            // It lights above 0.2 and dims below 0.15, so it doesn't chatter on the line.
+            const u32 node = resonator_first + k;
+            const bool lit = rings > (frame.nodes[node].shade == resonator_lit ? 4915 : 6554);
+            place(frame, node, slot_x[k], neck_y, scale, lit ? resonator_lit : resonator_rest, stroke);
+            place(frame, shine_first + k, slot_x[k], neck_y, scale, 0, keep);
+        }
+        if (!(jump || k % kFlameTurns == tick % kFlameTurns)) continue;
+        i32 height = 102 + (922 * rings >> 15);   // Q10 of a full flame: the pilot's height at rest
         if (ringing) {
             const i32 lick = 40 * sin14(tau * 458752u + k * 0x2f000000u) >> 14;
             const i32 gust = ((32767 - sound.bowed) * 180 >> 15) * noise(k + 61, tau * 4) >> 14;
             height += height * (lick + gust) >> 10;
         }
-        height = clamp(height, 60, 1100);
-        const u32 ink = flame_ink + static_cast<u32>(clamp((height - 102) * 4 / 922, 0, 3));
-        place(frame, flame_first + k, slot_x[k], burner_y, height, ink, fill_and_stroke);
-        if (height > 260) place(frame, core_first + k, slot_x[k], burner_y, height, 0, keep);
-        else hide(frame, core_first + k);
+        // In whole pixels of height; under flame_lowest only the pilot burns.
+        // A low flame is the small outline, a tall one the outline with its core.
+        const i32 px = (clamp(height, 60, 1100) * flame_height + 512) >> 10;
+        const bool tall = px >= flame_small;
+        const u32 low = flame_first + k, high = core_first + k;
+        if (px < flame_lowest) {
+            hide(frame, low);
+            hide(frame, high);
+            continue;
+        }
+        const u32 ink = flame_ink + static_cast<u32>(tall ? (px >= 40 ? 3 : 2) : (px >= 15 ? 1 : 0));
+        if (tall) {
+            place(frame, high, slot_x[k], burner_y, (px << 10) / flame_height, ink, stroke);
+            hide(frame, low);
+        } else {
+            place(frame, low, slot_x[k], burner_y, (px << 10) / flame_small, ink, stroke);
+            hide(frame, high);
+        }
     }
 
     // Breath leaves the body as motes (more with more breath), and Air's hiss
@@ -424,6 +511,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const i32 puff = 32767 - sound.bowed;
     const u32 motes = ringing ? static_cast<u32>((puff * static_cast<i32>(mote_count) + 16384) >> 15) : 0;
     for (u32 m = 0; m < mote_count; ++m) {
+        if (!jump && m % kMoteTurns != tick % kMoteTurns) continue;
         const u32 node = mote_first + m;
         if (m >= motes) { hide(frame, node); continue; }
         const u32 life = (tau * (19661u + hash(m + 3) * 16384u / 65536u)) + (hash(m + 11) << 16);   // Q32 of its life
@@ -433,10 +521,11 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 sway = 2 * sin14(tau * 32768u + m * 0x3b000000u) >> 4;                           // Q10 px, 0.5 Hz
         const i32 x = sx + vx * along - uy * across + (sway * -uy >> 10);
         const i32 y = sy + vy * along + ux * across + (sway * ux >> 10);
-        place(frame, node, x, y, unit, age < 560 ? mote_ink : mote_fading, fill_and_stroke);
+        place(frame, node, whole(x), whole(y), unit, age < 560 ? mote_ink : mote_fading, fill_and_stroke);
     }
     const u32 streaks = ringing ? static_cast<u32>((air * static_cast<i32>(air_count) + 16384) >> 15) : 0;
     for (u32 m = 0; m < air_count; ++m) {
+        if (!jump && (m + 2) % kStreakTurns != tick % kStreakTurns) continue;
         const u32 node = air_first + m;
         if (m >= streaks) { hide(frame, node); continue; }
         const u32 life = (tau * (45875u + hash(m + 5) * 26214u / 65536u)) + (hash(m + 13) << 16);
@@ -445,7 +534,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 across = (static_cast<i32>(hash(m + 29)) - 32768) * (6 + 22 * age / 1024) >> 15;
         const i32 x = sx + (vx * 3 >> 1) * along - uy * across;
         const i32 y = sy + (vy * 3 >> 1) * along + ux * across;
-        place(frame, node, x, y, unit, air_ink, fill_and_stroke);
+        place(frame, node, whole(x), whole(y), unit, air_ink, stroke);
         const Turn way = {ux, uy};
         turn(frame, node, way);
     }
