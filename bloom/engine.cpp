@@ -12,9 +12,21 @@ namespace bloom {
 // sample; returns its phase. One partial a pass keeps every value in a
 // register, and the pointer walk compiles to a Blackfin hardware loop. Levels
 // stay below 2^15, so the amplitude's top half multiplies as it is.
+// The top half of a Q31 amplitude as a 16-bit value: written so (a logical
+// shift, then a 16-bit truncation) GCC multiplies it 16 x 16 in one instruction.
+inline opxy::i16 top_half(i32 amplitude) { return static_cast<opxy::i16>(static_cast<u32>(amplitude) >> 16); }
 inline u32 sound(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
-        *out += sine_table[phase >> 20] * (amplitude >> 16);
+        *out += sine_table[phase >> 20] * top_half(amplitude);
+        phase += increment;
+        amplitude += step;
+    }
+    return phase;
+}
+// The same, writing rather than adding: the block's first sounding partial.
+inline u32 sound_first(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
+    for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
+        *out = sine_table[phase >> 20] * top_half(amplitude);
         phase += increment;
         amplitude += step;
     }
@@ -35,8 +47,9 @@ inline void start(Voice& voice, Shared& shared, u32) {
         p.spread = pair_spread(voice.seed, k);
         p.amplitude = 0;
         p.wobble = 0;
-        p.offset = clock_offset(voice.seed, k);
-        p.rate = static_cast<u16>(clock_rate(voice.seed, k));
+        const u32 h = clock_hash(voice.seed, k);   // clock_offset's and clock_rate's, hashed once
+        p.offset = h ^ (h << 11);
+        p.rate = static_cast<u16>(192u + (h & 127u) + ((h >> 7) & 31u));
         p.point = 0xffff;
     }
 }
@@ -57,9 +70,11 @@ inline void voice_drifts(const Controls& c, Voice& voice, i32 (&out)[partial_cou
     }
 }
 
-inline void initialize(Voice& voice, Shared& shared, u32 owner) {
+inline void initialize(Voice& voice, Shared& shared, u32) {
     voice.cycle = shared.cycle;
-    start(voice, shared, owner);
+    // The SDK always calls start next, which sets every partial; only the note
+    // counter moves here, as the start this used to call moved it.
+    ++shared.notes;
 }
 
 inline void destroy(Voice&, Shared&, u32) {}
@@ -118,7 +133,7 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     n = (n + 1) & ~1u;   // in pairs
 
     i32 mix[opxy::block_frames];
-    for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
+    bool written = false;
     u32 random = voice.random;
     for (u32 k = 0; k < n; k += 2) {
         Partial& p = voice.partials[k];
@@ -126,13 +141,25 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         if (!(p.amplitude | q.amplitude | s.level[k] | s.level[k + 1])) continue;
         const Step sp = partial_step(c, p, random, note, s.pitch[k], s.level[k], k);
         const Step sq = partial_step(c, q, random, note, s.pitch[k + 1], s.level[k + 1], k + 1);
-        const u32 inc_p = sp.increment, inc_q = sq.increment;
-        const i32 dp = (sp.target - p.amplitude) >> 6, dq = (sq.target - q.amplitude) >> 6;
-        p.phase = sound(mix, p.phase, inc_p, p.amplitude, dp);
-        q.phase = sound(mix, q.phase, inc_q, q.amplitude, dq);
-        p.amplitude = sp.target;
-        q.amplitude = sq.target;
+        Partial* const both[2] = {&p, &q};
+        const Step* const steps[2] = {&sp, &sq};
+        for (u32 j = 0; j < 2; ++j) {
+            Partial& r = *both[j];
+            const Step& t = *steps[j];
+            // Silent all block (none now, none targeted): it would add exactly
+            // zero, so only its phase moves on, as the loop would move it.
+            if (!(r.amplitude | t.target)) {
+                r.phase += t.increment * opxy::block_frames;
+                continue;
+            }
+            const i32 d = (t.target - r.amplitude) >> 6;
+            r.phase = written ? sound(mix, r.phase, t.increment, r.amplitude, d)
+                              : sound_first(mix, r.phase, t.increment, r.amplitude, d);
+            written = true;
+            r.amplitude = t.target;
+        }
     }
+    if (!written) for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
     voice.random = random;
     // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level),
     // at 0.625: at most 0.21 of full scale, and a chord of eight peaks near 0.5.
