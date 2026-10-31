@@ -21,6 +21,8 @@ struct Voice {
     opxy::u32 primed;              // controls hold real values; the first block snaps them
     opxy::u32 seed;                // this voice's drift rates and phases
     opxy::u32 wander[4];           // drift's phases: pitch slow and quick, fold slow and quick
+    opxy::i32 share;               // the decimator's even path's share at this block's end, Q15: 0 at the device's rate
+    opxy::i32 want;                // the share the bandwidth last asked for
 };
 
 // State shared by every voice; empty when voices share nothing.

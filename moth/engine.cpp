@@ -2,6 +2,31 @@
 #include "laws.h"
 #include <opxy/q31.hpp>
 
+// Evaluation switches (scratch build). MOTH_RATE: 0 twice the rate always (v3),
+// 1 the device's rate always, 2 the device's rate while the folded FM's
+// bandwidth allows it, twice the rate above. MOTH_ODD: at the device's rate,
+// keep the decimator's odd path (its phase), 0 for none.
+#ifndef MOTH_RATE
+#define MOTH_RATE 2
+#endif
+#ifndef MOTH_ODD
+#define MOTH_ODD 1
+#endif
+// Bands as log2 of an increment, Q16: 45 kHz 2099062, 30 kHz 2060726,
+// 24 kHz 2039628, 22 kHz 2031401, 20 kHz 2022390, 18 kHz 2012428, 16 kHz 2001292.
+#ifndef MOTH_BAND_LOG2
+#define MOTH_BAND_LOG2 2099062
+#endif
+#ifndef MOTH_SWITCH_LOG2
+#define MOTH_SWITCH_LOG2 2022390
+#endif
+#ifndef MOTH_FADE_BLOCKS
+#define MOTH_FADE_BLOCKS 4
+#endif
+#ifndef MOTH_TRACE
+#define MOTH_TRACE(...) do {} while (0)
+#endif
+
 // Moth: a west-coast complex oscillator. A sine carrier, phase-modulated by a
 // modulator sine (fm sets the index, ratio the modulator's frequency), runs
 // into a sine wavefolder (fold sets its drive, bias offsets its input for
@@ -44,7 +69,7 @@ const i32 kAllpass0 = 1507, kAllpass1 = 5195, kAllpass2 = 9576, kAllpass3 = 1399
 
 // The governor: log2 of 45 kHz as an increment, Q16; the modulator's
 // index fades out as the modulator rises from 16 to 22 kHz.
-const i32 kBandLog2 = 2099062, kModulatorFade = 2001292, kModulatorLimit = 2031401;
+const i32 kBandLog2 = MOTH_BAND_LOG2, kModulatorFade = 2001292, kModulatorLimit = 2031401;
 const i32 kLeastFold = 1872;  // log2 of 1.02: the folder's least drive plus one
 
 // J0, the folder's mean over a sine's cycle: J0 at every quarter radian, Q15.
@@ -63,9 +88,10 @@ const i32 kPeak = 579820584;    // 0.27 of full scale
 
 // The modulator: each sample's offset to the carrier's phase, depth a
 // quarter of the index's phase per unit (I / 2 pi times 2^15).
+template <u32 N>
 __attribute__((noinline)) u32 modulate(u32* offsets, u32 phase, u32 increment, i32 depth) {
     const i32* const table = kSine15;
-    for (u32* out = offsets; out != offsets + kOver; ++out) {
+    for (u32* out = offsets; out != offsets + N; ++out) {
         phase += increment;
         *out = static_cast<u32>(sine15(table, phase) * depth) << 2;
     }
@@ -103,17 +129,57 @@ __attribute__((noinline)) i32 decimate(i32* out, const i32* in, i32 dc) {
     return dc;
 }
 // With no index the modulator moves nothing: the carrier and the folder only.
+template <u32 N>
 __attribute__((noinline)) void oscillate_plain(i32* out, u32& carrier, u32 c_increment, i32 drive, u32 bias, i32 scale) {
     const i32* const t15 = kSine15;
     const i32* const t22 = kSine22;
     u32 c = carrier;
-    for (i32* o = out; o != out + kOver; ++o) {
+    for (i32* o = out; o != out + N; ++o) {
         c += c_increment;
         const u32 x = static_cast<u32>(sine15(t15, c));
         const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
         *o = sine22(t22, at) * scale;
     }
     carrier = c;
+}
+// The decimator's odd path alone, at the device's rate, and the offset's
+// removal: what the half-band gives a signal already within its band.
+__attribute__((noinline)) i32 odd_path(i32* io, Path& path, i32 dc) {
+    i32 x = path.x, a = path.a, b = path.b;
+    for (i32* p = io; p != io + opxy::block_frames; ++p) {
+        const i32 in = *p;
+        const i32 u = ((in - a) >> 14) * kAllpass0 + x;
+        const i32 v = ((u - b) >> 14) * kAllpass2 + a;
+        x = in;
+        a = u;
+        b = v;
+        const i32 y = v - dc;
+        dc += y >> 9;
+        *p = y;
+    }
+    path.x = x;
+    path.a = a;
+    path.b = b;
+    return dc;
+}
+__attribute__((noinline)) i32 remove_offset(i32* io, i32 dc) {
+    for (i32* p = io; p != io + opxy::block_frames; ++p) {
+        const i32 y = *p - dc;
+        dc += y >> 9;
+        *p = y;
+    }
+    return dc;
+}
+// Back to the device's rate while the even path fades in or out: the odd
+// path plus a share (Q15, ramping) of the paths' difference, halved.
+__attribute__((noinline)) i32 decimate_fade(i32* out, const i32* in, i32 dc, i32 share, i32 step) {
+    for (i32* o = out; o != out + opxy::block_frames; ++o, in += 2) {
+        share += step;
+        const i32 y = in[1] + ((in[0] - in[1]) >> 14) * (share >> 2) - dc;
+        dc += y >> 9;
+        *o = y;
+    }
+    return dc;
 }
 // The gate's low-pass and its fade in one pass: close, then fade.
 __attribute__((noinline)) void gate(opxy::Output output, const i32* in, i32 cut, i32 step, i32& low1, i32& low2, i32 level, i32 level_step) {
@@ -131,10 +197,11 @@ __attribute__((noinline)) void gate(opxy::Output output, const i32* in, i32 cut,
 }
 
 // The carrier, its phase moved by the modulator's offsets, and the folder in one pass.
+template <u32 N>
 __attribute__((noinline)) u32 carry_fold(i32* out, const u32* offsets, u32 phase, u32 increment, i32 drive, u32 bias, i32 scale) {
     const i32* const t15 = kSine15;
     const i32* const t22 = kSine22;
-    for (i32* o = out; o != out + kOver; ++o) {
+    for (i32* o = out; o != out + N; ++o) {
         phase += increment;
         const u32 x = static_cast<u32>(sine15(t15, phase + *offsets++));
         const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
@@ -175,6 +242,7 @@ inline void initialize(Voice& voice, Shared&, u32 owner) {
     voice.ratio = 65536;
     voice.primed = 0;
     for (u32 j = 0; j < 4; ++j) voice.wander[j] = hash(voice.seed + 3 + j);
+    voice.share = voice.want = 0;
 }
 
 // A note strikes the vactrol; the photocell keeps what light it still holds.
@@ -216,6 +284,7 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     // f0 (1 + (I + 1) r)(A + 1), stays under 45 kHz; above it the drive and the index give way equally
     // (in octaves), and either takes the rest once the other is spent.
     i32 index = index_q16(fm);
+    i32 band = 0;  // the folded FM's bandwidth by Carson's rule, governed, as log2 of an increment
     const i32 note = log2_q16(increment), spread = log2_q16(ratio) - (16 << 16);
     const i32 tone = note + spread;  // the modulator's frequency, as an increment
     if (tone > kModulatorFade) {
@@ -229,6 +298,7 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
         const u32 reach = static_cast<u32>(index) + (index < 32768 ? 2u * static_cast<u32>(index) : 65536u);
         const i32 fm_octaves = log2_q16(times(reach, ratio) + 65536u) - (16 << 16);
         i32 excess = note + fold_octaves + fm_octaves - kBandLog2;
+        band = excess > 0 ? kBandLog2 : note + fold_octaves + fm_octaves;
         if (excess > 0) {
             i32 cut_fold = excess >> 1, cut_fm = excess - cut_fold;
             if (fold_octaves - cut_fold < kLeastFold) { cut_fm += cut_fold - (fold_octaves - kLeastFold); cut_fold = fold_octaves - kLeastFold; }
@@ -252,6 +322,7 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     if (at > 31) { at = 31; part = 16383; }
     const i32 bessel = kBessel[at] + ((kBessel[at + 1] - kBessel[at]) * static_cast<i32>(part) >> 14);
     const i32 estimate = ((sine22(kSine22, plan.offset) >> 8) * bessel >> 7) * plan.gain;  // Q28
+    const i32 voice_estimate_before = voice.estimate;
     voice.dc += estimate - voice.estimate;
     voice.estimate = estimate;
 
@@ -267,29 +338,72 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     // A strike's ping is brief, so a harder strike also sounds up to 1.6 dB
     // louder: what a struck note gives up in length it keeps in weight.
     const i32 level = multiply(lit_level, kLevel + (kLevel >> 15) * (strike * 26 >> 7)) << 1;
+    // Twice the rate while the bandwidth needs it: above the switch it
+    // turns on, an eighth of an octave below it off, and the even path's
+    // share fades over a few blocks either way.
+    const i32 full = 32768, fade = full / MOTH_FADE_BLOCKS;
+#if MOTH_RATE == 0
+    const i32 want = full;
+    (void)band;
+#elif MOTH_RATE == 1
+    const i32 want = 0;
+    (void)band;
+#else
+    const i32 want = band > MOTH_SWITCH_LOG2 ? full : band < MOTH_SWITCH_LOG2 - 8192 ? 0 : voice.want;
+#endif
     if (!voice.primed) {
         voice.cut = cut;
         voice.level = 0;
+        voice.share = want;
     }
     voice.primed = 1;
+    voice.want = want;
+    const i32 share = voice.share;
+    const i32 next = want > share ? (share + fade > full ? full : share + fade) : want < share ? (share - fade < 0 ? 0 : share - fade) : share;
+    voice.share = next;
 
-    // The oscillators and the folder at twice the rate, then back down.
     i32 work[kOver];
     u32 scratch[kOver];
     const u32 half = increment >> 1;
     const i32 depth = static_cast<i32>(times(static_cast<u32>(index), 5215u));
     const u32 m_increment = times(half, tuning);
-    if (depth) {
-        voice.modulator = modulate(scratch, voice.modulator, m_increment, depth);
-        voice.carrier = carry_fold(work, scratch, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+    MOTH_TRACE(voice, half, m_increment, depth, plan, estimate - voice_estimate_before, cut, level, share, next);
+    i32* low = reinterpret_cast<i32*>(scratch);
+    if (share | next) {
+        // The oscillators and the folder at twice the rate, then back down.
+        if (!share) {
+            // The even path has been idle: start it from the odd path's last input.
+            voice.even.x = voice.even.a = voice.even.b = voice.odd.x;
+        }
+        if (depth) {
+            voice.modulator = modulate<kOver>(scratch, voice.modulator, m_increment, depth);
+            voice.carrier = carry_fold<kOver>(work, scratch, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+        } else {
+            voice.modulator += m_increment * kOver;   // as modulate would have moved it
+            oscillate_plain<kOver>(work, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+        }
+        allpass(work, voice.even, kAllpass1, kAllpass3);
+        allpass(work + 1, voice.odd, kAllpass0, kAllpass2);
+        if (share == full && next == full) voice.dc = decimate(low, work, voice.dc);
+        else voice.dc = decimate_fade(low, work, voice.dc, share, (next - share) >> 6);
     } else {
-        voice.modulator += m_increment * kOver;   // as modulate would have moved it
-        oscillate_plain(work, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+        // At the device's rate: the samples twice the rate would take second
+        // of each pair, so the phases and the odd path carry straight on.
+        const u32 c_increment = half * 2, m_twice = m_increment * 2;
+        if (depth) {
+            voice.modulator = modulate<opxy::block_frames>(scratch, voice.modulator, m_twice, depth);
+            voice.carrier = carry_fold<opxy::block_frames>(work, scratch, voice.carrier, c_increment, plan.turns, plan.offset, plan.gain);
+        } else {
+            voice.modulator += m_twice * opxy::block_frames;
+            oscillate_plain<opxy::block_frames>(work, voice.carrier, c_increment, plan.turns, plan.offset, plan.gain);
+        }
+        low = work;
+#if MOTH_ODD
+        voice.dc = odd_path(low, voice.odd, voice.dc);
+#else
+        voice.dc = remove_offset(low, voice.dc);
+#endif
     }
-    allpass(work, voice.even, kAllpass1, kAllpass3);
-    allpass(work + 1, voice.odd, kAllpass0, kAllpass2);
-    i32* const low = reinterpret_cast<i32*>(scratch);
-    voice.dc = decimate(low, work, voice.dc);
     gate(output, low, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2, voice.level, (level - voice.level) >> 6);
     voice.cut = cut;
     voice.level = level;
