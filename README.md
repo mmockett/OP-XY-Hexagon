@@ -172,8 +172,8 @@ voice rather than panning. For width, send it to the OP-XY's chorus.
 
 Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`: one voice
 playing middle C with the first four controls at their midpoint, as a share of
-the OP-XY's audio block. Bloom and Hollow are from one capture at `v1.3.0`, the
-others from three runs at `v1.1.0`. Heavier settings cost more: Bloom's heaviest
+the OP-XY's audio block. Bloom and Hollow are from one capture at `v1.3.0`,
+Moth from one at `v1.4.0`, the others from three runs at `v1.1.0`. Heavier settings cost more: Bloom's heaviest
 is 9.0% a voice.
 
 | Synth | One voice | Eight voices |
@@ -183,7 +183,7 @@ is 9.0% a voice.
 | Hollow | 4.1% | ~33% |
 | Orbit | 2.4% | ~19% |
 | Bend | 2.6% | ~21% |
-| Moth | 4.9% | ~39% |
+| Moth | 3.4% | ~27% |
 
 The OP-XY's own engines measure 1.6–2.7% a voice in the same test. Orbit and
 Bend are in that range; Wane, Hollow and Moth cost about twice as much, and

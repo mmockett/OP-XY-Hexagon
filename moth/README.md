@@ -290,13 +290,11 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
-Not yet measured on an OP-XY at this rate. Moth at twice the rate measured
-4.91% of the 580,352-cycle audio block on the device (one voice, middle C,
-the first four controls at their midpoint). In a Blackfin simulator, with the
-SDK's native flags, the same voice now takes 6,785 cycles a block against
-13,727 then (-51%), 5,813 at the defaults (-58%) and 7,479 with every
-control at 100 (-48%), so it is expected near 3% on the device, to be
-confirmed with `sdk.py profile`.
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, at `v1.4.0`,
+as one capture of its sweep: one voice playing middle C with the first four
+controls at their midpoint costs **3.41%** of the 580,352-cycle audio block, so
+eight voices take about 27%. The heaviest setting in the sweep costs **3.90%**,
+about 31% for eight. Moth at twice the rate measured 4.91% at the midpoint.
 
 Every sample loop is a zero-overhead hardware loop with no stack traffic:
 the modulator, the carrier and folder, the offset's removal and the gate,
