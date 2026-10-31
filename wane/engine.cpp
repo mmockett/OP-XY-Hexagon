@@ -89,8 +89,9 @@ inline i32 blep(u32 distance, u32 reciprocal) {
 // A band-limited saw of a phase, Q15, given the step that reached it.
 inline i32 saw(u32 phase, u32 step, u32 reciprocal) {
     i32 s = static_cast<i32>(phase >> 16) - 32768;
-    if (phase < step) s += blep(phase, reciprocal);                 // just past the reset
-    else if (phase > 0u - step) s -= blep(0u - phase, reciprocal);  // just before it
+    // Rare (two samples a cycle): told so, so the Blackfin predicts the branch not taken.
+    if (__builtin_expect(phase < step, 0)) s += blep(phase, reciprocal);                 // just past the reset
+    else if (__builtin_expect(phase > 0u - step, 0)) s -= blep(0u - phase, reciprocal);  // just before it
     return s;
 }
 
@@ -178,7 +179,10 @@ inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Sh
 
 // x (Q31, |x| < 2^31 / 3) times c (Q15) with one 16 x 16 multiply; the low
 // 16 bits of x are dropped (-90 dB), which these filters never hear.
-inline i32 m31(i32 x, i32 c) { return static_cast<i32>(static_cast<opxy::i16>(x >> 16)) * static_cast<opxy::i16>(c) * 2; }
+// The top half as a 16-bit value, written (a logical shift, then a 16-bit
+// truncation) so GCC keeps it 16 bits wide and multiplies 16 x 16.
+inline opxy::i16 top16(i32 x) { return static_cast<opxy::i16>(static_cast<u32>(x) >> 16); }
+inline i32 m31(i32 x, i32 c) { return static_cast<i32>(top16(x)) * static_cast<opxy::i16>(c) * 2; }
 
 // The tape's next block: its pitch, with the start sag, and how well the
 // worn head touches it (a new random target every 0.19 s, eased).
@@ -307,32 +311,51 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     u32 sub_phase = voice.phase[2], sub_step = sub_increment, noise = voice.noise;
     i32 low_1 = voice.low[0], low_2 = voice.low[1], worn = voice.head[0], heard = voice.head[1];
     i32 last = voice.hiss, gain = voice.level;
+    // Two passes, each small enough for the Blackfin's registers: the sub,
+    // the breath and the saturation into mix (in place), then the filters,
+    // hiss and the ceiling. The same arithmetic in the same order per sample.
+    i32 whites[opxy::block_frames];
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         sub_phase += sub_step;
         sub_step += static_cast<u32>(sub_slope);
         const u32 folded = sub_phase >> 16;
-        const i32 sub_wave = 2 * static_cast<i32>(folded < 32768u ? folded : 65535u - folded) - 32767;
+        // 65535 - folded is folded ^ 0xffff for 16-bit values: the fold without a branch.
+        const u32 mirrored = folded ^ ((0u - (folded >> 15)) & 0xffffu);
+        const i32 sub_wave = 2 * static_cast<i32>(mirrored) - 32767;
         noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
         const i32 white = static_cast<i32>(noise >> 17) - 16384;   // Q15, +-0.5
-        // The voice in Q31, peaking near a third of full scale.
+        whites[i] = white;
         const i32 x = (mix[i] + m15(sub_wave, sub) + m15(white, breath)) * 8192;
-        // Soft saturation: driven into x - x^3 / 3 (the cube at 16 bits), then
-        // levelled back down by `gain` and halved, ahead of the filters so
-        // they darken what it adds.
         const i32 u = clamp((x >> 16) * drive, -0x07ffffff, 0x07ffffff) * 16;
-        const i32 u15 = u >> 16;
-        const i32 warm = m31(u - m15(m15(m15(u15, u15), u15), 10923) * 65536, gain) / 2;
-        low_1 += m31(warm - low_1, low);
-        low_2 += m31(low_1 - low_2, low);
-        // The head's loss, then the voice is tripled: 1.5 x.
-        worn += m31(low_2 - worn, head);
-        heard += m31(worn - heard, head);
+        const i32 u15 = top16(u);
+        mix[i] = m31(u - m15(m15(m15(u15, u15), u15), 10923) * 65536, gain) / 2;
         gain += level_step;
-        // Hiss: the noise's first difference, bright, under the music.
-        const i32 hissing = (white - last) * hiss;
-        last = white;
-        const i32 out = heard + hissing;
-        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+    }
+    if (hiss) {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) {
+            const i32 warm = mix[i];
+            low_1 += m31(warm - low_1, low);
+            low_2 += m31(low_1 - low_2, low);
+            worn += m31(low_2 - worn, head);
+            heard += m31(worn - heard, head);
+            const i32 white = whites[i];
+            const i32 hissing = (white - last) * hiss;
+            last = white;
+            const i32 out = heard + hissing;
+            output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+        }
+    } else {
+        // No hiss: (white - last) * 0 adds nothing.
+        for (unsigned i = 0; i < opxy::block_frames; ++i) {
+            const i32 warm = mix[i];
+            low_1 += m31(warm - low_1, low);
+            low_2 += m31(low_1 - low_2, low);
+            worn += m31(low_2 - worn, head);
+            heard += m31(worn - heard, head);
+            const i32 out = heard;
+            output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+        }
+        last = whites[opxy::block_frames - 1];
     }
     voice.phase[2] = sub_phase;
     voice.noise = noise;
