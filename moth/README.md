@@ -208,23 +208,20 @@ The OP-XY redraws whatever changes, so the screen changes little:
   0.17 breaths a second), the two half a step apart so they never redraw in one
   frame, and a pupil has four sizes. That costs about one node a frame.
 
-Measured with the preview's real frames, a note every half second held for a
-quarter second (`mothcost.mjs`), at drift 50 then 100:
+Measured on the host from the display's real frames at 60 a second, a note
+every half second held for a quarter second, at drift 50 then 100:
 
-| | nodes changed a frame, average | peak | outlines re-keyed a frame | host µs a frame |
-| --- | --- | --- | --- | --- |
-| Ping | 4 / 4 | 15 / 17 | 0.4 / 0.4 | 8 |
-| Lantern | 3 / 4 | 13 / 13 | 1.2 / 1.2 | 6 |
-| Clean | 3 / 4 | 13 / 15 | 1.5 / 1.5 | 4 |
+| | nodes changed a frame, average | peak | outlines re-keyed a frame |
+| --- | --- | --- | --- |
+| Ping | 4.4 / 4.7 | 15 / 16 | 0.6 / 0.6 |
+| Lantern | 3.6 / 4.5 | 14 / 14 | 1.4 / 1.4 |
+| Clean | 4.1 / 4.8 | 14 / 16 | 1.7 / 1.7 |
 
-The build before this one changed 26, 38 and 33 nodes a frame on average
-(peaks 120, 103 and 77) and re-keyed 2.2, 4.0 and 3.6 outlines. With two
-notes held under a pad at full drift, about 3 nodes change a frame (peak 9)
-and 0.5 outlines are re-keyed. The tests check that a held, swaying pad never
-changes more than 16 nodes in a frame and averages under six, and
-`tests/churn.cpp` sweeps every control with notes held: every frame valid and
-its outlines fit for the device, at most 20 nodes a frame on average, none at
-rest, and every caption inside its column.
+The tests check that a held, swaying pad never changes more than 16 nodes in a
+frame and averages under six, and `tests/churn.cpp` sweeps every control with
+notes held: every frame valid and its outlines fit for the device, with no turn
+within 2.5 degrees of straight back, at most 20 nodes a frame on average (7.8 at
+the heaviest, peak 35), none at rest, and every caption inside its column.
 
 `tools/make_panel.py` writes `panel.svg.fragment` and `wing.h` (the wing's
 margin and the eyespots' places) with the node numbers `display.h` names. The
@@ -282,8 +279,8 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 - `panel.svg.fragment`: the screen's artwork, written with `wing.h` by
   `tools/make_panel.py`. Run the script after changing a shape, and commit
   all three.
-- `tests/sound.cpp`, `tests/screen.cpp`: the sound and screen checks, run by
-  `sdk.py test`.
+- `tests/sound.cpp`, `tests/screen.cpp`, `tests/churn.cpp`: the sound and screen
+  checks and the screen's cost, run by `sdk.py test`.
 
 ## CPU
 

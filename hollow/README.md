@@ -116,7 +116,7 @@ tracks also ring into each other.
 
 An engraved plate of acoustics, in the manner of Helmholtz and Tyndall.
 
-Fig. 1 is the body Body is nearest, drawn in section to real proportion:
+Fig. 1 is whichever body Body is nearest, drawn in section to real proportion:
 
 - vox: the organs of voice, cut down the middle: the nasal cavity and its
   conchae, the palate and raised velum, the tongue, the pharynx, the larynx
@@ -148,7 +148,8 @@ its capsule under a rail of burners. Each resonator is as large as its
 mode's pitch needs (its radius by the ratio to the -2/3, as for a fixed
 neck), so Body visibly retunes the set: harmonic for vox and str, the odd
 harmonics' fast-shrinking row for pipe, matched pairs for glass. Each
-flame burns as high as its mode rings, a pilot flame when it is still, read
+flame is solid, grey with a white core, and burns as high as its mode rings,
+a pilot flame when it is still, read
 against a rod graduated every 10 px on the left post.
 
 What each control does:
@@ -190,6 +191,11 @@ point has moved 1/4 px. Flames step about a pixel at a time, and the bow, tongue
 and jets in whole pixels or small turns. The flames are solid on purpose, and
 the bow, tongue, resonators, motes and streaks keep their fills too. A change of
 body takes the old figure down and draws the new one up, 16 nodes a frame.
+
+About 6 nodes change a frame at the defaults, and at the heaviest settings 17.5
+on average with a peak of 23. Turning a control peaks at 29, and nothing changes
+at rest. `tests/churn.cpp` holds a playing frame to 20 on average with a peak of
+24.
 
 ## For the screen
 

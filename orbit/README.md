@@ -187,14 +187,16 @@ nodes change a frame, however many notes sound. Each part works out where it
 should be and asks; what the budget refuses asks again next frame. Points move
 by whole pixels, the scope redraws one outline a frame, and notes struck
 together draw once. `tests/churn.cpp` holds it to 20 a frame on average with a
-peak of 24, at every control value and at 1, 4 and 8 notes, and none at rest.
+peak of 24, at every control value and at 1, 4 and 8 notes, and none at rest; it
+measures 17.7 and 19 at the heaviest.
 
 `tools/make_panel.py` writes `panel.svg.fragment` with the node numbers
 `display.h` names. The budget used:
 
 - **Outlines:** 3 of 64 points: the scope's wave, its twin and the body's
   comb. They span 204 px, past an outline's 128, so they are authored at
-  1/1.62 and placed at 1.62 times.
+  1/1.62 and placed at 1.62 times. Each ribbon's ends are cut square to the
+  line, so no turn comes within 5 degrees of straight back.
 - **Nodes:** 253 of 256. These are the 8 header-bar nodes; the 64 corner
   waves (eight banks × four corners, smooth and stepped); 4 gate ticks; 48
   orbit dots; 4 stations; the cross; 6 spoke dots; 8 trails of 8; 8 points;

@@ -92,7 +92,7 @@ does:
   stems under them grow tall. The hills wander with breath.
 - **breath** makes the stems rise and fall while notes are held. The shared
   weather lifts and lowers the sun, and pollen drifts up from the blossoms.
-- **blur** rings each blossom with a halo as wide as the partial's spread,
+- **blur** sets each blossom in a dark halo as wide as the partial's spread,
   which shimmers while notes are held.
 - **haze** splits each blossom into its detuned pair, apart by the detune;
   while notes are held the pair swells and shrinks in turn, a slowed-down beat.
@@ -108,8 +108,25 @@ from the controls, because it cannot read the audio.
 
 The device redraws what changes, so what moves does so in whole pixels and
 stepped sizes, and a frame redraws at most 48 of the meadow's nodes, the partials
-furthest from where they should be first. `tests/churn.cpp` holds what it costs:
-the fast presets, such as Frost, are the dearest.
+furthest from where they should be first, while the sun and the pollen take
+turns. The solid blossoms and dark halos still move, because they are the look,
+so the fast presets run well over the usual 20 nodes a frame. With a note held
+at 60 frames a second:
+
+| Preset | Nodes changed a frame, average | Peak |
+| --- | --- | --- |
+| Still Life | 1.9 | 49 |
+| Init | 2.9 | 38 |
+| Bloom | 16 | 50 |
+| Fog | 22 | 50 |
+| Tape Choir | 25 | 50 |
+| Seasick | 37 | 56 |
+| Juno Dusk | 42 | 56 |
+| Glass Bells | 48 | 56 |
+| Frost | 52 | 56 |
+
+The heaviest settings reach 54.3 on average with a peak of 59, and nothing
+changes at rest. `tests/churn.cpp` holds it to 60 and 60.
 
 ## CPU
 

@@ -155,9 +155,10 @@ whether notes move it or a control does: the map follows the contour to 1/256
 of bend, the dots sit on whole pixels and follow it in steps of 1/32, and
 only the dots under the beam can change in a frame. The dots stay as many and
 as fine as they are for their look, which puts the heaviest settings over the
-usual 20 elements a frame. `tests/churn.cpp` sweeps every control with notes
-held and holds it to 30 on average and a peak of 36 playing, 38 turning a
-control, and checks that all outlines are fit for the device.
+usual 20 elements a frame: about 10 at the defaults, and 26.8 on average with a
+peak of 32 at the heaviest, 36 turning a control. `tests/churn.cpp` sweeps every
+control with notes held and holds it to 30 on average and a peak of 36 playing,
+38 turning a control, and checks that all outlines are fit for the device.
 
 The display keeps its own copy of what the sound is doing, from the controls
 and elapsed time, because it cannot read the audio; its maps and waves are
@@ -214,6 +215,7 @@ captions (`detune_tenths`, `lofi_rate_tens`, `lofi_bits`, `noise_depth`).
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run the script after changing a shape, and commit both.
 - `tests/sound.cpp`: the sound and screen checks, run by `sdk.py test`.
+- `tests/churn.cpp`: the screen's cost and outlines, run by `sdk.py test`.
 
 ## CPU
 
