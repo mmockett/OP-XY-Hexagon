@@ -3,6 +3,14 @@
 #include "modes.h"
 
 namespace hollow {
+// The modes sound at half the sample rate (every mode sits below 6.5 kHz,
+// kTopIncrement), 32 samples a block, which are exactly every other sample of
+// the full-rate sum; a half-band filter of kHalfTaps coefficient pairs fills
+// in the samples between, kLag samples (0.23 ms) later. Air waits as long.
+const u32 kHalfTaps = 5;
+const u32 kHalfFrames = opxy::block_frames / 2;
+const u32 kHalfHistory = 2 * kHalfTaps - 1;  // half-rate samples the filter reads from the last block
+const u32 kLag = 2 * kHalfTaps;              // full-rate samples of delay
 // Notes the shared registry holds: one per voice (definition.json voiceCapacity).
 const u32 kNotes = 8;
 // Sympathetic resonators per voice: the first other held notes to arrive keep
@@ -47,6 +55,9 @@ struct Voice {
     u32 planned_power;   // the modes' steady power they sum to
     i32 planned_fundamental;
     u32 planned_valid;
+    i32 low[kHalfHistory];  // the half-rate output's last samples, for the filter
+    i32 late[kLag];         // Air's last samples, still to be played
+    u32 air_tail;           // Air sounded last block
 };
 
 // Every held note's pitch, so each voice can ring at the others'.
