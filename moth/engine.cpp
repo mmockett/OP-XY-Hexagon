@@ -2,30 +2,12 @@
 #include "laws.h"
 #include <opxy/q31.hpp>
 
-// Evaluation switches (scratch build). MOTH_RATE: 0 twice the rate always (v3),
-// 1 the device's rate always, 2 the device's rate while the folded FM's
-// bandwidth allows it, twice the rate above. MOTH_ODD: at the device's rate,
-// keep the decimator's odd path (its phase), 0 for none.
-#ifndef MOTH_RATE
-#define MOTH_RATE 2
-#endif
-#ifndef MOTH_ODD
-#define MOTH_ODD 1
-#endif
 // Bands as log2 of an increment, Q16: 45 kHz 2099062, 30 kHz 2060726,
 // 24 kHz 2039628, 22 kHz 2031401, 20 kHz 2022390, 18 kHz 2012428, 16 kHz 2001292.
-#ifndef MOTH_BAND_LOG2
-#define MOTH_BAND_LOG2 2099062
-#endif
-#ifndef MOTH_SWITCH_LOG2
-#define MOTH_SWITCH_LOG2 2022390
-#endif
-#ifndef MOTH_FADE_BLOCKS
-#define MOTH_FADE_BLOCKS 4
-#endif
-#ifndef MOTH_TRACE
-#define MOTH_TRACE(...) do {} while (0)
-#endif
+// Moth runs at the device's rate while the folded FM's bandwidth stays under
+// kSwitchLog2 (20 kHz), and at twice the rate above it.
+const opxy::i32 kSwitchLog2 = 2022390;
+const opxy::i32 kFadeBlocks = 4;
 
 // Moth: a west-coast complex oscillator. A sine carrier, phase-modulated by a
 // modulator sine (fm sets the index, ratio the modulator's frequency), runs
@@ -69,7 +51,7 @@ const i32 kAllpass0 = 1507, kAllpass1 = 5195, kAllpass2 = 9576, kAllpass3 = 1399
 
 // The governor: log2 of 45 kHz as an increment, Q16; the modulator's
 // index fades out as the modulator rises from 16 to 22 kHz.
-const i32 kBandLog2 = MOTH_BAND_LOG2, kModulatorFade = 2001292, kModulatorLimit = 2031401;
+const i32 kBandLog2 = 2099062, kModulatorFade = 2001292, kModulatorLimit = 2031401;
 const i32 kLeastFold = 1872;  // log2 of 1.02: the folder's least drive plus one
 
 // J0, the folder's mean over a sine's cycle: J0 at every quarter radian, Q15.
@@ -160,14 +142,6 @@ __attribute__((noinline)) i32 odd_path(i32* io, Path& path, i32 dc) {
     path.x = x;
     path.a = a;
     path.b = b;
-    return dc;
-}
-__attribute__((noinline)) i32 remove_offset(i32* io, i32 dc) {
-    for (i32* p = io; p != io + opxy::block_frames; ++p) {
-        const i32 y = *p - dc;
-        dc += y >> 9;
-        *p = y;
-    }
     return dc;
 }
 // Back to the device's rate while the even path fades in or out: the odd
@@ -322,7 +296,6 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     if (at > 31) { at = 31; part = 16383; }
     const i32 bessel = kBessel[at] + ((kBessel[at + 1] - kBessel[at]) * static_cast<i32>(part) >> 14);
     const i32 estimate = ((sine22(kSine22, plan.offset) >> 8) * bessel >> 7) * plan.gain;  // Q28
-    const i32 voice_estimate_before = voice.estimate;
     voice.dc += estimate - voice.estimate;
     voice.estimate = estimate;
 
@@ -341,16 +314,8 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     // Twice the rate while the bandwidth needs it: above the switch it
     // turns on, an eighth of an octave below it off, and the even path's
     // share fades over a few blocks either way.
-    const i32 full = 32768, fade = full / MOTH_FADE_BLOCKS;
-#if MOTH_RATE == 0
-    const i32 want = full;
-    (void)band;
-#elif MOTH_RATE == 1
-    const i32 want = 0;
-    (void)band;
-#else
-    const i32 want = band > MOTH_SWITCH_LOG2 ? full : band < MOTH_SWITCH_LOG2 - 8192 ? 0 : voice.want;
-#endif
+    const i32 full = 32768, fade = full / kFadeBlocks;
+    const i32 want = band > kSwitchLog2 ? full : band < kSwitchLog2 - 8192 ? 0 : voice.want;
     if (!voice.primed) {
         voice.cut = cut;
         voice.level = 0;
@@ -367,7 +332,6 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     const u32 half = increment >> 1;
     const i32 depth = static_cast<i32>(times(static_cast<u32>(index), 5215u));
     const u32 m_increment = times(half, tuning);
-    MOTH_TRACE(voice, half, m_increment, depth, plan, estimate - voice_estimate_before, cut, level, share, next);
     i32* low = reinterpret_cast<i32*>(scratch);
     if (share | next) {
         // The oscillators and the folder at twice the rate, then back down.
@@ -398,11 +362,7 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
             oscillate_plain<opxy::block_frames>(work, voice.carrier, c_increment, plan.turns, plan.offset, plan.gain);
         }
         low = work;
-#if MOTH_ODD
         voice.dc = odd_path(low, voice.odd, voice.dc);
-#else
-        voice.dc = remove_offset(low, voice.dc);
-#endif
     }
     gate(output, low, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2, voice.level, (level - voice.level) >> 6);
     voice.cut = cut;
