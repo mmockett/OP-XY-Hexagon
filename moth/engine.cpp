@@ -10,12 +10,13 @@
 // in a millisecond and closes at glow's pace. Mode sets whether the gate
 // closes a low-pass (lp), fades the level (vca) or both (combo).
 //
-// Folding and FM spread a sine's energy far up the spectrum, so the
-// oscillators and the folder run at twice the rate (88.2 kHz) and an
-// elliptic half-band (two paths of allpasses) brings them down; and a
-// governor holds the folded FM's bandwidth by Carson's rule,
-// f0 (1 + (I + 1) r)(A + 1), under 45 kHz, trimming the drive and the index
-// together near the top of the keyboard, where they would otherwise alias.
+// Folding and FM spread a sine's energy far up the spectrum. The oscillators
+// and the folder run at the device's rate, 44.1 kHz, so a governor holds the
+// folded FM's bandwidth by Carson's rule, f0 (1 + (I + 1) r)(A + 1), under
+// 20 kHz, where so little of its energy reaches past half the rate that what
+// folds back stays more than 50 dB down below 15 kHz. It trims the index
+// (and, once that is spent, the drive) near the top of the keyboard, and
+// lower down only when fold, fm and ratio are all high.
 // The folder is sin(A x + c), read from a sine table with interpolation and
 // scaled once a block so its peak is 1, so at fold 0 the carrier passes
 // through untouched. Bias's offset is predicted (sin(c) J0(A)) and removed,
@@ -24,27 +25,24 @@
 // Every sample loop is a pointer walk over the block with few live values,
 // in a function of its own, so each compiles to a zero-overhead hardware
 // loop on the Blackfin with every value in a register: the modulator, the
-// carrier, the folder, the decimator's two paths, its offset removal, the
-// gate's two poles and the output fade. They use 32-bit integer products,
-// one instruction each on the Blackfin and on a host alike, except the
-// gate's, which need Q31's precision near its floor. Everything that changes
+// carrier and the folder, then the offset's removal, the gate's two poles and
+// the output fade. They use 16- and 32-bit integer products, one instruction
+// each on the Blackfin and on a host alike, except the gate's, which need
+// Q31's precision near its floor. Everything that changes
 // only once a block (the governor, the folder's plan, the vactrol, drift) is
 // planned outside them.
 namespace moth {
 namespace {
 using opxy::q31::multiply;
-const u32 kOver = 2 * opxy::block_frames;  // samples a block at twice the rate
 const u32 kLowestIncrement = 779000u;      // about 8 Hz
 
-// The half-band decimator: two paths of allpasses, the polyphase form of an
-// elliptic half-band (order 9), Q14. Flat to 20 kHz, 3 dB down at 22.05 kHz,
-// 44 dB at 25 kHz and at least 63 dB from 26 kHz up, so what it folds back
-// lands above 20 kHz or 63 dB down.
-const i32 kAllpass0 = 1507, kAllpass1 = 5195, kAllpass2 = 9576, kAllpass3 = 13995;
-
-// The governor: log2 of 45 kHz as an increment, Q16; the modulator's
-// index fades out as the modulator rises from 16 to 22 kHz.
-const i32 kBandLog2 = 2099062, kModulatorFade = 2001292, kModulatorLimit = 2031401;
+// The governor: log2 of 20 kHz and of 45 kHz as increments, Q16. What lies
+// above 29.1 kHz folds back below 15 kHz, so the bandwidth also stays four
+// harmonics under it (which only binds from about D7 up), and the
+// modulator's index fades out as the modulator rises from 12.5 to 14.5 kHz,
+// before its second sideband passes it.
+const i32 kBandLog2 = 2022390, kWideLog2 = 2099062, kModulatorFade = 1977952, kModulatorLimit = 1991985;
+const u32 kFoldBack = 2834094066u;  // 29.1 kHz as an increment
 const i32 kLeastFold = 1872;  // log2 of 1.02: the folder's least drive plus one
 
 // J0, the folder's mean over a sine's cycle: J0 at every quarter radian, Q15.
@@ -54,67 +52,63 @@ const i32 kBessel[33] = {32767, 32257, 30751, 28319, 25073, 21164, 16771, 12092,
 
 const i32 kCutFloor = 917894;  // the gate's low-pass never closes below 3 Hz, Q31
 // The output: a full-scale fold with the gate fully open sounds at 0.105 of
-// full scale (Q31, times 4 for the output's shift). The decimator's phase
-// and the offset's removal can raise a folded wave's peak by up to 1.86
-// times, so a voice stays within 0.2 of full scale, under the declared peak
-// (0.27, definition.json outputPeakQ31), and the clamp only guarantees it.
+// full scale (Q31, times 4 for the output's shift). The offset's removal can
+// raise a folded wave's peak, so a voice stays within 0.2 of full scale,
+// under the declared peak (0.27, definition.json outputPeakQ31), and the
+// clamp only guarantees it.
 const i32 kLevel = 901943132;  // 0.105 * 2^33
 const i32 kPeak = 579820584;    // 0.27 of full scale
 
 // The modulator: each sample's offset to the carrier's phase, depth a
-// quarter of the index's phase per unit (I / 2 pi times 2^15).
+// quarter of the index's phase per unit (I / 2 pi times 2^15). The sine and
+// the depth (at most 20,860) multiply as 16-bit values: the same product.
 __attribute__((noinline)) u32 modulate(u32* offsets, u32 phase, u32 increment, i32 depth) {
     const i32* const table = kSine15;
-    for (u32* out = offsets; out != offsets + kOver; ++out) {
+    for (u32* out = offsets; out != offsets + opxy::block_frames; ++out) {
         phase += increment;
-        *out = static_cast<u32>(sine15(table, phase) * depth) << 2;
+        *out = static_cast<u32>(static_cast<opxy::i16>(sine15(table, phase)) * static_cast<opxy::i16>(depth)) << 2;
     }
     return phase;
 }
 
-// One path of the half-band: every second sample through two allpasses,
-// y = a (x - y') + x', in place. The difference keeps its top 16 bits for
-// the product, 84 dB under full scale.
-__attribute__((noinline)) void allpass(i32* io, Path& path, i32 first, i32 second) {
-    i32 x = path.x, a = path.a, b = path.b;
-    for (u32 n = 0; n < opxy::block_frames; ++n) {
-        i32* const p = io + 2 * n;
-        const i32 in = *p;
-        const i32 u = ((in - a) >> 14) * first + x;
-        const i32 v = ((u - b) >> 14) * second + a;
-        x = in;
-        a = u;
-        b = v;
-        *p = v;
+// The carrier, its phase moved by the modulator's offsets, and the folder in
+// one pass. The carrier and the drive (at most 22,300 with drift) multiply as
+// 16-bit values.
+__attribute__((noinline)) u32 carry_fold(i32* out, const u32* offsets, u32 phase, u32 increment, i32 drive, u32 bias, i32 scale) {
+    const i32* const t15 = kSine15;
+    const i32* const t22 = kSine22;
+    for (i32* o = out; o != out + opxy::block_frames; ++o) {
+        phase += increment;
+        const u32 x = static_cast<u32>(sine15(t15, phase + *offsets++));
+        const u32 at = (static_cast<u32>(static_cast<opxy::i16>(x) * static_cast<opxy::i16>(drive)) << 3) + bias;
+        *o = sine22(t22, at) * scale;
     }
-    path.x = x;
-    path.a = a;
-    path.b = b;
+    return phase;
 }
 
-// Back to the device's rate: the half of the two paths' sum, its offset
-// removed by a follower (a one-pole at 14 Hz), Q28.
-__attribute__((noinline)) i32 decimate(i32* out, const i32* in, i32 dc) {
-    for (i32* o = out; o != out + opxy::block_frames; ++o, in += 2) {
-        const i32 y = ((in[0] + in[1]) >> 1) - dc;
+// With no index the modulator moves nothing: the carrier and the folder only.
+__attribute__((noinline)) u32 oscillate_plain(i32* out, u32 phase, u32 increment, i32 drive, u32 bias, i32 scale) {
+    const i32* const t15 = kSine15;
+    const i32* const t22 = kSine22;
+    for (i32* o = out; o != out + opxy::block_frames; ++o) {
+        phase += increment;
+        const u32 x = static_cast<u32>(sine15(t15, phase));
+        const u32 at = (static_cast<u32>(static_cast<opxy::i16>(x) * static_cast<opxy::i16>(drive)) << 3) + bias;
+        *o = sine22(t22, at) * scale;
+    }
+    return phase;
+}
+
+// The folder's offset removed by a follower (a one-pole at 14 Hz), Q28, in place.
+__attribute__((noinline)) i32 remove_offset(i32* io, i32 dc) {
+    for (i32* p = io; p != io + opxy::block_frames; ++p) {
+        const i32 y = *p - dc;
         dc += y >> 9;
-        *o = y;
+        *p = y;
     }
     return dc;
 }
-// With no index the modulator moves nothing: the carrier and the folder only.
-__attribute__((noinline)) void oscillate_plain(i32* out, u32& carrier, u32 c_increment, i32 drive, u32 bias, i32 scale) {
-    const i32* const t15 = kSine15;
-    const i32* const t22 = kSine22;
-    u32 c = carrier;
-    for (i32* o = out; o != out + kOver; ++o) {
-        c += c_increment;
-        const u32 x = static_cast<u32>(sine15(t15, c));
-        const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
-        *o = sine22(t22, at) * scale;
-    }
-    carrier = c;
-}
+
 // The gate's low-pass and its fade in one pass: close, then fade.
 __attribute__((noinline)) void gate(opxy::Output output, const i32* in, i32 cut, i32 step, i32& low1, i32& low2, i32 level, i32 level_step) {
     i32 a = low1, b = low2;
@@ -130,18 +124,6 @@ __attribute__((noinline)) void gate(opxy::Output output, const i32* in, i32 cut,
     low2 = b;
 }
 
-// The carrier, its phase moved by the modulator's offsets, and the folder in one pass.
-__attribute__((noinline)) u32 carry_fold(i32* out, const u32* offsets, u32 phase, u32 increment, i32 drive, u32 bias, i32 scale) {
-    const i32* const t15 = kSine15;
-    const i32* const t22 = kSine22;
-    for (i32* o = out; o != out + kOver; ++o) {
-        phase += increment;
-        const u32 x = static_cast<u32>(sine15(t15, phase + *offsets++));
-        const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
-        *o = sine22(t22, at) * scale;
-    }
-    return phase;
-}
 // Drift's wander from a slow and a quick phase, -32767..32767.
 inline i32 wander(u32 slow, u32 quick) {
     return (19661 * sine15(kSine15, slow) + 13107 * sine15(kSine15, quick)) >> 15;
@@ -164,8 +146,6 @@ inline void initialize(Voice& voice, Shared&, u32 owner) {
     // its own phase, so a chord's voices never peak together.
     voice.carrier = hash(voice.seed + 1);
     voice.modulator = hash(voice.seed + 2);
-    voice.even.x = voice.even.a = voice.even.b = 0;
-    voice.odd.x = voice.odd.a = voice.odd.b = 0;
     voice.dc = voice.estimate = 0;
     voice.low1 = voice.low2 = 0;
     voice.cell = 0;
@@ -213,8 +193,10 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     }
 
     // The governor: the folded FM's bandwidth by Carson's rule,
-    // f0 (1 + (I + 1) r)(A + 1), stays under 45 kHz; above it the drive and the index give way equally
-    // (in octaves), and either takes the rest once the other is spent.
+    // f0 (1 + (I + 1) r)(A + 1), stays under 20 kHz (lower at the top of the
+    // keyboard, as above). The drive gives way by half of what the bandwidth
+    // has over 45 kHz, so the heaviest settings keep their folds; the index
+    // takes the rest, in octaves, and the drive what the index cannot.
     i32 index = index_q16(fm);
     const i32 note = log2_q16(increment), spread = log2_q16(ratio) - (16 << 16);
     const i32 tone = note + spread;  // the modulator's frequency, as an increment
@@ -228,9 +210,12 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
         // first sideband, r f0 above, at I / 2, so the 1 grows in with 2 I.
         const u32 reach = static_cast<u32>(index) + (index < 32768 ? 2u * static_cast<u32>(index) : 65536u);
         const i32 fm_octaves = log2_q16(times(reach, ratio) + 65536u) - (16 << 16);
-        i32 excess = note + fold_octaves + fm_octaves - kBandLog2;
+        const u32 room = increment < kFoldBack / 5u ? kFoldBack - 4u * increment : increment;
+        const i32 tail = log2_q16(room);
+        i32 excess = note + fold_octaves + fm_octaves - (tail < kBandLog2 ? tail : kBandLog2);
         if (excess > 0) {
-            i32 cut_fold = excess >> 1, cut_fm = excess - cut_fold;
+            const i32 wide = note + fold_octaves + fm_octaves - kWideLog2;
+            i32 cut_fold = wide > 0 ? wide >> 1 : 0, cut_fm = excess - cut_fold;
             if (fold_octaves - cut_fold < kLeastFold) { cut_fm += cut_fold - (fold_octaves - kLeastFold); cut_fold = fold_octaves - kLeastFold; }
             if (fm_octaves - cut_fm < 0) { cut_fold += cut_fm - fm_octaves; cut_fm = fm_octaves; }
             if (fold_octaves - cut_fold < kLeastFold) cut_fold = fold_octaves - kLeastFold;
@@ -273,24 +258,20 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     }
     voice.primed = 1;
 
-    // The oscillators and the folder at twice the rate, then back down.
-    i32 work[kOver];
-    u32 scratch[kOver];
-    const u32 half = increment >> 1;
+    // The oscillators and the folder, then the folder's offset removed.
+    i32 work[opxy::block_frames];
+    u32 offsets[opxy::block_frames];
     const i32 depth = static_cast<i32>(times(static_cast<u32>(index), 5215u));
-    const u32 m_increment = times(half, tuning);
+    const u32 m_increment = times(increment, tuning);
     if (depth) {
-        voice.modulator = modulate(scratch, voice.modulator, m_increment, depth);
-        voice.carrier = carry_fold(work, scratch, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+        voice.modulator = modulate(offsets, voice.modulator, m_increment, depth);
+        voice.carrier = carry_fold(work, offsets, voice.carrier, increment, plan.turns, plan.offset, plan.gain);
     } else {
-        voice.modulator += m_increment * kOver;   // as modulate would have moved it
-        oscillate_plain(work, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+        voice.modulator += m_increment * opxy::block_frames;   // as modulate would have moved it
+        voice.carrier = oscillate_plain(work, voice.carrier, increment, plan.turns, plan.offset, plan.gain);
     }
-    allpass(work, voice.even, kAllpass1, kAllpass3);
-    allpass(work + 1, voice.odd, kAllpass0, kAllpass2);
-    i32* const low = reinterpret_cast<i32*>(scratch);
-    voice.dc = decimate(low, work, voice.dc);
-    gate(output, low, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2, voice.level, (level - voice.level) >> 6);
+    voice.dc = remove_offset(work, voice.dc);
+    gate(output, work, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2, voice.level, (level - voice.level) >> 6);
     voice.cut = cut;
     voice.level = level;
 }
