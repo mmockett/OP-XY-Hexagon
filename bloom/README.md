@@ -130,14 +130,14 @@ changes at rest. `tests/churn.cpp` holds it to 60 and 60.
 
 ## CPU
 
-Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
-runs: one voice playing middle C with the first four controls at their
-midpoint costs **6.24%** of the 580,352-cycle audio block, about
-36,200 cycles, so eight voices take about 50%. The OP-XY's own engines
-measure 1.6–2.7% a voice in the same test. The test plays one setting;
-heavier settings cost more.
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, at
+`v1.3.0`, as one capture of its sweep: one voice playing middle C with the
+first four controls at their midpoint costs **5.25%** of the 580,352-cycle
+audio block, about 30,500 cycles, so eight voices take about 42%. The heaviest
+setting in the sweep, Shape at 87.5%, costs **9.02%**, so eight voices there
+take about 72%. The OP-XY's own engines measure 1.6–2.7% a voice at the midpoint.
 
-Bloom always runs its 24 partials, each a table-read sine at about 11
+Bloom runs up to 24 partials, skipping any silent for the whole block, each a table-read sine at about 11
 Blackfin instructions a sample in a zero-overhead hardware loop, so a low
 note, with every partial below the cutoff, is its heaviest. High notes cost
 less as their upper partials pass the cutoff and stop.

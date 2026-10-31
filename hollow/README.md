@@ -219,12 +219,12 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
-Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
-runs: one voice playing middle C with the first four controls at their
-midpoint costs **4.89%** of the 580,352-cycle audio block, about
-28,400 cycles, so eight voices take about 39%. The OP-XY's own engines
-measure 1.6–2.7% a voice in the same test. The test plays one setting;
-heavier settings cost more.
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, at
+`v1.3.0`, as one capture of its sweep: one voice playing middle C with the
+first four controls at their midpoint costs **4.09%** of the 580,352-cycle
+audio block, about 23,800 cycles, so eight voices take about 33%. The heaviest
+setting in the sweep, Air at 100%, costs **4.53%**, so eight voices there take
+about 36%. The OP-XY's own engines measure 1.6–2.7% a voice at the midpoint.
 
 The host estimate (`sdk.py test`) is about 7,800 Blackfin instructions per
 voice block at the heaviest setting (one note, so no sympathetic modes; the
