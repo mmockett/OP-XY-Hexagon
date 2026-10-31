@@ -212,7 +212,9 @@ const opxy::i32 kSine22[1025] = {
 // costs one instruction each on the Blackfin and on a host alike.
 inline opxy::i32 sine15(const opxy::i32* table, opxy::u32 phase) {
     const opxy::i32* const at = table + (phase >> 22);
-    return at[0] + ((at[1] - at[0]) * static_cast<opxy::i32>((phase >> 7) & 0x7fffu) >> 15);
+    // Both tables step by under 2^15 (Q22's largest step is 25,736), so the
+    // step and the 15-bit fraction multiply as 16-bit values: the same product.
+    return at[0] + (static_cast<opxy::i16>(at[1] - at[0]) * static_cast<opxy::i16>((phase >> 7) & 0x7fffu) >> 15);
 }
 inline opxy::i32 sine22(const opxy::i32* table, opxy::u32 phase) { return sine15(table, phase); }
 }

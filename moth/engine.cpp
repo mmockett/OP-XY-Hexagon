@@ -72,26 +72,6 @@ __attribute__((noinline)) u32 modulate(u32* offsets, u32 phase, u32 increment, i
     return phase;
 }
 
-// The carrier, its phase moved by the modulator, in place of the offsets, Q15.
-__attribute__((noinline)) u32 carry(u32* io, u32 phase, u32 increment) {
-    const i32* const table = kSine15;
-    for (u32* p = io; p != io + kOver; ++p) {
-        phase += increment;
-        *p = static_cast<u32>(sine15(table, phase + *p));
-    }
-    return phase;
-}
-
-// The folder: sin(A x + c), scaled so its peak is 1, Q28. drive is A / 2 pi
-// times 2^14, bias the phase of c, scale 64 times the folder's gain.
-__attribute__((noinline)) void fold(i32* out, const u32* in, i32 drive, u32 bias, i32 scale) {
-    const i32* const table = kSine22;
-    for (i32* o = out; o != out + kOver; ++o) {
-        const u32 at = (static_cast<u32>(static_cast<i32>(*in++) * drive) << 3) + bias;
-        *o = sine22(table, at) * scale;
-    }
-}
-
 // One path of the half-band: every second sample through two allpasses,
 // y = a (x - y') + x', in place. The difference keeps its top 16 bits for
 // the product, 84 dB under full scale.
@@ -122,29 +102,46 @@ __attribute__((noinline)) i32 decimate(i32* out, const i32* in, i32 dc) {
     }
     return dc;
 }
-
-// The gate's low-pass: two one-poles, their coefficient ramping across the block.
-__attribute__((noinline)) void close(i32* io, i32 cut, i32 step, i32& low1, i32& low2) {
+// With no index the modulator moves nothing: the carrier and the folder only.
+__attribute__((noinline)) void oscillate_plain(i32* out, u32& carrier, u32 c_increment, i32 drive, u32 bias, i32 scale) {
+    const i32* const t15 = kSine15;
+    const i32* const t22 = kSine22;
+    u32 c = carrier;
+    for (i32* o = out; o != out + kOver; ++o) {
+        c += c_increment;
+        const u32 x = static_cast<u32>(sine15(t15, c));
+        const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
+        *o = sine22(t22, at) * scale;
+    }
+    carrier = c;
+}
+// The gate's low-pass and its fade in one pass: close, then fade.
+__attribute__((noinline)) void gate(opxy::Output output, const i32* in, i32 cut, i32 step, i32& low1, i32& low2, i32 level, i32 level_step) {
     i32 a = low1, b = low2;
-    for (i32* x = io; x != io + opxy::block_frames; ++x) {
+    for (i32* out = output; out != output + opxy::block_frames; ++out) {
         cut += step;
-        a += multiply(*x - a, cut);
+        a += multiply(*in++ - a, cut);
         b += multiply(a - b, cut);
-        *x = b;
+        level += level_step;
+        const i32 y = multiply(b << 1, level);
+        *out = y > kPeak ? kPeak : y < -kPeak ? -kPeak : y;
     }
     low1 = a;
     low2 = b;
 }
 
-// The gate's fade and the output level, ramping across the block, within the declared peak.
-__attribute__((noinline)) void fade(opxy::Output output, const i32* in, i32 level, i32 step) {
-    for (i32* out = output; out != output + opxy::block_frames; ++out) {
-        level += step;
-        const i32 y = multiply(*in++ << 1, level);
-        *out = y > kPeak ? kPeak : y < -kPeak ? -kPeak : y;
+// The carrier, its phase moved by the modulator's offsets, and the folder in one pass.
+__attribute__((noinline)) u32 carry_fold(i32* out, const u32* offsets, u32 phase, u32 increment, i32 drive, u32 bias, i32 scale) {
+    const i32* const t15 = kSine15;
+    const i32* const t22 = kSine22;
+    for (i32* o = out; o != out + kOver; ++o) {
+        phase += increment;
+        const u32 x = static_cast<u32>(sine15(t15, phase + *offsets++));
+        const u32 at = (static_cast<u32>(static_cast<i32>(x) * drive) << 3) + bias;
+        *o = sine22(t22, at) * scale;
     }
+    return phase;
 }
-
 // Drift's wander from a slow and a quick phase, -32767..32767.
 inline i32 wander(u32 slow, u32 quick) {
     return (19661 * sine15(kSine15, slow) + 13107 * sine15(kSine15, quick)) >> 15;
@@ -280,15 +277,20 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     i32 work[kOver];
     u32 scratch[kOver];
     const u32 half = increment >> 1;
-    voice.modulator = modulate(scratch, voice.modulator, times(half, tuning), static_cast<i32>(times(static_cast<u32>(index), 5215u)));
-    voice.carrier = carry(scratch, voice.carrier, half);
-    fold(work, scratch, plan.turns, plan.offset, plan.gain);
+    const i32 depth = static_cast<i32>(times(static_cast<u32>(index), 5215u));
+    const u32 m_increment = times(half, tuning);
+    if (depth) {
+        voice.modulator = modulate(scratch, voice.modulator, m_increment, depth);
+        voice.carrier = carry_fold(work, scratch, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+    } else {
+        voice.modulator += m_increment * kOver;   // as modulate would have moved it
+        oscillate_plain(work, voice.carrier, half, plan.turns, plan.offset, plan.gain);
+    }
     allpass(work, voice.even, kAllpass1, kAllpass3);
     allpass(work + 1, voice.odd, kAllpass0, kAllpass2);
     i32* const low = reinterpret_cast<i32*>(scratch);
     voice.dc = decimate(low, work, voice.dc);
-    close(low, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2);
-    fade(output, low, voice.level, (level - voice.level) >> 6);
+    gate(output, low, voice.cut, (cut - voice.cut) >> 6, voice.low1, voice.low2, voice.level, (level - voice.level) >> 6);
     voice.cut = cut;
     voice.level = level;
 }
