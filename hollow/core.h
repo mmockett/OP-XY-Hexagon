@@ -28,6 +28,9 @@ struct Mode { u32 phase; i32 a, b; i32 sa, sb; u32 up, down; };
 // output gain makes room for it as it grows.
 struct Echo { u32 owner, increment; i32 swell; Mode mode; };
 
+// A mode's plan for a block, a pure function of the smoothed controls and the
+// note's increment: kept while they hold still, so a held note recomputes nothing.
+struct Planned { u32 at; i32 level, decay, bow, noise; };
 struct Voice {
     Mode modes[kModes];
     Echo echoes[kEchoes];
@@ -39,6 +42,11 @@ struct Voice {
     u32 gain;          // the output gain last block (Q10): each block ramps on from it
     u32 age;           // blocks rendered: the clock of Spread's sway
     u32 sway;          // this voice's sway: its phases and how much faster it runs
+    Planned planned[kModes];
+    i32 planned_for[6];  // breath, body, bright, ring, vowel, increment the plans were made for
+    u32 planned_power;   // the modes' steady power they sum to
+    i32 planned_fundamental;
+    u32 planned_valid;
 };
 
 // Every held note's pitch, so each voice can ring at the others'.
