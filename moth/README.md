@@ -84,8 +84,8 @@ notes all strike at once. One voice peaks at 0.1 to 0.15.
 
 ### Oscillators and the folder
 
-The modulator, the carrier and the folder run at twice the rate, 88.2 kHz,
-each in a pass of its own over the 128 oversampled samples of a block. The
+The modulator, the carrier and the folder run at the device's rate,
+44.1 kHz, in two passes over the 64 samples of a block (one when fm is 0). The
 carrier is a sine phase-modulated by the modulator (phase modulation, as a
 complex oscillator's through-zero FM sounds). The folder is sin(A x + c), read
 from a sine table with interpolation; its gain is planned once a block so its
@@ -96,32 +96,38 @@ follower at 14 Hz takes what that misses.
 
 ### Aliasing
 
-Folding and FM spread a sine's energy far up the spectrum, so:
+Folding and FM spread a sine's energy far up the spectrum, and at 44.1 kHz
+whatever passes 22.05 kHz folds back. A governor holds the folded FM's
+bandwidth by Carson's rule, f0 (1 + (I + 1) r)(A + 1), under 20 kHz, where so
+little energy reaches past half the rate that what folds back stays far
+down:
 
-- Oversampling: an elliptic half-band (order 9, two paths of two allpasses)
-  brings the oscillators down. It is flat to 20 kHz, 44 dB down at 25 kHz and
-  at least 63 dB down from 26 kHz up, so what it folds back lands above
-  20 kHz or 63 dB down.
-- A governor: the folded FM's bandwidth by Carson's rule,
-  f0 (1 + (I + 1) r)(A + 1), is held under 45 kHz. Near the top of the
-  keyboard the drive and the index give way equally, in octaves (the folds
-  and FM thin out as a real oscillator's would), and the modulator's index
-  fades out as the modulator rises from 16 to 22 kHz.
+- Above 20 kHz the index gives way first, in octaves, and the drive only by
+  half of what the bandwidth has over 45 kHz, so the heaviest settings keep
+  their folds; once the index is spent the drive takes the rest.
+- What lies above 29.1 kHz folds back below 15 kHz, so the bandwidth also
+  stays four harmonics under 29.1 kHz (this only binds from about D7 up), and
+  the modulator's index fades out as the modulator rises from 12.5 to
+  14.5 kHz, before its second sideband passes 29.1 kHz.
+
+The governor leaves every preset untouched up to A5 (Ping), C#6 (Bongo) or
+A6 to F#7 (the rest), and the init sound everywhere. Fold, fm and ratio all
+high are trimmed from the bottom of the keyboard up, so those settings are
+darker than their bandwidth alone would make them.
 
 Measured as the power off the harmonics, worst of C3, C5, C6, C7 and C8:
 
 | Setting | below 15 kHz | in all |
 | --- | --- | --- |
-| fold 100 | -71 dB | -49 dB |
-| fold 100, bias 100 | -71 dB | -50 dB |
-| fm 100, ratio 1.00 | -67 dB | -53 dB |
-| fm 100, ratio 7.00 | -56 dB | -26 dB |
-| fold 100, fm 100, ratio 7.00 | -71 dB | -28 dB |
-| Ping held (fold 55, fm 30, ratio 3.50) | -80 dB | -41 dB |
+| fold 100 | -72 dB | -36 dB |
+| fold 100, bias 100 | -74 dB | -37 dB |
+| fm 100, ratio 1.00 | -58 dB | -43 dB |
+| fm 100, ratio 7.00 | -71 dB | -51 dB |
+| fold 100, fm 100, ratio 7.00 | -73 dB | -37 dB |
+| Ping held (fold 55, fm 30, ratio 3.50) | -58 dB | -42 dB |
 
-What is left lands mostly above 15 kHz, folded back from the half-band's
-transition band; below 15 kHz every setting tested is at least 56 dB down,
-and most more than 80.
+What is left lands mostly above 15 kHz; below 15 kHz every setting tested is
+at least 57 dB down, and most more than 70.
 
 ### The vactrol
 
@@ -139,10 +145,10 @@ until the OP-XY's amp envelope ends it.
 ### Level
 
 A full-scale fold with the gate open sounds at 0.105 of full scale. The
-half-band's phase and the offset's removal can raise a folded wave's peak by
-up to 1.86 times, and a strike adds up to 1.6 dB, so a voice stays within
-0.22 of full scale (the worst of 1,500 random settings and notes) under the
-declared 0.27 (`outputPeakQ31`), which a clamp guarantees and never reaches.
+offset's removal can raise a folded wave's peak, and a strike adds up to
+1.6 dB, so a voice stays within 0.19 of full scale (the worst of 1,500 random
+settings and notes) under the declared 0.27 (`outputPeakQ31`), which a clamp
+guarantees and never reaches.
 
 ## Screen
 
@@ -284,22 +290,17 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
-Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
-runs: one voice playing middle C with the first four controls at their
-midpoint costs **4.91%** of the 580,352-cycle audio block, about
-28,500 cycles, so eight voices take about 39%. The OP-XY's own engines
-measure 1.6–2.7% a voice in the same test. The test plays one setting;
-heavier settings cost more.
+Not yet measured on an OP-XY at this rate. Moth at twice the rate measured
+4.91% of the 580,352-cycle audio block on the device (one voice, middle C,
+the first four controls at their midpoint). In a Blackfin simulator, with the
+SDK's native flags, the same voice now takes 6,785 cycles a block against
+13,727 then (-51%), 5,813 at the defaults (-58%) and 7,479 with every
+control at 100 (-48%), so it is expected near 3% on the device, to be
+confirmed with `sdk.py profile`.
 
-The host estimate (`sdk.py test`) is about 7,000 to 11,000 Blackfin
-instructions per voice block at the heaviest setting (it varies from run to
-run). By static count of the pinned Blackfin compiler's output, every sample
-loop is a zero-overhead hardware loop with no stack traffic: the modulator,
-carrier and folder take 15, 15 and 17 instructions a sample at twice the rate
-(6,016 a block), the half-band's two paths 13 each (1,664), the decimator 8
-(512), the gate's two poles 9 (576) and the fade 7 (448): 9,216 a block, plus
-the once-a-block planning, 2,319 instructions of code (most of it on branches
-a block does not take) and a few divisions, so about 10,300 a block and at
-most about 12,000. The loops use
-32-bit integer products, one instruction each on the Blackfin and on a host,
-except the gate's two poles and the fade, which keep Q31's precision.
+Every sample loop is a zero-overhead hardware loop with no stack traffic:
+the modulator, the carrier and folder, the offset's removal and the gate,
+plus the once-a-block planning (the governor, the folder's plan, the
+vactrol and drift). The loops use 16- and 32-bit integer products, one
+instruction each on the Blackfin and on a host, except the gate's two poles
+and the fade, which keep Q31's precision.

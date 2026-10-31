@@ -2,14 +2,8 @@
 #include <opxy/audio.hpp>
 
 namespace moth {
-// One path of the decimator: two first-order allpasses in series. x is the
-// path's last input, a the first allpass's last output (the second's last
-// input) and b the second's last output, all Q28.
-struct Path { opxy::i32 x, a, b; };
-
 struct Voice {
-    opxy::u32 carrier, modulator;  // phases at twice the rate
-    Path even, odd;                // the half-band decimator's two paths
+    opxy::u32 carrier, modulator;  // the oscillators' phases
     opxy::i32 dc;                  // the folder's offset the voice removes, Q28
     opxy::i32 estimate;            // the offset the folder's law predicts, Q28, last block
     opxy::i32 low1, low2;          // the gate's two low-pass poles, Q28
