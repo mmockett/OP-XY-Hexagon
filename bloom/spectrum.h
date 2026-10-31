@@ -238,8 +238,9 @@ inline i32 noise(u32 seed, u32 salt, u32 t) {
     return between(lattice(seed, salt, n), lattice(seed, salt, n + 1), t);
 }
 // Partial k's (0-based) own clock: its rate (Q8, 0.75..1.37) and offset.
+inline u32 clock_hash(u32 seed, u32 k) { return hash(seed + (k + 1) * 0x27d4eb2fu); }
 inline u32 clock_rate(u32 seed, u32 k) {
-    const u32 h = hash(seed + (k + 1) * 0x27d4eb2fu);
+    const u32 h = clock_hash(seed, k);
     return 192u + (h & 127u) + ((h >> 7) & 31u);
 }
 inline u32 clock_offset(u32 seed, u32 k) {
