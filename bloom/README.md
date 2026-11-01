@@ -1,6 +1,6 @@
 # Bloom
 
-Bloom is an additive pad voice. Each note is a bank of 24 sine partials.
+Bloom is an additive pad voice. Each note is a bank of up to 24 sine partials.
 Page 1 shapes the spectrum: its slope, a saw-to-square-to-pulse shape,
 inharmonic stretch and a sung vowel. Page 2 sets how it moves: every partial
 drifts in level on its own (seeded, smoothed random walks), haze turns each
