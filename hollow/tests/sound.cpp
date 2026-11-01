@@ -64,8 +64,8 @@ struct Choir {
         hollow::destroy(voices[v], shared, owners[v]);
         on[v] = false;
     }
-    // One block of every sounding voice; out[v] gets voice v's block.
-    void render(const i32* parameters, i32 (*out)[opxy::block_frames]) {
+    // One block of every sounding voice; out[v] gets voice v's block, interleaved.
+    void render(const i32* parameters, i32 (*out)[2 * opxy::block_frames]) {
         for (unsigned v = 0; v < 4; ++v)
             if (on[v]) hollow::render(voices[v], shared, owners[v], out[v], parameters, pitch[v]);
     }
@@ -74,21 +74,28 @@ struct Choir {
 // A long recording of voice 0 (and the others rendered alongside).
 const unsigned kMaxBlocks = 40 * kSecond;
 i32 recording[kMaxBlocks * opxy::block_frames];
+double side_power, sum_power;  // voice 0's, over what record() has seen since cleared
 
 // Plays `blocks` blocks of the choir, recording voice 0 from `at` (in blocks).
 // Returns whether every voice stayed within the declared peak.
 bool record(Choir& choir, const i32* parameters, unsigned blocks, unsigned at = 0) {
-    static i32 out[4][opxy::block_frames];
+    static i32 out[4][2 * opxy::block_frames];
     bool bounded = true;
     for (unsigned b = 0; b < blocks; ++b) {
         choir.render(parameters, out);
         for (unsigned v = 0; v < 4; ++v)
             if (choir.on[v])
-                for (unsigned i = 0; i < opxy::block_frames; ++i)
+                for (unsigned i = 0; i < 2 * opxy::block_frames; ++i)
                     bounded = bounded && out[v][i] >= -kPeak && out[v][i] <= kPeak;
         if (at + b < kMaxBlocks)
-            for (unsigned i = 0; i < opxy::block_frames; ++i)
-                recording[(at + b) * opxy::block_frames + i] = choir.on[0] ? out[0][i] : 0;
+            for (unsigned i = 0; i < opxy::block_frames; ++i) {
+                // What the sound tests read: the mono sum, which is the mono voice.
+                const i32 left = choir.on[0] ? out[0][2 * i] : 0, right = choir.on[0] ? out[0][2 * i + 1] : 0;
+                recording[(at + b) * opxy::block_frames + i] = (left >> 1) + (right >> 1);
+                const double m = (static_cast<double>(left) + right) / 2, d = (static_cast<double>(left) - right) / 2;
+                sum_power += m * m;
+                side_power += d * d;
+            }
     }
     return bounded;
 }
@@ -606,7 +613,23 @@ void captions() {
 }
 }
 
+// The first mode stays in the middle: a mid-keyboard choir has a side well under
+// its sum, and a chord's notes lean differently, by their owners.
+void stereo() {
+    i32 p[8];
+    defaults(p);
+    static Choir choir;
+    choir = Choir();
+    choir.play(0, 1, 220.0);
+    side_power = sum_power = 0;
+    record(choir, p, 3 * kSecond);
+    const double width = 10 * std::log10(side_power / sum_power);
+    std::printf("stereo: side %.1f dB under the sum\n", -width);
+    check("stereo: the side is well under the sum", width < -5 && width > -18);
+}
+
 int main() {
+    stereo();
     extremes();
     long_ring();
     sustain();

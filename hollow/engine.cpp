@@ -28,6 +28,13 @@
 // mode's amplitude turned and scaled once a block by centre + side (e^iu +
 // e^id): a true unison's beating and drift, for a few multiplies a block and
 // nothing more per sample.
+//
+// Stereo: the modes sound into three buses whose sum is the mono voice. The
+// first mode stays in the middle, and the rest, the sympathetic modes with them,
+// are shared out between two sides, turn about, the owner saying which side goes
+// first so a chord's notes spread differently. The channels are the voice plus
+// and minus half the sides' difference, so their mean is the voice whatever the
+// setting. Breath's Air stays in the middle with the voice it follows.
 namespace hollow {
 namespace {
 using opxy::q31::multiply;
@@ -186,6 +193,25 @@ inline i32 soft_limit(i32 x) {
     return x < 0 ? -y : y;
 }
 
+// A bus's sum times the Q10 gain, as two 16x16 products: its top half, and its
+// low half less its last bit. Within 1.25 * 2^30, so with Air within 1.75 * 2^30.
+inline i32 gained(i32 sum, opxy::i16 gain16) {
+    const i32 ceiling = 0x4fffffff >> 6;
+    i32 high = static_cast<opxy::i16>(sum >> 16) * gain16;
+    high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
+    return high * 64 + (static_cast<opxy::i16>((sum & 0xffff) >> 1) * gain16 >> 9);
+}
+
+// The channels: the limited voice plus and minus the side, the side held within
+// the room the voice leaves below half scale, so neither channel passes it and
+// their mean stays the voice.
+inline void part(i32* frame, i32 voice_out, i32 side) {
+    const i32 room = kHalf - (voice_out < 0 ? -voice_out : voice_out);
+    side = side > room ? room : side < -room ? -room : side;
+    frame[0] = voice_out + side;
+    frame[1] = voice_out - side;
+}
+
 // ---------------------------------------------------------------------------
 // The registry: one entry per sounding voice, keyed by owner, so destroy can
 // always find and clear its own. Work is bounded by kNotes everywhere.
@@ -306,8 +332,9 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     ++voice.age;
     const Chorus chorus = ensemble(voice, spread);
 
-    i32 acc[opxy::block_frames];
-    bool written = false;
+    i32 buses[3][opxy::block_frames];
+    bool written[3] = {false, false, false};
+    const u32 flip = owner & 1u;
     u32 seed = voice.seed;
 
     // The body's modes: plans remade only when what they depend on moves.
@@ -352,15 +379,16 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     for (u32 k = 0; k < kModes; ++k) {
         const Planned& q = voice.planned[k];
         Mode& m = voice.modes[k];
+        const u32 bus = k ? 1 + ((k ^ flip) & 1u) : 0;
         if (!q.level) {  // above the top: fade out whatever still rings, then rest
-            if (m.a || m.b) release(m, q.at < kTopIncrement ? q.at : kTopIncrement, acc, written);
+            if (m.a || m.b) release(m, q.at < kTopIncrement ? q.at : kTopIncrement, buses[bus], written[bus]);
             continue;
         }
         Push p;
         p.decay = q.decay;
         p.bow = q.bow;
         p.noise = q.noise;
-        ring(m, p, q.at, seed, chorus, acc, written);
+        ring(m, p, q.at, seed, chorus, buses[bus], written[bus]);
     }
 
     // Sympathy: modes at other held notes' pitches. The breath drives each; the
@@ -384,7 +412,8 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
                 if (live) echo.increment = shared.notes[j].increment;
             }
         if (!live) {
-            release(echo.mode, echo.increment, acc, written);
+            const u32 bus = 1 + ((e ^ flip) & 1u);
+            release(echo.mode, echo.increment, buses[bus], written[bus]);
             echo.owner = echo.increment = 0;
             echo.swell = 0;
         }
@@ -432,7 +461,8 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
             // Its power counts as far as it has bloomed: 1 - decay^2n of its steady power.
             echo.swell = 0x7fffffff - multiply(multiply(0x7fffffff - echo.swell, push.decay), push.decay);
             power += times(static_cast<u32>(bow * bow) + 4u * static_cast<u32>(wind * wind), static_cast<u32>(echo.swell >> 15));
-            ring(echo.mode, push, other.increment, seed, chorus, acc, written);
+            const u32 bus = 1 + ((bound ^ flip) & 1u);
+            ring(echo.mode, push, other.increment, seed, chorus, buses[bus], written[bus]);
         }
 
     // Out: the modes at an output gain that holds their steady power (so every
@@ -440,7 +470,8 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     // to +12 dB), then Air, then the soft limit. The sympathetic modes count
     // in that power, so a chord blooms into one sound without growing louder.
     // Spread's copies beat, so they sum in power: centre^2 + 2 side^2.
-    if (!written) for (unsigned i = 0; i < opxy::block_frames; ++i) acc[i] = 0;
+    for (u32 bus = 0; bus < 3; ++bus)
+        if (!written[bus]) for (unsigned i = 0; i < opxy::block_frames; ++i) buses[bus][i] = 0;
     const i32 share = (chorus.centre * chorus.centre >> 15) + 2 * (chorus.side * chorus.side >> 15);  // Q15
     power = times(power, static_cast<u32>(share) << 1);
     i32 even = (kPower - log2_q16(power | 1u)) >> 1;  // log2 of the gain that brings power to kPower
@@ -451,39 +482,29 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     i32 level = static_cast<i32>(voice.gain << 16);
     const i32 step = (static_cast<i32>(gain) - static_cast<i32>(voice.gain)) << 10;
     voice.gain = gain;
-    const i32 ceiling = 0x4fffffff >> 6;  // with Air, within 1.75 * 2^30
     const opxy::i16 air_gain = static_cast<opxy::i16>(air * kAir >> 15);
     i32 hiss = voice.hiss, slow = voice.slow;
     if (air_gain) {
         for (unsigned i = 0; i < opxy::block_frames; ++i) {
-            // acc times the Q10 gain, as two 16x16 products: its top half, and its
-            // low half less its last bit.
             level += step;
             const opxy::i16 gain16 = static_cast<opxy::i16>(level >> 16);
-            i32 high = static_cast<opxy::i16>(acc[i] >> 16) * gain16;
-            high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
-            i32 y = high * 64 + (static_cast<opxy::i16>((acc[i] & 0xffff) >> 1) * gain16 >> 9);
-            if (air_gain) {
-                seed = seed * 1664525u + 1013904223u;
-                hiss += ((static_cast<i32>(seed) >> 2) - hiss) >> 1;  // about 5 kHz
-                slow += (hiss - slow) >> 4;                           // about 450 Hz
-                i32 band = (hiss - slow) >> 15;
-                band = band > 32767 ? 32767 : band < -32767 ? -32767 : band;
-                const i32 breathy = static_cast<opxy::i16>(band) * air_gain;
-                y += breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy;
-            }
-            output[i] = soft_limit(y);
+            const i32 a = buses[1][i], b = buses[2][i];
+            i32 y = gained(buses[0][i] + a + b, gain16);
+            seed = seed * 1664525u + 1013904223u;
+            hiss += ((static_cast<i32>(seed) >> 2) - hiss) >> 1;  // about 5 kHz
+            slow += (hiss - slow) >> 4;                           // about 450 Hz
+            i32 band = (hiss - slow) >> 15;
+            band = band > 32767 ? 32767 : band < -32767 ? -32767 : band;
+            const i32 breathy = static_cast<opxy::i16>(band) * air_gain;
+            y += breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy;
+            part(output + 2 * i, soft_limit(y), gained((a - b) >> 1, gain16));
         }
     } else {
         for (unsigned i = 0; i < opxy::block_frames; ++i) {
-            // acc times the Q10 gain, as two 16x16 products: its top half, and its
-            // low half less its last bit.
             level += step;
             const opxy::i16 gain16 = static_cast<opxy::i16>(level >> 16);
-            i32 high = static_cast<opxy::i16>(acc[i] >> 16) * gain16;
-            high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
-            i32 y = high * 64 + (static_cast<opxy::i16>((acc[i] & 0xffff) >> 1) * gain16 >> 9);
-            output[i] = soft_limit(y);
+            const i32 a = buses[1][i], b = buses[2][i];
+            part(output + 2 * i, soft_limit(gained(buses[0][i] + a + b, gain16)), gained((a - b) >> 1, gain16));
         }
     }
     voice.hiss = hiss;

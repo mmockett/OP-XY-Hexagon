@@ -36,10 +36,10 @@ preset turns it up. The presets: Choir (the defaults, sympathy up: clean),
 Dusk, Bowed glass, Bottle, Strings (a string section with the ensemble),
 Ensemble (Spread at 30 cents) and Whisper (breath alone, short and airy).
 
-Stereo: Spread would naturally pan its copies apart, but SDK synth voices
-render one mono output (stereo output is only for sample engines), so the
-ensemble is mono here. Width would need SDK support for stereo synth voices;
-until then, the OP-XY's own send chorus adds it.
+Stereo: the first mode stays in the middle, and the others, sympathetic modes
+included, share out between the two sides, each note starting from its own
+side. Left plus right is always the mono voice. Spread's copies stay with their
+mode: panning them apart would double each mode's work.
 
 Older sounds: Ring's range grew from 0.1–20 s to 0.04–40 s and Spread
 changed from a 15-cent detune to the ensemble, so a sound saved with an
