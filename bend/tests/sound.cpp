@@ -49,12 +49,13 @@ unsigned capture(const Controls& c, double hz, double seconds) {
     bend::start(voice, shared, 1);
     u32 pitch[frames];
     for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(hz);
-    i32 out[frames];
+    i32 out[2 * frames];
     const unsigned blocks = static_cast<unsigned>(seconds * 44100 / frames);
     unsigned b = 0;
     for (; b < blocks && (b + 1) * frames <= max_samples; ++b) {
         bend::render(voice, shared, 1, out, c.p, pitch);
-        for (unsigned i = 0; i < frames; ++i) sound[b * frames + i] = out[i] / 2147483648.0;
+        // What the sound tests read: the mono sum, which is the mono voice.
+        for (unsigned i = 0; i < frames; ++i) sound[b * frames + i] = ((out[2 * i] >> 1) + (out[2 * i + 1] >> 1)) / 2147483648.0;
     }
     return b * frames;
 }
@@ -194,13 +195,13 @@ void extremes() {
                 bend::start(voice, shared, 1);
                 u32 pitch[frames];
                 for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(pitches[h]);
-                double sum = 0, power = 0;
-                i32 out[frames];
+                double sum = 0, side = 0, power = 0;
+                i32 out[2 * frames];
                 for (unsigned b = 0; b < 240; ++b) {
                     if (b == 120) bend::start(voice, shared, 1);
-                    for (unsigned i = 0; i < frames; ++i) out[i] = full;   // never produced
+                    for (unsigned i = 0; i < 2 * frames; ++i) out[i] = full;   // never produced
                     bend::render(voice, shared, 1, out, c.p, pitch);
-                    for (unsigned i = 0; i < frames; ++i) {
+                    for (unsigned i = 0; i < 2 * frames; ++i) {
                         const i32 x = out[i];
                         written = written && x != full;
                         bounded = bounded && x >= -peak && x <= peak;
@@ -208,7 +209,7 @@ void extremes() {
                         ++samples;
                         const double y = x / 2147483648.0;
                         if (x != full && std::fabs(y) > loudest) loudest = std::fabs(y);
-                        if (b >= 40) { sum += y; power += y * y; }
+                        if (b >= 40) { sum += y / 2; side += i & 1 ? -y / 2 : y / 2; power += y * y / 2; }
                     }
                 }
                 const double n = 200.0 * frames;
@@ -216,7 +217,7 @@ void extremes() {
                     std::printf("quiet: wave %u corner %u at %.1f Hz: %.4f\n", w, corner, pitches[h], std::sqrt(power / n));
                     sounding = false;
                 }
-                centred = centred && (!h || std::fabs(sum / n) < 0.01);   // no pitch holds still: its DC fades
+                centred = centred && (!h || (std::fabs(sum / n) < 0.01 && std::fabs(side / n) < 0.01));   // no pitch holds still: its DC fades
             }
     check(bounded, "an extreme setting exceeds the declared peak");
     check(written, "render left samples unwritten");
@@ -278,13 +279,13 @@ void contour() {
     bend::start(voice, shared, 1);
     u32 pitch[frames];
     for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(220);
-    i32 out[frames];
+    i32 out[2 * frames];
     double last = 0, biggest = 0, typical = 0;
     for (unsigned b = 0; b < 400; ++b) {
         if (b == 300) bend::start(voice, shared, 1);
         bend::render(voice, shared, 1, out, c.p, pitch);
         for (unsigned i = 0; i < frames; ++i) {
-            const double y = out[i] / 2147483648.0, step = std::fabs(y - last);
+            const double y = out[2 * i] / 2147483648.0, step = std::fabs(y - last);
             if (b >= 299 && b <= 301) biggest = std::fmax(biggest, step);
             else if (b > 100) typical = std::fmax(typical, step);
             last = y;
@@ -533,9 +534,9 @@ void chords() {
             for (unsigned v = 0; v < 8; ++v) {
                 u32 pitch[frames];
                 for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(440 * std::pow(2, (notes[v] - 69) / 12.0));
-                i32 out[frames];
+                i32 out[2 * frames];
                 bend::render(voices[v], shared, v + 1, out, c.p, pitch);
-                for (unsigned i = 0; i < frames; ++i) mix[i] += out[i] / 2147483648.0;
+                for (unsigned i = 0; i < frames; ++i) mix[i] += ((out[2 * i] >> 1) + (out[2 * i + 1] >> 1)) / 2147483648.0;
             }
             for (unsigned i = 0; i < frames; ++i) loudest = std::fmax(loudest, std::fabs(mix[i]));
         }
@@ -549,6 +550,40 @@ void chords() {
         check(peaks[k] > 0.4 && peaks[k] < 0.8, what);
     }
 }
+// In stereo: identical lines stay in the middle, a detuned pair has width, wide
+// intervals lean rather than part, and a fully ringing voice is in the middle.
+void stereo() {
+    const auto width = [](const Controls& c) {
+        bend::initialize(voice, shared, 1);
+        bend::start(voice, shared, 1);
+        u32 pitch[frames];
+        for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(220);
+        i32 out[2 * frames];
+        double middle = 0, side = 0;
+        for (unsigned b = 0; b < 3500; ++b) {   // several of the pair's beats
+            bend::render(voice, shared, 1, out, c.p, pitch);
+            if (b < 100) continue;
+            for (unsigned i = 0; i < frames; ++i) {
+                const double l = out[2 * i] / 2147483648.0, r = out[2 * i + 1] / 2147483648.0;
+                middle += (l + r) * (l + r) / 4;
+                side += (l - r) * (l - r) / 4;
+            }
+        }
+        return side / (middle + 1e-30);
+    };
+    Controls c;
+    c.set(bend::WAVE, choice(0)).set(bend::BEND, 0.5).set(bend::INTERVAL, choice(1));
+    check(width(c) == 0, "stereo: identical lines are not in the middle");
+    c.set(bend::DETUNE, 0.4);
+    const double pair = width(c);
+    check(pair > 0.03 && pair < 0.25, "stereo: a detuned pair is not 6 to 15 dB wide");
+    c.set(bend::INTERVAL, choice(7));
+    const double apart = width(c);
+    check(apart > 0.02 && apart < 0.1, "stereo: lines two octaves apart do not lean");
+    c.set(bend::RING, 1);
+    check(width(c) == 0, "stereo: the ring product is not in the middle");
+}
+
 // No integer equivalent of NaN: a minute at the harshest settings keeps
 // sounding, never pins at the rail, and the DC blocker stays settled.
 void long_run() {
@@ -558,12 +593,12 @@ void long_run() {
     bend::start(voice, shared, 1);
     u32 pitch[frames];
     for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(55);
-    i32 out[frames];
+    i32 out[2 * frames];
     double power = 0;
     for (unsigned b = 0; b < 60 * 689; ++b) {
         bend::render(voice, shared, 1, out, c.p, pitch);
         if (b >= 59 * 689)
-            for (unsigned i = 0; i < frames; ++i) power += (out[i] / 2147483648.0) * (out[i] / 2147483648.0);
+            for (unsigned i = 0; i < frames; ++i) power += (out[2 * i] / 2147483648.0) * (out[2 * i] / 2147483648.0);
     }
     const double level = std::sqrt(power / (689.0 * frames));
     check(level > 0.01 && level < 0.15, "long run: the voice decays, explodes or pins");
@@ -686,6 +721,7 @@ int main() {
     aliasing();
     onset();
     chords();
+    stereo();
     long_run();
     screen();
     if (!failures) std::puts("PASS bend sound checks");

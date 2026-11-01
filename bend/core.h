@@ -30,6 +30,8 @@ struct Voice {
     i32 noise_pole;     // Q15
     u32 noise_scale;    // Q15 noise to Q32 cycles
     i32 dc_in, dc_out;  // the DC blocker's last input and output, Q24
+    i32 side_in, side_out;   // ... and the side's
+    i32 side_held;      // lofi's held side, Q24
     i32 level;          // the output gain at the end of the last block
     u32 clock;          // lofi's sample clock
     i32 held;           // lofi's held sample, Q24
