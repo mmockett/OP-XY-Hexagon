@@ -17,7 +17,8 @@
 namespace bloom {
 
 const u32 partial_count = 24;
-// Without a vowel only so many sound, the last few fading toward the limit: it keeps bright sounds' cost down.
+// Without a vowel a voice sounds only so many, the last few fading toward the limit: it keeps bright
+// sounds' cost down. The screen draws them all (shape's `capped`).
 const u32 sounding_most = 16;
 // A partial is silent at or above 30.85 octaves of phase increment (19.9 kHz;
 // 31 is Nyquist) and fades out over the quarter octave below (from 16.7 kHz).
@@ -327,7 +328,7 @@ inline u32 shape_gain(const Controls& c, u32 pulse, u32 k) {
 // gust: weather() at the shared clock (0 for none). note: log2 of the note's
 // phase increment (log2_of), which places the vowel and decides what falls
 // above Nyquist. drift: drifts() at t.
-inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const i32 (&drift)[partial_count], Spectrum& s) {
+inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const i32 (&drift)[partial_count], Spectrum& s, bool capped = false) {
     const Wander w = wander(c, seed, t);
     i32 f1 = 0, f2 = 0;
     if (c.vowel_depth) formants(w.vowel, f1, f2);
@@ -347,7 +348,7 @@ inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const 
         if (c.vowel_depth) level += vowel_boost(f1, f2, c.vowel_depth, frequency);
         u32 g = shape_gain(c, w.pulse, k);
         // A vowel keeps them all, for the formants they reach on a low note.
-        if (!c.vowel_depth) {
+        if (capped && !c.vowel_depth) {
             if (k >= sounding_most) g = 0;
             else if (k + 5 > sounding_most) g = g * (sounding_most - k) / 5;
         }
