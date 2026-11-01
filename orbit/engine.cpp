@@ -16,6 +16,12 @@
 // rate and its bits. Any change of the wave or the gains fades in across one
 // block from where the last block left off, so the moving vector never clicks.
 //
+// Stereo is Detune's pair: the sum of the two sets is the voice, and 3/8 of
+// their difference leans one set each way (which, by the note's owner). The
+// channels' mean is the voice, whatever the setting, and with no twin the two
+// channels are the same. Each set beats against the other, so what leaves the
+// middle as the sets part arrives at the sides.
+//
 // Integer arithmetic only, 32-bit, with 16 x 16 multiplies in the sample loops.
 namespace orbit {
 namespace engine {
@@ -23,7 +29,11 @@ const i32 loud = 310000000;            // a set's peak, Q31: 15500 (rom_peak) x 
 const i32 quietest = 9688;             // a mix this quiet or quieter is lifted 1.6 times, no more
 const i32 even = 140900000;            // a set's loudness, Q31 rms: loud / 2.2, unless its peak would pass loud
 const i32 ceiling = 434000000;         // both sets at once (1.4 x loud), where the fades are held
-const i32 peak = 436000000;            // with grit's rounding: definition.json's outputPeakQ31
+// With grit's rounding, the most a channel can reach: definition.json's outputPeakQ31.
+// The sum at its ceiling, plus the side: 3/8 of the sets' reach (the ceiling) and
+// as much again of a fade, each with a step of the DAC. Sums and side at their
+// worst never meet in a played wave; a channel plays near 0.21 of full scale.
+const i32 peak = 765000000;
 const u32 lowest_band = 40807059u;     // the increment of 419 Hz: above it, half the harmonics an octave
 const i32 loud_octaves = 1848619;      // log2(loud), Q16: 28.21 octaves
 
@@ -104,6 +114,68 @@ u32 add_held(i32* out, const i16* table, u32 phase, u32 step, i32 gain, const u3
     }
     return phase;
 }
+// The two sets, `mid` holding the note's and `side` the twin's, into the
+// channels: their sum, fading from the last block (as fade does), plus and minus
+// 3/8 of their difference, fading too. One loop, so that without grit nothing
+// passes over the block twice. No clamp past the sum's: the channels' mean is the
+// voice, and they stay within `peak`, a set's own reach plus the fade's.
+void spread(i32* left, i32* right, const i32* mid, const i32* side, i32 from, i32 from_side) {
+    const i32 slope = -(from >> 6), slope_side = -(from_side >> 6);
+    const i32* m = mid;
+    const i32* s = side;
+    i32* l = left;
+    i32* r = right;
+    for (u32 n = 0; n < opxy::block_frames; ++n, ++m, ++s, l += 2, r += 2) {
+        const i32 a = *m, b = *s;
+        const i32 quarter = (b - a) >> 2;
+        const i32 sum = clamp(a + b + from, -ceiling, ceiling);
+        const i32 lean = quarter + (quarter >> 1) + from_side;
+        *l = sum + lean;
+        *r = sum - lean;
+        from += slope;
+        from_side += slope_side;
+    }
+}
+// How much of the note goes in the side, Q15, so a faint twin leans nothing far
+// and neither channel comes out louder: the twin's power over the note's, for
+// which the side and the sum are uncorrelated. All of it when the two are equal,
+// as from an eighth of Detune on, where this needs no division.
+inline i32 match_of(i32 gain0, i32 gain1) {
+    if (!gain1) return 0;
+    const i32 apart = gain0 - gain1;
+    if (apart < 2 && apart > -2) return 32767;
+    const i32 ratio = clamp((gain1 << 15) / gain0, 0, 32767);
+    return ratio * ratio >> 15;
+}
+// The side (before its 3/8) from the two sets' values.
+inline i32 side_of(i32 note, i32 twin, i32 match) {
+    return twin - (static_cast<i16>(note >> 14) * static_cast<i16>(match) >> 1);
+}
+// With grit or a faint twin: the sum and the side, apart.
+void part(i32* mid, i32* side, i32 match) {
+    const i16 k = static_cast<i16>(match);
+    i32* m = mid;
+    i32* s = side;
+    for (u32 n = 0; n < opxy::block_frames; ++n, ++m, ++s) {
+        const i32 a = *m, b = *s;
+        const i32 quarter = (b - (static_cast<i16>(a >> 14) * k >> 1)) >> 2;
+        *m = a + b;
+        *s = quarter + (quarter >> 1);
+    }
+}
+// And the channels from them.
+void lean(i32* left, i32* right, const i32* mid, const i32* side) {
+    const i32* m = mid;
+    const i32* s = side;
+    i32* l = left;
+    i32* r = right;
+    for (u32 n = 0; n < opxy::block_frames; ++n, ++m, ++s, l += 2, r += 2) {
+        const i32 a = *m, b = *s;
+        *l = a + b;
+        *r = a - b;
+    }
+}
+
 // And its bits: each sample rounded to the DAC's steps (recip, Q15, turns a
 // sample >> 15 into steps; a step is scale << shift).
 void bits(i32* out, i32 recip, i32 scale, i32 shift) {
@@ -193,12 +265,13 @@ inline void start(Voice& voice, Shared&, u32) { voice.orbit = 0; }
 
 inline void destroy(Voice&, Shared&, u32) {}
 
-inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parameters p, opxy::Pitch pitch) {
+inline void render(Voice& voice, Shared&, u32 owner, opxy::Output output, opxy::Parameters p, opxy::Pitch pitch) {
     using namespace engine;
     const u32 increment = pitch[0];
     // What the last block would play now, at each set's phase: the fade's start.
-    const i32 was = static_cast<i16>(read(voice.table, voice.phase[0])) * static_cast<i16>(voice.gain[0]) +
-                    static_cast<i16>(read(voice.table, voice.phase[1])) * static_cast<i16>(voice.gain[1]);
+    const i16 was0 = static_cast<i16>(read(voice.table, voice.phase[0])), was1 = static_cast<i16>(read(voice.table, voice.phase[1]));
+    const i32 was = was0 * static_cast<i16>(voice.gain[0]) + was1 * static_cast<i16>(voice.gain[1]);
+    const i32 was_side = side_of(was0 * static_cast<i16>(voice.gain[0]), was1 * static_cast<i16>(voice.gain[1]), match_of(voice.gain[0], voice.gain[1]));
 
     // Where the point is: the centre, plus the path at the orbit's phase, within the gate.
     const Point at = point_at(centre_of(p[X], p[Y]), voice.orbit, radius_of(p[ORBIT]), q15(p[PATH]), true);
@@ -237,16 +310,19 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     const i32 twin = clamp(q15(p[DETUNE]) * 8, 0, 32767);
     const i32 gain0 = voice.lift * (32767 - (twin * 9830 >> 15)) >> 15;
     const i32 gain1 = voice.lift * (twin * 22938 >> 15) >> 15;
-    const i32 spread = detune_octaves(p[DETUNE]);
+    const i32 spread_of = detune_octaves(p[DETUNE]);
 
     // The fade: from what the last block would play to what this one does.
-    const i32 now = static_cast<i16>(read(voice.table, voice.phase[0])) * static_cast<i16>(gain0) +
-                    static_cast<i16>(read(voice.table, voice.phase[1])) * static_cast<i16>(gain1);
+    const i16 now0 = static_cast<i16>(read(voice.table, voice.phase[0])), now1 = static_cast<i16>(read(voice.table, voice.phase[1]));
+    const i32 now = now0 * static_cast<i16>(gain0) + now1 * static_cast<i16>(gain1);
     const i32 from = was - now;
+    const i32 match = match_of(gain0, gain1);
+    const i32 side_quarter = (was_side - side_of(now0 * static_cast<i16>(gain0), now1 * static_cast<i16>(gain1), match)) >> 2;
+    const i32 from_side = side_quarter + (side_quarter >> 1);
     voice.gain[0] = gain0;
     voice.gain[1] = gain1;
     if (!increment) {   // no pitch: silence, and the next block fades in from it
-        for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = 0;
+        for (u32 i = 0; i < 2 * opxy::block_frames; ++i) output[i] = 0;
         voice.gain[0] = voice.gain[1] = 0;
         return;
     }
@@ -257,26 +333,53 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     const i32 rate = grit ? grit_octaves(p[GRIT]) : 0;
     u32 tick[opxy::block_frames];
     if (rate < 0) ticks(tick, voice.clock, exp2_q16(32 * 65536 + rate));
+    i32 mid[opxy::block_frames], side[opxy::block_frames];
     if (gain1) {
-        const u32 step1 = detuned(increment, spread), step0 = detuned(increment, -spread);
+        const u32 step1 = detuned(increment, spread_of), step0 = detuned(increment, -spread_of);
         if (rate < 0) {
-            voice.phase[1] = play_held(output, voice.table, voice.phase[1], stretched(step1, -rate), gain1, tick);
-            voice.phase[0] = add_held(output, voice.table, voice.phase[0], stretched(step0, -rate), gain0, tick);
+            voice.phase[1] = play_held(side, voice.table, voice.phase[1], stretched(step1, -rate), gain1, tick);
+            voice.phase[0] = play_held(mid, voice.table, voice.phase[0], stretched(step0, -rate), gain0, tick);
         } else {
-            voice.phase[1] = play(output, voice.table, voice.phase[1], step1, gain1);
-            voice.phase[0] = add(output, voice.table, voice.phase[0], step0, gain0);
+            voice.phase[1] = play(side, voice.table, voice.phase[1], step1, gain1);
+            voice.phase[0] = play(mid, voice.table, voice.phase[0], step0, gain0);
         }
     } else {
-        voice.phase[0] = rate < 0 ? play_held(output, voice.table, voice.phase[0], stretched(increment, -rate), gain0, tick)
-                                  : play(output, voice.table, voice.phase[0], increment, gain0);
+        voice.phase[0] = rate < 0 ? play_held(mid, voice.table, voice.phase[0], stretched(increment, -rate), gain0, tick)
+                                  : play(mid, voice.table, voice.phase[0], increment, gain0);
         voice.phase[1] = voice.phase[0] + 0x55555555u;   // the twin, ready a third of a cycle on
     }
-    if (from) fade(output, from);
-    if (!grit) return;
-    const i32 depth = grit_bits(p[GRIT]);
-    const i32 steps = (depth < 14 * 65536 ? depth : 14 * 65536) - 65536;   // log2 of the steps either side of zero
-    const i32 step = loud_octaves - steps;                                // log2 of one step, Q31: 15.2 .. 21.2 octaves
-    const i32 shift = (step >> 16) - 14;
-    bits(output, static_cast<i32>(exp2_q16(30 * 65536 - step)), static_cast<i32>(exp2_q16(step - shift * 65536)), shift);
+    // The DAC's bits: its steps' reciprocal and size, for the sum and the side alike.
+    i32 recip = 0, scale = 0, shift = 0;
+    if (grit) {
+        const i32 depth = grit_bits(p[GRIT]);
+        const i32 steps = (depth < 14 * 65536 ? depth : 14 * 65536) - 65536;   // log2 of the steps either side of zero
+        const i32 step = loud_octaves - steps;                                // log2 of one step, Q31: 15.2 .. 21.2 octaves
+        shift = (step >> 16) - 14;
+        recip = static_cast<i32>(exp2_q16(30 * 65536 - step));
+        scale = static_cast<i32>(exp2_q16(step - shift * 65536));
+    }
+    if (!gain1 && !from_side) {   // no twin: one sound, in both channels
+        if (from) fade(mid, from);
+        if (grit) bits(mid, recip, scale, shift);
+        for (u32 i = 0; i < opxy::block_frames; ++i) output[2 * i] = output[2 * i + 1] = mid[i];
+        return;
+    }
+    const u32 flip = owner & 1u;   // which way the twin leans, so a chord's notes spread
+    i32* const left = output + flip;
+    i32* const right = output + 1 - flip;
+    if (match == 32767 && !grit) {
+        spread(left, right, mid, side, from, from_side);
+        return;
+    }
+    // A faint twin, a fading one or the DAC's bits: the same, a step at a time.
+    if (!gain1) for (u32 i = 0; i < opxy::block_frames; ++i) side[i] = 0;
+    part(mid, side, match);
+    if (from) fade(mid, from);
+    if (from_side) fade(side, from_side);
+    if (grit) {
+        bits(mid, recip, scale, shift);
+        bits(side, recip, scale, shift);   // on the DAC's steps too, so both channels are
+    }
+    lean(left, right, mid, side);
 }
 }

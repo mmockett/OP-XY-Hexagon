@@ -14,7 +14,8 @@ using orbit::i32;
 using orbit::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
-const i32 declared = 436000000;   // definition.json outputPeakQ31
+const i32 declared = 436000000;   // the mono sum's peak, within which the voice has always stayed
+const i32 channel_peak = 765000000;   // definition.json outputPeakQ31
 const double quarters[5] = {0, 0.25, 0.5, 0.75, 1};
 int failures = 0;
 
@@ -42,7 +43,9 @@ struct Controls {
 struct Rig {
     orbit::Shared shared;
     orbit::Voice voices[8];
-    i32 out[8][frames];
+    i32 stereo[8][2 * frames];   // what the voice renders, interleaved
+    i32 out[8][frames];          // what the sound tests read: the mono sum, which is the mono voice
+    i32 loudest;                 // the largest channel magnitude rendered
     u32 pitch[8][frames];
     Rig() { std::memset(this, 0, sizeof *this); }
     void play(unsigned v, double hz) {
@@ -50,7 +53,16 @@ struct Rig {
         orbit::initialize(voices[v], shared, v + 1);
         orbit::start(voices[v], shared, v + 1);
     }
-    void render(unsigned v, const Controls& c) { orbit::render(voices[v], shared, v + 1, out[v], c.p, pitch[v]); }
+    void render(unsigned v, const Controls& c) {
+        orbit::render(voices[v], shared, v + 1, stereo[v], c.p, pitch[v]);
+        for (unsigned i = 0; i < frames; ++i) {
+            const i32 left = stereo[v][2 * i], right = stereo[v][2 * i + 1];
+            const i32 l = left < 0 ? -left : left, r = right < 0 ? -right : right;
+            if (l > loudest) loudest = l;
+            if (r > loudest) loudest = r;
+            out[v][i] = (left >> 1) + (right >> 1);
+        }
+    }
 };
 
 // One voice's sound, as doubles (1 is full scale), after `settle` blocks.
@@ -140,17 +152,18 @@ void extremes() {
             if (b == 80) orbit::start(rig.voices[0], rig.shared, 1);           // a restrike
             if (b == 120) { rig.play(0, hz * 1.5); }                           // the voice taken by another note
             if (b % 37 == 36) c.p[orbit::BANK] = static_cast<i32>((seed += 0x9e3779b9u) >> 1);   // a bank change mid-note
-            for (unsigned i = 0; i < frames; ++i) rig.out[0][i] = full;
+            for (unsigned i = 0; i < 2 * frames; ++i) rig.stereo[0][i] = full;
             rig.render(0, c);
+            for (unsigned i = 0; i < 2 * frames; ++i) written = written && rig.stereo[0][i] != full;
             for (unsigned i = 0; i < frames; ++i) {
                 const i32 x = rig.out[0][i];
-                written = written && x != full;
                 bounded = bounded && x >= -declared && x <= declared;
                 const double y = x / 2147483648.0;
                 if (x != full) loudest = std::fmax(loudest, std::fabs(y));
                 if (b >= 140) { sum += y; power += y * y; }
             }
         }
+        bounded = bounded && rig.loudest <= channel_peak;
         const double n = 100.0 * frames;
         if (std::sqrt(power / n) < 0.004 && sounding) {
             std::printf("quiet: trial %u at %.0f Hz: %.4f\n", trial, hz, std::sqrt(power / n));
@@ -438,8 +451,8 @@ void smooth() {
     c.set(orbit::ORBIT, 1).set(orbit::RATE, 1).set(orbit::PATH, 1).bank(6);
     rig = Rig();
     rig.play(0, 55);
-    double biggest = 0, wave = 0;
-    i32 last = 0;
+    double biggest = 0, wave = 0, biggest_left = 0, wave_left = 0;
+    i32 last = 0, last_left = 0;
     for (unsigned b = 0; b < 4000; ++b) {
         if (b % 500 == 250) c.bank((b / 500) % 8);
         if (b % 700 == 350) orbit::start(rig.voices[0], rig.shared, 1);
@@ -449,10 +462,56 @@ void smooth() {
             if (i == 0) biggest = std::fmax(biggest, step);
             else wave = std::fmax(wave, step);
             last = rig.out[0][i];
+            const i32 left = rig.stereo[0][2 * i];
+            const double step_left = std::fabs((left - static_cast<double>(last_left)) / 2147483648.0);
+            if (i == 0) biggest_left = std::fmax(biggest_left, step_left);
+            else wave_left = std::fmax(wave_left, step_left);
+            last_left = left;
         }
     }
+    check(biggest_left <= wave_left * 1.05, "smooth: a block's edge clicks in a channel");
     std::printf("smooth: the largest step at a block's edge %.4f, within one %.4f\n", biggest, wave);
     check(biggest <= wave * 1.05, "smooth: a block's edge clicks");
+}
+
+// With no twin both channels are the one sound; with one, the sets lean apart,
+// at a side well under the sum, and notes on neighbouring owners lean opposite ways.
+void stereo_pair() {
+    Controls c;
+    c.p[orbit::DETUNE] = 0;
+    rig = Rig();
+    rig.play(0, 220);
+    bool same = true;
+    for (unsigned b = 0; b < 200; ++b) {
+        rig.render(0, c);
+        for (unsigned i = 0; i < frames; ++i) same = same && rig.stereo[0][2 * i] == rig.stereo[0][2 * i + 1];
+    }
+    check(same, "stereo: with no twin the channels differ");
+    // Clean, through the DAC, and with a faint twin (each its own path). The
+    // faint twin beats slowly and sways as it does: a minute takes in its beats.
+    const i32 detunes[3] = {full / 2, full / 2, full / 16};
+    const i32 grits[3] = {0, full / 2, 0};
+    for (unsigned t = 0; t < 3; ++t) {
+        c.p[orbit::DETUNE] = detunes[t];
+        c.p[orbit::GRIT] = grits[t];
+        rig = Rig();
+        rig.play(0, 220);
+        double middle = 0, side = 0, left = 0, right = 0;
+        for (unsigned b = 0; b < (t == 2 ? 41000u : 4000u); ++b) {
+            rig.render(0, c);
+            for (unsigned i = 0; i < frames; ++i) {
+                const double l = rig.stereo[0][2 * i] / 2147483648.0, r = rig.stereo[0][2 * i + 1] / 2147483648.0;
+                middle += (l + r) * (l + r) / 4;
+                side += (l - r) * (l - r) / 4;
+                left += l * l;
+                right += r * r;
+            }
+        }
+        const double width = 10 * std::log10(side / middle), balance = 10 * std::log10(left / right);
+        std::printf("stereo: side %.1f dB under the sum, channels within %.2f dB\n", -width, std::fabs(balance));
+        check(width < -6 && width > -30, "stereo: the side is too wide or too narrow");
+        check(std::fabs(balance) < 1, "stereo: one channel is louder");
+    }
 }
 
 // A minute at the harshest settings keeps sounding and never pins.
@@ -471,7 +530,7 @@ void long_run() {
         }
     }
     const double level = std::sqrt(power / (689.0 * frames));
-    check(sane && level > 0.03 && level < 0.3, "long run: the voice decays, explodes or pins");
+    check(sane && level > 0.03 && level < 0.3 && rig.loudest <= channel_peak, "long run: the voice decays, explodes or pins");
 }
 
 // The header's captions read as the board writes them.
@@ -614,6 +673,7 @@ int main() {
     grit();
     detune();
     smooth();
+    stereo_pair();
     long_run();
     screen();
     if (!failures) std::puts("PASS orbit sound checks");
