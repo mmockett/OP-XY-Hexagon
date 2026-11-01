@@ -126,7 +126,7 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     Spectrum s;
     i32 drift[partial_count];
     voice_drifts(c, voice, drift);
-    shape(c, voice.seed, voice.time, weather(shared.clock), note, drift, s);
+    shape(c, voice.seed, voice.time, weather(shared.clock), note, drift, s, true);
     if (!base) for (u32 k = 0; k < partial_count; ++k) s.level[k] = 0;
     voice.time += c.step;
     // A partial too quiet to hear beside the rest costs as much as the loudest: leave
