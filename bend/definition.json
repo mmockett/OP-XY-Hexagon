@@ -195,11 +195,12 @@
     }
   },
   "resources": {
-    "voiceBytes": 140,
+    "voiceBytes": 152,
     "voiceAlignment": 4,
     "voiceCapacity": 8,
     "sharedBytes": 0,
     "outputPeakQ31": 402653184,
+    "stereoOutput": 1,
     "display": {
       "stateBytes": 196,
       "stateAlignment": 4,
