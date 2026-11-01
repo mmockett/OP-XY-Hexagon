@@ -8,8 +8,8 @@
 // the block and summed.
 namespace bloom {
 
-// Below this level, Q15, a partial is left out: 46 dB under loud_level, a voice's loudness.
-const i32 level_floor = 38;
+// Below this level, Q15, a partial is left out: 40 dB under loud_level, a voice's loudness.
+const i32 level_floor = 76;
 
 // One partial over a block, added into mix, its amplitude ramping by `step` a
 // sample; returns its phase. One partial a pass keeps every value in a
