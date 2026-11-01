@@ -39,7 +39,7 @@ Press any encoder to switch pages.
 | 2 | rate | 0.02 to 8 Hz, exponential | 0.40 Hz | `.40Hz`, `1.8Hz` | How fast the point goes round: 0.02, 0.089, 0.40, 1.8 and 8 Hz at 0, 25, 50, 75 and 100. |
 | 2 | path | circle, ellipse, figure 8, steps | circle | `circ`, `ellip`, `fig8`, `steps`, or `c/el`-style between two | The path's shape, morphing evenly between neighbours: a circle clockwise from the top, an ellipse 0.42 wide tilted 0.6 rad, a figure 8 through the centre, and steps that hold at each corner and jump in the last sixth of each step. |
 | 2 | grit | clean, then 48 kHz down to 10 kHz | clean | `clean`, `32k`, `14.8k`, `10.0k` | An old DAC. Its rate falls exponentially from 48 to 10 kHz while its bits fall from 16 to 8. Below 44.1 kHz each set's wave is sampled at the DAC's rate and held, so it aliases. Above 44.1 kHz, the first twentieth of the turn, only the bits act. |
-| 2 | detune | 0 to 30 cents (by the square of the turn) | 0 | `9.1c` | A second set of the same mix: 1.9, 7.5, 17 and 30 cents apart at 25, 50, 75 and 100, the two sets either side of the note. It comes in over the first eighth of the turn, and the note gives way to it, so their power stays even. |
+| 2 | detune | 0 to 30 cents (by the square of the turn) | 0 | `9.1c` | A second set of the same mix: 1.9, 7.5, 17 and 30 cents apart at 25, 50, 75 and 100, the two sets either side of the note. It comes in over the first eighth of the turn, and the note gives way to it, so their power stays even. It also opens the stereo: at 0 both channels are one sound, and the two sets lean apart, fully by 7.5 cents. |
 
 As on the board, grit's header shows the DAC's rate, which falls as grit
 rises.

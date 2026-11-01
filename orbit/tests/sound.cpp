@@ -475,7 +475,7 @@ void smooth() {
 }
 
 // With no twin both channels are the one sound; with one, the sets lean apart,
-// at a side well under the sum, and notes on neighbouring owners lean opposite ways.
+// at a side under the sum, and notes on neighbouring owners lean opposite ways.
 void stereo_pair() {
     Controls c;
     c.p[orbit::DETUNE] = 0;
@@ -509,9 +509,51 @@ void stereo_pair() {
         }
         const double width = 10 * std::log10(side / middle), balance = 10 * std::log10(left / right);
         std::printf("stereo: side %.1f dB under the sum, channels within %.2f dB\n", -width, std::fabs(balance));
-        check(width < -6 && width > -30, "stereo: the side is too wide or too narrow");
+        check(width < -6 && width > -75, "stereo: the side is too wide or too narrow");
         check(std::fabs(balance) < 1, "stereo: one channel is louder");
     }
+}
+
+// Detune opens the width: no step as it moves on a held note, and growing as it opens.
+void stereo_opens() {
+    const i32 points[4] = {full / 8, full / 4, full / 8 * 3, full / 2};
+    double last = 0;
+    for (unsigned t = 0; t < 4; ++t) {
+        Controls c;
+        c.p[orbit::DETUNE] = points[t];
+        rig = Rig();
+        rig.play(0, 220);
+        double side = 0, middle = 0;
+        for (unsigned b = 0; b < 41000; ++b) {
+            rig.render(0, c);
+            for (unsigned i = 0; i < frames; ++i) {
+                const double l = rig.stereo[0][2 * i] / 2147483648.0, r = rig.stereo[0][2 * i + 1] / 2147483648.0;
+                middle += (l + r) * (l + r) / 4;
+                side += (l - r) * (l - r) / 4;
+            }
+        }
+        const double width = 10 * std::log10(side / middle);
+        std::printf("stereo: Detune %u/8, side %.1f dB under the sum\n", t + 1, -width);
+        check(t == 0 || width > last, "stereo: the side does not grow as Detune opens");
+        last = width;
+    }
+    Controls c;
+    rig = Rig();
+    rig.play(0, 220);
+    double biggest = 0, wave = 0, was = 0;
+    for (unsigned b = 0; b < 4000; ++b) {
+        if (b % 300 == 150) c.p[orbit::DETUNE] = b % 600 == 150 ? full : 0;
+        rig.render(0, c);
+        for (unsigned i = 0; i < frames; ++i) {
+            const double side = (rig.stereo[0][2 * i] - static_cast<double>(rig.stereo[0][2 * i + 1])) / 4294967296.0;
+            const double step = std::fabs(side - was);
+            if (i == 0) biggest = std::fmax(biggest, step);
+            else wave = std::fmax(wave, step);
+            was = side;
+        }
+    }
+    std::printf("stereo: moving Detune, the side's step at a block's edge %.4f, within one %.4f\n", biggest, wave);
+    check(biggest <= wave * 1.05, "stereo: moving Detune steps the side");
 }
 
 // A minute at the harshest settings keeps sounding and never pins.
@@ -675,6 +717,7 @@ int main() {
     detune();
     smooth();
     stereo_pair();
+    stereo_opens();
     long_run();
     screen();
     if (!failures) std::puts("PASS orbit sound checks");

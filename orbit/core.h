@@ -16,6 +16,7 @@ struct Voice {
     i32 share[4];     // and each corner's weight, Q14
     i32 lift;         // its loudness: Q31 output per Q14 unit, so its loudest point plays at 0.144
     i32 gain[2];      // each set's multiplier in the last block (0: silent)
+    i32 width;        // the side's share in the last block, Q15
     u32 clock;        // grit's DAC clock, Q32 of a sample: a new DAC sample each time it wraps
 };
 // Nothing is shared: each note's orbit starts at the top of its path as the

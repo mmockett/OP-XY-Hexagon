@@ -16,10 +16,11 @@
 // rate and its bits. Any change of the wave or the gains fades in across one
 // block from where the last block left off, so the moving vector never clicks.
 //
-// Stereo is Detune's pair: the sum of the two sets is the voice, and 3/8 of
-// their difference leans one set each way (which, by the note's owner). The
-// channels' mean is the voice, whatever the setting, and with no twin the two
-// channels are the same. Each set beats against the other, so what leaves the
+// Stereo is Detune's pair, opened by Detune: the sum of the two sets is the
+// voice, and up to 3/8 of their difference leans one set each way (which, by the
+// note's owner), the share growing with Detune's cents to its full by half way. The
+// channels' mean is the voice, whatever the setting, and at Detune 0 the two
+// channels are one sound. Each set beats against the other, so what leaves the
 // middle as the sets part arrives at the sides.
 //
 // Integer arithmetic only, 32-bit, with 16 x 16 multiplies in the sample loops.
@@ -147,20 +148,25 @@ inline i32 match_of(i32 gain0, i32 gain1) {
     const i32 ratio = clamp((gain1 << 15) / gain0, 0, 32767);
     return ratio * ratio >> 15;
 }
+// The side's share of the difference: the 3/8, then Detune's opening (`width`, Q15).
+inline i32 opened(i32 difference, i32 width) {
+    const i32 quarter = difference >> 2, wide = quarter + (quarter >> 1);
+    return static_cast<i16>(wide >> 14) * static_cast<i16>(width) >> 1;
+}
 // The side (before its 3/8) from the two sets' values.
 inline i32 side_of(i32 note, i32 twin, i32 match) {
     return twin - (static_cast<i16>(note >> 14) * static_cast<i16>(match) >> 1);
 }
 // With grit or a faint twin: the sum and the side, apart.
-void part(i32* mid, i32* side, i32 match) {
-    const i16 k = static_cast<i16>(match);
+void part(i32* mid, i32* side, i32 match, i32 width) {
+    const i16 k = static_cast<i16>(match), w = static_cast<i16>(width);
     i32* m = mid;
     i32* s = side;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++m, ++s) {
         const i32 a = *m, b = *s;
         const i32 quarter = (b - (static_cast<i16>(a >> 14) * k >> 1)) >> 2;
         *m = a + b;
-        *s = quarter + (quarter >> 1);
+        *s = static_cast<i16>((quarter + (quarter >> 1)) >> 14) * w >> 1;
     }
 }
 // And the channels from them.
@@ -257,6 +263,7 @@ inline void initialize(Voice& voice, Shared&, u32 owner) {
     for (u32 k = 0; k < 4; ++k) voice.share[k] = 0;
     voice.lift = 0;
     voice.gain[0] = voice.gain[1] = 0;
+    voice.width = 0;
     voice.clock = 0;
 }
 
@@ -317,13 +324,16 @@ inline void render(Voice& voice, Shared&, u32 owner, opxy::Output output, opxy::
     const i32 now = now0 * static_cast<i16>(gain0) + now1 * static_cast<i16>(gain1);
     const i32 from = was - now;
     const i32 match = match_of(gain0, gain1);
-    const i32 side_quarter = (was_side - side_of(now0 * static_cast<i16>(gain0), now1 * static_cast<i16>(gain1), match)) >> 2;
-    const i32 from_side = side_quarter + (side_quarter >> 1);
+    // The side opens with Detune's cents, whole by half way (7.5 cents apart).
+    const i32 opening = clamp(q15(p[DETUNE]) * 2, 0, 32767);
+    const i32 width = opening == 32767 ? 32767 : opening * opening >> 15;
+    const i32 from_side = opened(was_side, voice.width) - opened(side_of(now0 * static_cast<i16>(gain0), now1 * static_cast<i16>(gain1), match), width);
+    voice.width = width;
     voice.gain[0] = gain0;
     voice.gain[1] = gain1;
     if (!increment) {   // no pitch: silence, and the next block fades in from it
         for (u32 i = 0; i < 2 * opxy::block_frames; ++i) output[i] = 0;
-        voice.gain[0] = voice.gain[1] = 0;
+        voice.gain[0] = voice.gain[1] = voice.width = 0;
         return;
     }
     // Grit: from 44.1 kHz down, the DAC's rate (10 kHz at the top), each set
@@ -367,13 +377,14 @@ inline void render(Voice& voice, Shared&, u32 owner, opxy::Output output, opxy::
     const u32 flip = owner & 1u;   // which way the twin leans, so a chord's notes spread
     i32* const left = output + flip;
     i32* const right = output + 1 - flip;
-    if (match == 32767 && !grit) {
+    if (match == 32767 && width == 32767 && !grit) {
         spread(left, right, mid, side, from, from_side);
         return;
     }
-    // A faint twin, a fading one or the DAC's bits: the same, a step at a time.
+    // A faint twin, a side still opening, a fading one or the DAC's bits: the same,
+    // a step at a time.
     if (!gain1) for (u32 i = 0; i < opxy::block_frames; ++i) side[i] = 0;
-    part(mid, side, match);
+    part(mid, side, match, width);
     if (from) fade(mid, from);
     if (from_side) fade(side, from_side);
     if (grit) {
