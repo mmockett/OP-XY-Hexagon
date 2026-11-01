@@ -14,6 +14,7 @@ using wane::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
 const i32 half = 0x18000000;   // definition.json outputPeakQ31
+const i32 channel_peak = half;
 const double cent = 65536.0 / 1200.0;   // Q16 octaves per cent
 int failures = 0;
 
@@ -41,16 +42,28 @@ struct Controls {
 struct Rig {
     wane::Shared shared;
     wane::Voice voices[8];
-    i32 out[8][frames];
+    i32 stereo[8][2 * frames];   // what the voice renders, interleaved
+    i32 out[8][frames];          // what the sound tests read: the mono sum, which is the mono voice
+    i32 loudest;                 // the largest channel magnitude rendered
     u32 pitch[frames];
     explicit Rig(double hz = 220) {
         std::memset(&shared, 0, sizeof shared);
         std::memset(voices, 0, sizeof voices);
+        loudest = 0;
         tune(hz);
     }
     void tune(double hz) { for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(hz); }
     void play(unsigned v) { wane::initialize(voices[v], shared, v + 1); wane::start(voices[v], shared, v + 1); }
-    void render(unsigned v, const Controls& c) { wane::render(voices[v], shared, v + 1, out[v], c.p, pitch); }
+    void render(unsigned v, const Controls& c) {
+        wane::render(voices[v], shared, v + 1, stereo[v], c.p, pitch);
+        for (unsigned i = 0; i < frames; ++i) {
+            const i32 left = stereo[v][2 * i], right = stereo[v][2 * i + 1];
+            const i32 l = left < 0 ? -left : left, r = right < 0 ? -right : right;
+            if (l > loudest) loudest = l;
+            if (r > loudest) loudest = r;
+            out[v][i] = (left >> 1) + (right >> 1);
+        }
+    }
 };
 
 double rms(const double* x, unsigned n) {
@@ -124,11 +137,11 @@ void extremes() {
                     if (b == 80) wane::start(rig.voices[0], rig.shared, 1);
                     if (b == 100) rig.play(1);   // a second voice joins a running tape
                     for (unsigned v = 0; v < (b >= 100 ? 2u : 1u); ++v) {
-                        for (unsigned i = 0; i < frames; ++i) rig.out[v][i] = full;   // never produced
+                        for (unsigned i = 0; i < 2 * frames; ++i) rig.stereo[v][i] = full;   // never produced
                         rig.render(v, c);
+                        for (unsigned i = 0; i < 2 * frames; ++i) written = written && rig.stereo[v][i] != full;
                         for (unsigned i = 0; i < frames; ++i) {
                             const i32 x = rig.out[v][i];
-                            written = written && x != full;
                             bounded = bounded && x >= -half && x <= half;
                             clamped += x == half || x == -half;
                             ++samples;
@@ -138,6 +151,7 @@ void extremes() {
                         }
                     }
                 }
+                bounded = bounded && rig.loudest <= channel_peak;
                 const double n = 144.0 * frames;
                 // Full warmth's 0.9 kHz low-pass takes a 4 kHz triangle down
                 // about 30 dB; that is still sound, not silence.
@@ -177,7 +191,7 @@ void defaults_clean() {
     wane::Voice a = rig.voices[0], b = rig.voices[0];
     wane::Shared early = rig.shared, late = rig.shared;
     late.clock += 123457;
-    i32 x[frames], y[frames];
+    i32 x[2 * frames], y[2 * frames];
     bool same = true;
     for (unsigned k = 0; k < 200; ++k) {
         wane::render(a, early, 1, x, c.p, rig.pitch);
@@ -185,6 +199,40 @@ void defaults_clean() {
         same = same && std::memcmp(x, y, sizeof x) == 0;
     }
     check(same, "defaults: the sound depends on where the tape is");
+}
+
+// The pair together, no side: both channels are the voice. The pair apart: the
+// side sits well under the sum, and neither channel is the louder.
+void stereo_pair() {
+    Controls c;
+    c.p[wane::controls::DETUNE] = 0;
+    c.p[wane::controls::DRIFT] = 0;
+    rig = Rig(220);
+    rig.play(0);
+    bool same = true;
+    for (unsigned b = 0; b < 200; ++b) {
+        rig.render(0, c);
+        for (unsigned i = 0; i < frames; ++i) same = same && rig.stereo[0][2 * i] == rig.stereo[0][2 * i + 1];
+    }
+    check(same, "stereo: with the pair together the channels differ");
+    c = Controls();
+    rig = Rig(220);
+    rig.play(0);
+    double middle = 0, side = 0, left = 0, right = 0;
+    for (unsigned b = 0; b < 4000; ++b) {
+        rig.render(0, c);
+        for (unsigned i = 0; i < frames; ++i) {
+            const double l = rig.stereo[0][2 * i] / 2147483648.0, r = rig.stereo[0][2 * i + 1] / 2147483648.0;
+            middle += (l + r) * (l + r) / 4;
+            side += (l - r) * (l - r) / 4;
+            left += l * l;
+            right += r * r;
+        }
+    }
+    const double width = 10 * std::log10(side / middle), balance = 10 * std::log10(left / right);
+    std::printf("stereo: side %.1f dB under the sum, channels within %.2f dB\n", -width, std::fabs(balance));
+    check(width < -5 && width > -15, "stereo: the side is too wide or too narrow");
+    check(std::fabs(balance) < 1, "stereo: one channel is louder");
 }
 
 // Every voice bends with the one tape: deviations of different voices move
@@ -540,7 +588,7 @@ void long_run() {
         }
     }
     const double level = std::sqrt(power / (689.0 * frames));
-    check(sane && level > 0.03 && level < 0.4, "long run: the voice decays, explodes or pins");
+    check(sane && level > 0.03 && level < 0.4 && rig.loudest <= channel_peak, "long run: the voice decays, explodes or pins");
     check(std::abs(rig.voices[0].low[1]) < half && std::abs(rig.voices[0].head[0]) < half && std::abs(rig.voices[0].head[1]) < half, "long run: filter state ran away");
 }
 }
@@ -671,6 +719,7 @@ int main() {
     shapes();
     tone();
     sweeps();
+    stereo_pair();
     long_run();
     screen();
     if (!failures) std::puts("PASS wane sound checks");

@@ -11,6 +11,15 @@
 // hiss. Every voice bends with the one tape in Shared (tape.h): wow, flutter,
 // drags and the sag as notes start, advanced once per audio block.
 //
+// Stereo is the detuned pair. The sum runs the whole chain, sub and breath with
+// it, and is the mono voice; half the oscillators' difference, the side, is added
+// to one channel and taken from the other, so the channels' mean is the voice at
+// every setting. The side shares the sum's decisions rather than running a
+// second chain: the saturation's squeeze as one gain a block, and the four poles
+// as two poles with their combined lag. So saturation's harmonics stay in the
+// middle with the sub, and with the oscillators' pitches together there is no
+// side at all.
+//
 // Integer arithmetic only, 32-bit: oscillators in Q15 with 16 x 16 multiplies,
 // filters in Q31. Divisions and transposes run once per block.
 namespace wane {
@@ -18,8 +27,11 @@ namespace engine {
 using opxy::q31::multiply;
 using namespace controls;
 const i32 one = opxy::q31::maximum;
-// The output's ceiling, 0.1875 of full scale: a voice sits low enough that a
-// chord of eight peaks near 0.6.
+// The sum's ceiling, 0.1875 of full scale: a voice sits low enough that a chord
+// of eight peaks near 0.6. The side is largest where the sum is smallest and
+// squeezed to nothing where it is largest, so no sweep of the controls finds a
+// channel past this either; were one to pass it, the side's own limit (0.14 of
+// full scale) still leaves it well under half.
 const i32 ceiling = 0x18000000;
 const u32 fastest = 0x40000000u;                 // increments capped at a quarter of the sample rate
 
@@ -143,7 +155,7 @@ inline Shape shape_of(i32 control) {
     return m;
 }
 
-// One oscillator over a block, added into `out`: its increment glides from the
+// One oscillator over a block, into `out`: its increment glides from the
 // last block's to `target`. Sine, Triangle, Saw and Pulse say which parts the
 // shape uses.
 template <bool Sine, bool Triangle, bool Saw, bool Pulse>
@@ -164,7 +176,7 @@ inline void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 targ
             value += m15(2 * static_cast<i32>(folded < 32768u ? folded : 65535u - folded) - 32767, m.triangle);
         }
         if (Pulse) value -= m15(saw(phase + m.width, step, reciprocal), m.pulse);
-        out[i] += value;
+        out[i] = value;
     }
     phase_state = phase;
     increment_state = target;
@@ -179,6 +191,41 @@ inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Sh
 // x (Q31, |x| < 2^31 / 3) times c (Q15) with one 16 x 16 multiply; the low
 // 16 bits of x are dropped (-90 dB), which these filters never hear.
 inline i32 m31(i32 x, i32 c) { return static_cast<i32>(static_cast<opxy::i16>(x >> 16)) * static_cast<opxy::i16>(c) * 2; }
+
+// How far the block's saturation squeezes the side, Q15: its slope for a sum m
+// and difference d, 1 - m^2 - d^2 / 3, on a sixteenth of the block's samples, the
+// sub's triangle by its power. (x - x^3 / 3 at m + d and m - d, halved and taken
+// apart, is d times that.)
+inline i32 squeeze(const i32* first, const i32* second, i32 drive, i32 sub) {
+    i32 sum = 0, difference = 0;
+    for (unsigned i = 0; i < opxy::block_frames; i += 16) {
+        const i32 m = clamp((((first[i] + second[i]) >> 3) * drive) >> 12, -32767, 32767);
+        const i32 d = clamp((((second[i] - first[i]) >> 3) * drive) >> 12, -32767, 32767);
+        sum += m15(m, m);
+        difference += m15(d, d);
+    }
+    const i32 under = clamp(((sub >> 3) * drive) >> 12, 0, 32767);
+    return clamp(32767 - (sum >> 2) - ((difference >> 2) + m15(under, under)) / 3, 0, 32767);
+}
+// The buses over a block, kept out of the voice's loop, so this compiles to a
+// Blackfin hardware loop and that loop stays as it was: `sum` becomes the
+// oscillators' sum, and `side` their difference at a gain (Q12, eased from block
+// to block, and the poles smooth what steps are left) through two poles, Q31.
+void part(i32* sum, i32* side, i32 width, i32 pole, i32* poles) {
+    i32 a = poles[0], b = poles[1];
+    const opxy::i16 w = static_cast<opxy::i16>(width);
+    i32* p = sum;
+    i32* q = side;
+    for (unsigned i = 0; i < opxy::block_frames; ++i, ++p, ++q) {
+        const i32 first = *p, second = *q;
+        *p = first + second;
+        a += m31(static_cast<i32>(static_cast<opxy::i16>((second - first) >> 3)) * w * 4 - a, pole);
+        b += m31(a - b, pole);
+        *q = b;
+    }
+    poles[0] = a;
+    poles[1] = b;
+}
 
 // The tape's next block: its pitch, with the start sag, and how well the
 // worn head touches it (a new random target every 0.19 s, eased).
@@ -228,6 +275,8 @@ inline void initialize(Voice& voice, Shared& shared, u32 owner) {
     voice.increment[0] = voice.increment[1] = 0;
     voice.low[0] = voice.low[1] = 0;
     voice.head[0] = voice.head[1] = voice.hiss = 0;
+    voice.poles[0] = voice.poles[1] = 0;
+    voice.width = 0;
     voice.level = 0;
     voice.offset[0] = voice.offset[1] = 0;
     voice.cycle = shared.cycle - 1;   // not yet counted in this cycle
@@ -276,11 +325,10 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     const u32 sub_increment = voice.increment[0] >> 1;
     const i32 sub_slope = (static_cast<i32>(target[0] >> 1) - static_cast<i32>(sub_increment)) / 64;
 
-    i32 mix[opxy::block_frames];
-    for (unsigned i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
+    i32 mix[2][opxy::block_frames];
     const Shape shape = shape_of(p[SHAPE]);
-    oscillate(mix, voice.phase[0], voice.increment[0], target[0], shape);
-    oscillate(mix, voice.phase[1], voice.increment[1], target[1], shape);
+    oscillate(mix[0], voice.phase[0], voice.increment[0], target[0], shape);
+    oscillate(mix[1], voice.phase[1], voice.increment[1], target[1], shape);
 
     // Warmth: a darker low-pass (17.8 kHz down to 370 Hz at 220 Hz, following
     // the keyboard by up to half as it closes), more sub, a breath of noise,
@@ -307,6 +355,30 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     u32 sub_phase = voice.phase[2], sub_step = sub_increment, noise = voice.noise;
     i32 low_1 = voice.low[0], low_2 = voice.low[1], worn = voice.head[0], heard = voice.head[1];
     i32 last = voice.hiss, gain = voice.level;
+
+    // The side comes in as the pair parts, whole by 3.5 cents: drive x level x
+    // the squeeze x the output's 1.125, Q12, halved in part() (x 4, not x 8), and
+    // eased, so it never jumps.
+    const i32 parted = clamp((detune + (drift >> 2)) * 341, 0, 32767);
+    const i32 driven = (drive * level) >> 15;
+    const i32 wanted = m15(m15(driven + (driven >> 3), squeeze(mix[0], mix[1], drive, sub)), parted);
+    const i32 width = voice.width + ((wanted - voice.width) >> 2);
+    if (width || voice.width || voice.poles[0] || voice.poles[1]) {
+        // Two poles that lag as the sum's four do: a pole's lag is (1 - c) / c,
+        // and lags add. Which oscillator leans which way is the voice's own, so
+        // a chord's notes spread.
+        const i32 both = (low * head) >> 15;
+        part(mix[0], mix[1], voice.seed & 1u ? -width : width, (both << 15) / (low + head - both), voice.poles);
+        // At rest, what the truncating poles leave would never reach zero.
+        if (!width && !voice.width) voice.poles[0] = voice.poles[1] = 0;
+    } else {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) {
+            mix[0][i] += mix[1][i];
+            mix[1][i] = 0;
+        }
+    }
+    voice.width = width;
+
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         sub_phase += sub_step;
         sub_step += static_cast<u32>(sub_slope);
@@ -315,7 +387,7 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
         const i32 white = static_cast<i32>(noise >> 17) - 16384;   // Q15, +-0.5
         // The voice in Q31, peaking near a third of full scale.
-        const i32 x = (mix[i] + m15(sub_wave, sub) + m15(white, breath)) * 8192;
+        const i32 x = (mix[0][i] + m15(sub_wave, sub) + m15(white, breath)) * 8192;
         // Soft saturation: driven into x - x^3 / 3 (the cube at 16 bits), then
         // levelled back down by `gain` and halved, ahead of the filters so
         // they darken what it adds.
@@ -332,7 +404,12 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         const i32 hissing = (white - last) * hiss;
         last = white;
         const i32 out = heard + hissing;
-        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+        mix[0][i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+    }
+    // The channels: the voice, plus and minus the side.
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        output[2 * i] = mix[0][i] + mix[1][i];
+        output[2 * i + 1] = mix[0][i] - mix[1][i];
     }
     voice.phase[2] = sub_phase;
     voice.noise = noise;
