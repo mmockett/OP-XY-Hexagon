@@ -241,6 +241,36 @@ void row(const char* name, const double (&v)[5], const char* unit) {
 int main() {
     std::printf("control at 0, 25, 50, 75, 100:\n");
 
+    // 0. Haze opens the sides: none and the channels are the same, every word.
+    {
+        Setting wide = defaults();
+        wide.v[shape] = 0.75;
+        wide.v[breath] = 0.5;
+        Note mono(wide, 220);
+        i32 block[2 * opxy::block_frames];
+        bool same = true;
+        for (unsigned b = 0; b < 200; ++b) {
+            bloom::render(mono.voice, mono.shared, 1, block, mono.parameters, mono.pitch);
+            for (unsigned i = 0; i < opxy::block_frames; ++i) same = same && block[2 * i] == block[2 * i + 1];
+        }
+        check(same, "channels differ with no haze");
+        double side[3] = {0, 0, 0};
+        const double hazes[3] = {0.1, 0.25, 0.7};
+        for (int h = 0; h < 3; ++h) {
+            wide.v[haze] = hazes[h];
+            Note note(wide, 220);
+            for (unsigned b = 0; b < 400; ++b) {
+                bloom::render(note.voice, note.shared, 1, block, note.parameters, note.pitch);
+                if (b < 100) continue;
+                for (unsigned i = 0; i < opxy::block_frames; ++i) {
+                    const double d = (block[2 * i] - static_cast<double>(block[2 * i + 1])) / 2147483648.0;
+                    side[h] += d * d;
+                }
+            }
+        }
+        check(side[0] > 0 && side[1] > side[0] && side[2] > side[1], "width doesn't grow with haze");
+    }
+
     // 1. Within the declared peak, and sounding, at every corner of the
     //    controls, from the lowest to the highest notes, with restarts.
     {

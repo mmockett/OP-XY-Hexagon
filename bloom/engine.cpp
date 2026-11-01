@@ -41,6 +41,7 @@ inline void start(Voice& voice, Shared& shared, u32) {
     voice.time = 0;
     voice.sounding = 0;
     voice.random = voice.seed | 1u;
+    voice.width = 0;
     // Seeded starting phases keep the partials (and their beats) from all
     // peaking together; amplitudes start at zero and ramp in over the first block.
     for (u32 k = 0; k < partial_count; ++k) {
@@ -146,6 +147,10 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     // Three buses, whose sum is the mono voice: the lowest partial in the
     // middle, and the rest shared out between two sides, turn about, the note's
     // seed saying which side goes first so a chord's notes spread differently.
+    // Haze opens the sides, as it parts each partial into its pair; with no
+    // haze everything takes the middle bus and the voice is mono.
+    const i32 width = c.haze_depth > 32767u ? 32767 : static_cast<i32>(c.haze_depth);
+    const bool narrow = !width && !voice.width;
     i32 mix[3][opxy::block_frames];
     bool written[3] = {false, false, false};
     const u32 flip = voice.seed & 1u;
@@ -168,27 +173,40 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
                 continue;
             }
             const i32 d = (t.target - r.amplitude) >> 6;
-            const u32 bus = k + j == 0 ? 0 : 1 + (j ^ flip);
+            const u32 bus = narrow || k + j == 0 ? 0 : 1 + (j ^ flip);
             r.phase = written[bus] ? sound(mix[bus], r.phase, t.increment, r.amplitude, d)
                                    : sound_first(mix[bus], r.phase, t.increment, r.amplitude, d);
             written[bus] = true;
             r.amplitude = t.target;
         }
     }
-    for (u32 bus = 0; bus < 3; ++bus)
-        if (!written[bus]) for (u32 i = 0; i < opxy::block_frames; ++i) mix[bus][i] = 0;
+    if (!written[0]) for (u32 i = 0; i < opxy::block_frames; ++i) mix[0][i] = 0;
     voice.random = random;
     // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level),
     // at 0.625: at most 0.21 of full scale, and a chord of eight peaks near 0.5.
-    // Each channel holds both sides, the sides half as far apart as they go in
-    // the middle's share, so left plus right is always twice the mono voice.
+    if (narrow) {
+        for (u32 i = 0; i < opxy::block_frames; ++i) {
+            const i32 middle = mix[0][i];
+            output[2 * i] = output[2 * i + 1] = (middle >> 1) + (middle >> 3);
+        }
+        return;
+    }
+    for (u32 bus = 1; bus < 3; ++bus)
+        if (!written[bus]) for (u32 i = 0; i < opxy::block_frames; ++i) mix[bus][i] = 0;
+    // Each channel holds both sides, the sides at most half as far apart as they
+    // go in the middle's share, so left plus right is always twice the mono voice.
+    i32 g = voice.width;
+    const i32 g_step = (width - g) >> 6;
     for (u32 i = 0; i < opxy::block_frames; ++i) {
         const i32 a = mix[1][i], b = mix[2][i];
         const i32 middle = mix[0][i] + a + b, side = (a - b) >> 1;
-        const i32 scaled = (middle >> 1) + (middle >> 3), wide = (side >> 1) + (side >> 3);
+        const i32 scaled = (middle >> 1) + (middle >> 3), full = (side >> 1) + (side >> 3);
+        const i32 wide = static_cast<opxy::i16>(full >> 15) * static_cast<opxy::i16>(g);
         output[2 * i] = scaled + wide;
         output[2 * i + 1] = scaled - wide;
+        g += g_step;
     }
+    voice.width = width;
 }
 
 }  // namespace bloom
