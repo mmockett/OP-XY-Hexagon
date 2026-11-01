@@ -8,6 +8,9 @@
 // the block and summed.
 namespace bloom {
 
+// Below this level, Q15, a partial is left out: 46 dB under loud_level, a voice's loudness.
+const i32 level_floor = 38;
+
 // One partial over a block, added into mix, its amplitude ramping by `step` a
 // sample; returns its phase. One partial a pass keeps every value in a
 // register, and the pointer walk compiles to a Blackfin hardware loop. Levels
@@ -126,6 +129,14 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     shape(c, voice.seed, voice.time, weather(shared.clock), note, drift, s);
     if (!base) for (u32 k = 0; k < partial_count; ++k) s.level[k] = 0;
     voice.time += c.step;
+    // A partial too quiet to hear beside the rest costs as much as the loudest: leave
+    // it out. One already sounding stays until a little lower, so it doesn't flutter.
+    s.sounding = 0;
+    for (u32 k = 0; k < partial_count; ++k) {
+        const i32 floor = voice.partials[k].amplitude ? level_floor - (level_floor >> 2) : level_floor;
+        if (s.level[k] < floor) s.level[k] = 0;
+        else s.sounding = k + 1;
+    }
 
     // Partials still fading out from the last block keep rendering until silent.
     u32 n = s.sounding > voice.sounding ? s.sounding : voice.sounding;

@@ -609,5 +609,24 @@ int main() {
     }
 
     if (!failures) std::puts("bloom: all sound checks passed");
+        // Quiet partials are left out, which must save work without moving the voice's level.
+    {
+        const Setting dark = with(tilt, 0.25);
+        static bloom::Voice voice;
+        static bloom::Shared shared;
+        std::memset(&voice, 0, sizeof(voice));
+        std::memset(&shared, 0, sizeof(shared));
+        bloom::initialize(voice, shared, 1);
+        bloom::start(voice, shared, 1);
+        i32 parameters[8];
+        for (int k = 0; k < 8; ++k) parameters[k] = word(dark.v[k]);
+        u32 pitch[opxy::block_frames];
+        for (unsigned k = 0; k < opxy::block_frames; ++k) pitch[k] = increment(261.6);
+        i32 block[2 * opxy::block_frames];
+        for (int b = 0; b < 100; ++b) bloom::render(voice, shared, 1, block, parameters, pitch);
+        u32 sounding = 0;
+        for (u32 k = 0; k < bloom::partial_count; ++k) if (voice.partials[k].amplitude) ++sounding;
+        check(sounding < 12, "quiet partials are left out at a dark tilt");
+    }
     return failures ? 1 : 0;
 }
