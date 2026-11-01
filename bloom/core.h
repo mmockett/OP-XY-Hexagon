@@ -24,6 +24,7 @@ struct Voice {
     u32 cycle;      // the shared block this voice last rendered in
     u32 sounding;   // partials that may still have amplitude
     u32 random;     // blur's noise generator
+    i32 width;      // how far the sides stand apart, Q15, at the end of the last block
 };
 // The track's weather: one clock every voice reads, so a chord's voices lean
 // brighter and darker together, and the note counter that seeds each note.
