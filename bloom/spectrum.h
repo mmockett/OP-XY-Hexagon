@@ -19,7 +19,7 @@ namespace bloom {
 const u32 partial_count = 24;
 // Without a vowel a voice sounds only so many, the last few fading toward the limit: it keeps bright
 // sounds' cost down. The screen draws them all (shape's `capped`).
-const u32 sounding_most = 16;
+const u32 sounding_most = 20;
 // A partial is silent at or above 30.85 octaves of phase increment (19.9 kHz;
 // 31 is Nyquist) and fades out over the quarter octave below (from 16.7 kHz).
 const i32 log2_cutoff = 30 * 65536 + 55706;
