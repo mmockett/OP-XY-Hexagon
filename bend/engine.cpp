@@ -12,13 +12,14 @@
 // gains); then each line runs in two passes over the block, pointer walks with
 // few live values, and a last pass mixes, removes DC and scales.
 //
-// In stereo the two lines lean apart, left plus right always twice the mono
-// voice: a line's lean is the same share of it taken from one channel and given
-// to the other, by how far ring leaves them as lines (its product is the one
-// sound they make together, so it stays in the middle). At unison they are a
-// detuned pair, and identical without detune; apart, each is a pitch of its
-// own, where a lean goes further, so they lean less. The voice's owner says
-// which way, so a chord's notes spread.
+// With detune at 0 the voice is mono, left and right the same, at any interval.
+// Detune opens the stereo, live: the two lines lean apart, left plus right always
+// twice the mono voice: a line's lean is the same share of it taken from one
+// channel and given to the other, by how far ring leaves them as lines (its
+// product is the one sound they make together, so it stays in the middle). At
+// unison they are a detuned pair; apart, each is a pitch of its own, where a lean
+// goes further, so they lean less. The voice's owner says which way, so a chord's
+// notes spread.
 namespace bend {
 namespace engine {
 using pd::q15;
@@ -30,8 +31,9 @@ const i32 wave_gain[pd::waves] = {16384, 16384, 16384, 16384, 16384, 24576, 2457
 const i32 gain = 1536;
 // The output's ceiling, Q31 (definition.json's outputPeakQ31).
 const i32 ceiling = 0x18000000;
-// How far the lines lean for each interval, Q15: a channel holds 1 + lean of one
-// line and 1 - lean of the other. Least at -oct, where line 2 is the body.
+// How far the lines lean for each interval with detune at half and above, Q15: a
+// channel holds 1 + lean of one line and 1 - lean of the other. Least at -oct,
+// where line 2 is the body.
 const i32 lean[pd::intervals] = {6144, 12288, 8192, 8192, 8192, 8192, 8192, 8192};
 // Line 2 fades out above 16 kHz, gone at pd::fastest.
 const u32 fade_from = 1558345273u;
@@ -201,31 +203,35 @@ inline u32 play(i32* line, u32 wave, const Plan& plan, u32 phase, u32 rate, i32 
 // are summed (Q24), the DC the bent waves carry is removed (one pole at
 // 6.9 Hz), lofi holds and quantizes, and the level glides (Ramp) in a new
 // voice's first block or as the wave's level changes. The side, the lines'
-// difference, comes first in a pass of its own (fewer live values), into the
-// output's upper half, through its own blocker; then the same hold and the same
-// level, added to one channel and taken from the other. Each pair is written
-// after its side is read, and over sides already read. A channel's reach is no
-// more than the mono voice's: its lines' shares still add to two, so the clamp
-// is as rare as it was.
+// difference (Wide), comes first in a pass of its own (fewer live values), into
+// the output's upper half, through its own blocker, its spread moving across the
+// block; then the same hold and the same level, added to one channel and taken
+// from the other. Each pair is written after its side is read, and over sides
+// already read. A channel's reach is no more than the mono voice's: its lines'
+// shares still add to two, so the clamp is as rare as it was. With no spread the
+// side's work is skipped and both channels are the voice.
 struct Mix {
     i32 keep, ring;   // line 2's share as itself and as the ring product, Q15 (its fade included)
-    i32 spread;       // the lines' difference in the side, Q15, signed by the voice's owner
+    i32 spread;       // the lines' difference in the side at the block's end, Q22, signed by the voice's owner
     i32 level, level_step;
     u32 clock_step;   // lofi's sample clock a sample, Q32
     i32 half, mask;   // lofi's quantizer, Q24
 };
-inline void apart(i32* side, const i32* one, const i32* two, i32 spread, Voice& voice) {
-    i32 in = voice.side_in, dc = voice.side_out;
+inline void apart(i32* side, const i32* one, const i32* two, i32 to, Voice& voice) {
+    i32 in = voice.side_in, dc = voice.side_out, spread = voice.spread;
+    const i32 step = (to - spread) >> 6;
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
-        const i32 x = ((one[i] - two[i]) * spread) >> 6;   // Q24
+        spread += step;
+        const i32 x = ((one[i] - two[i]) * (spread >> 7)) >> 6;   // Q24
         dc += x - in - (dc >> 10);
         in = x;
         side[i] = dc;
     }
     voice.side_in = in;
     voice.side_out = dc;
+    voice.spread = to;
 }
-template <bool Lofi, bool Ramp>
+template <bool Lofi, bool Ramp, bool Wide>
 inline void mix(i32* out, const i32* one, const i32* two, const Mix& m, Voice& voice) {
     i32 in = voice.dc_in, dc = voice.dc_out, level = voice.level, held = voice.held;
     i32 side_held = voice.side_held;
@@ -237,20 +243,24 @@ inline void mix(i32* out, const i32* one, const i32* two, const Mix& m, Voice& v
         const i32 sum = (a + ((b * keep + ((a * b) >> 15) * ring) >> 15)) << 9;   // Q24
         dc += sum - in - (dc >> 10);
         in = sum;
-        i32 v = dc, w = side[i];
+        i32 v = dc, w = Wide ? side[i] : 0;
         if (Lofi) {
             clock += m.clock_step;
             if (clock < m.clock_step) {
                 held = (dc + m.half) & m.mask;
-                side_held = (w + m.half) & m.mask;
+                if (Wide) side_held = (w + m.half) & m.mask;
             }
             v = held;
             w = side_held;
         }
         const i32 mono = (v >> 8) * level;
-        const i32 s = (w >> 8) * level;
-        out[2 * i] = clamp(mono + s, -ceiling, ceiling);
-        out[2 * i + 1] = clamp(mono - s, -ceiling, ceiling);
+        if (Wide) {
+            const i32 s = (w >> 8) * level;
+            out[2 * i] = clamp(mono + s, -ceiling, ceiling);
+            out[2 * i + 1] = clamp(mono - s, -ceiling, ceiling);
+        } else {
+            out[2 * i] = out[2 * i + 1] = clamp(mono, -ceiling, ceiling);
+        }
         if (Ramp) level += step;
     }
     voice.dc_in = in;
@@ -259,6 +269,11 @@ inline void mix(i32* out, const i32* one, const i32* two, const Mix& m, Voice& v
     voice.level = level;
     voice.held = held;
     voice.clock = clock;
+}
+template <bool Wide>
+inline void mixes(i32* out, const i32* one, const i32* two, const Mix& m, Voice& voice, bool lofi) {
+    if (lofi) m.level_step ? mix<true, true, Wide>(out, one, two, m, voice) : mix<true, false, Wide>(out, one, two, m, voice);
+    else m.level_step ? mix<false, true, Wide>(out, one, two, m, voice) : mix<false, false, Wide>(out, one, two, m, voice);
 }
 }
 
@@ -283,6 +298,7 @@ inline void initialize(Voice& voice, Shared&, u32 owner) {
     voice.noise_level = -1;   // find the pole and scale afresh
     voice.dc_in = voice.dc_out = 0;
     voice.side_in = voice.side_out = voice.side_held = 0;
+    voice.spread = 0;
     voice.level = 0;   // fades in over the first block
     voice.clock = 0x80000000u;
     voice.held = 0;
@@ -377,27 +393,26 @@ inline void render(Voice& voice, Shared&, u32 owner, opxy::Output output, opxy::
     Mix m;
     m.keep = ((32767 - ring) * plan[1].gain) >> 14;
     m.ring = (ring * plan[1].gain) >> 14;
-    m.spread = (m.keep * lean[interval]) >> 15;
+    // Detune opens the lean, live: none at 0, all of it from half up.
+    const i32 opened = q15(p[DETUNE]) < 16384 ? q15(p[DETUNE]) * 2 : 32767;
+    m.spread = (((m.keep * lean[interval]) >> 15) * opened) >> 8;   // Q22
     if (owner * 0x9e3779b9u >> 31) m.spread = -m.spread;
-    // A new voice's DC blockers start at its waves' mean, so the bent waves'
-    // offset does not thump.
+    // A new voice's DC blocker starts at its waves' mean, so the bent waves'
+    // offset does not thump. (Its side spreads from none, so needs no such start.)
     if (voice.fresh) {
-        i32 sum = 0, difference = 0;
-        for (i32 x = 0; x < 65536; x += 2048) {
-            const i32 a = pd::output(plan[0].line, wave, x), b = pd::output(plan[1].line, wave, x);
-            sum += a + ((b * plan[1].gain) >> 14);
-            difference += a - b;
-        }
+        i32 sum = 0;
+        for (i32 x = 0; x < 65536; x += 2048)
+            sum += pd::output(plan[0].line, wave, x) + ((pd::output(plan[1].line, wave, x) * plan[1].gain) >> 14);
         voice.dc_in = sum << 4;   // the mean of 32 samples, Q24
         voice.dc_out = 0;
-        voice.side_in = ((difference >> 5) * m.spread) >> 6;
-        voice.side_out = 0;
         voice.fresh = 0;
     }
 
     m.level = level;
     m.level_step = (level - voice.level) / 64;
-    apart(output + opxy::block_frames, lines[0], lines[1], m.spread, voice);
+    const bool wide = m.spread || voice.spread;
+    if (wide) apart(output + opxy::block_frames, lines[0], lines[1], m.spread, voice);
+    else voice.side_in = voice.side_out = voice.side_held = 0;
     if (lofi) {
         const i32 rate = pd::decay(pd::lofi_octaves(p[LOFI]));
         if (rate >= 30110) {   // at or above 44.1 kHz: every sample
@@ -409,12 +424,9 @@ inline void render(Voice& voice, Shared&, u32 owner, opxy::Output output, opxy::
         const u32 step = 1u << (26 - pd::lofi_bits(p[LOFI]));   // the DAC spans two lines' peaks, Q24
         m.half = static_cast<i32>(step >> 1);
         m.mask = ~static_cast<i32>(step - 1);
-        if (m.level_step) mix<true, true>(output, lines[0], lines[1], m, voice);
-        else mix<true, false>(output, lines[0], lines[1], m, voice);
-    } else {
-        if (m.level_step) mix<false, true>(output, lines[0], lines[1], m, voice);
-        else mix<false, false>(output, lines[0], lines[1], m, voice);
     }
+    if (wide) mixes<true>(output, lines[0], lines[1], m, voice, lofi != 0);
+    else mixes<false>(output, lines[0], lines[1], m, voice, lofi != 0);
     voice.level = level;
 }
 }

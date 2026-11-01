@@ -550,8 +550,9 @@ void chords() {
         check(peaks[k] > 0.4 && peaks[k] < 0.8, what);
     }
 }
-// In stereo: identical lines stay in the middle, a detuned pair has width, wide
-// intervals lean rather than part, and a fully ringing voice is in the middle.
+// In stereo: detune 0 is exactly mono at every interval, a detuned pair has width,
+// wide intervals lean rather than part, width grows with detune, a fully ringing
+// voice is in the middle, and turning detune on a held note makes no step.
 void stereo() {
     const auto width = [](const Controls& c) {
         bend::initialize(voice, shared, 1);
@@ -572,9 +573,16 @@ void stereo() {
         return side / (middle + 1e-30);
     };
     Controls c;
-    c.set(bend::WAVE, choice(0)).set(bend::BEND, 0.5).set(bend::INTERVAL, choice(1));
-    check(width(c) == 0, "stereo: identical lines are not in the middle");
-    c.set(bend::DETUNE, 0.4);
+    c.set(bend::WAVE, choice(0)).set(bend::BEND, 0.5);
+    for (unsigned k = 0; k < 8; ++k) {
+        c.set(bend::INTERVAL, choice(k));
+        check(width(c) == 0, "stereo: detune 0 is not exactly mono at some interval");
+    }
+    c.set(bend::INTERVAL, choice(5)).set(bend::DETUNE, 0.1);
+    const double little = width(c);
+    c.set(bend::DETUNE, 0.3);
+    check(little > 0 && little < width(c), "stereo: width does not grow with detune");
+    c.set(bend::INTERVAL, choice(1)).set(bend::DETUNE, 0.4);
     const double pair = width(c);
     check(pair > 0.03 && pair < 0.25, "stereo: a detuned pair is not 6 to 15 dB wide");
     c.set(bend::INTERVAL, choice(7));
@@ -582,6 +590,31 @@ void stereo() {
     check(apart > 0.02 && apart < 0.1, "stereo: lines two octaves apart do not lean");
     c.set(bend::RING, 1);
     check(width(c) == 0, "stereo: the ring product is not in the middle");
+    // Detune opened and closed on a held note.
+    Controls held;
+    held.set(bend::WAVE, choice(0)).set(bend::BEND, 0.5).set(bend::INTERVAL, choice(5));
+    bend::initialize(voice, shared, 1);
+    bend::start(voice, shared, 1);
+    u32 pitch[frames];
+    for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(220);
+    i32 out[2 * frames];
+    double last_side = 0, last_mono = 0, side_step = 0, mono_step = 0;
+    bool closed = true;
+    for (unsigned b = 0; b < 700; ++b) {
+        if (b == 300) held.set(bend::DETUNE, 1);
+        if (b == 500) held.set(bend::DETUNE, 0);
+        bend::render(voice, shared, 1, out, held.p, pitch);
+        for (unsigned i = 0; i < frames; ++i) {
+            const double l = out[2 * i] / 2147483648.0, r = out[2 * i + 1] / 2147483648.0;
+            const double s = (l - r) / 2, m = (l + r) / 2;
+            if ((b >= 300 && b < 303) || (b >= 500 && b < 503)) { side_step = std::fmax(side_step, std::fabs(s - last_side)); mono_step = std::fmax(mono_step, std::fabs(m - last_mono)); }
+            if (b < 300 || b > 501) closed = closed && out[2 * i] == out[2 * i + 1];
+            last_side = s;
+            last_mono = m;
+        }
+    }
+    check(closed, "stereo: detune closed is not exactly mono on a held note");
+    check(side_step <= mono_step, "stereo: turning detune makes a step");
 }
 
 // No integer equivalent of NaN: a minute at the harshest settings keeps

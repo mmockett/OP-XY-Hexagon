@@ -32,6 +32,7 @@ struct Voice {
     i32 dc_in, dc_out;  // the DC blocker's last input and output, Q24
     i32 side_in, side_out;   // ... and the side's
     i32 side_held;      // lofi's held side, Q24
+    i32 spread;         // the lines' difference in the side now, Q22
     i32 level;          // the output gain at the end of the last block
     u32 clock;          // lofi's sample clock
     i32 held;           // lofi's held sample, Q24

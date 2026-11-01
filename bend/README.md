@@ -26,7 +26,7 @@ Press any encoder to switch pages.
 | --- | --- | --- | --- | --- | --- |
 | 1 | wave | saw, sq, pulse, dsine, sawpl, res1, res2, res3 | saw | the wave's name | The map both lines are bent towards: the CZ's eight waves, numbered as the CZ numbers them. One choice per detent. |
 | 1 | bend | 0 to 100 | 25 | amount | The CZ's DCW: how far the map bends, from the straight line (a pure sine on every bent wave) to the full wave. Each note's contour adds to it (below). |
-| 1 | detune | 0 to 40 cents (40 x²) | 0 | `2.5c`, `10c`, `40c` | Line 2 against line 1. At unison the lines sit half either side of the note, so the chorus stays in tune; at other intervals line 1 stays on the note and line 2 rises. |
+| 1 | detune | 0 to 40 cents (40 x²) | 0 | `2.5c`, `10c`, `40c` | Line 2 against line 1. At unison the lines sit half either side of the note, so the chorus stays in tune; at other intervals line 1 stays on the note and line 2 rises. Detune also opens the stereo, live: at 0 the voice is mono at any interval; as it rises the two lines lean apart, fully from half up, and what ring takes stays in the middle. |
 | 1 | ring | 0 to 100 | 0 | amount | Blends line 2 into its product with line 1 (ring modulation): sum and difference tones, bells and clangs at the wider intervals. |
 | 2 | interval | -oct, uni, 4th, 5th, m7, oct, 12th (an octave and a fifth), 2oct | uni | the interval | Line 2's pitch: an octave below to two octaves above line 1. |
 | 2 | warp | 0 to 100 | 0 | amount | Beyond the CZ: skews the input phase (slow start, hurried end) and overruns the output up to 2.5 cycles, so the cosine wraps before the cycle ends, as hard sync does. Each turn is a new sync timbre. |
