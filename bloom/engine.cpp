@@ -132,8 +132,12 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     voice.sounding = s.sounding;
     n = (n + 1) & ~1u;   // in pairs
 
-    i32 mix[opxy::block_frames];
-    bool written = false;
+    // Three buses, whose sum is the mono voice: the lowest partial in the
+    // middle, and the rest shared out between two sides, turn about, the note's
+    // seed saying which side goes first so a chord's notes spread differently.
+    i32 mix[3][opxy::block_frames];
+    bool written[3] = {false, false, false};
+    const u32 flip = voice.seed & 1u;
     u32 random = voice.random;
     for (u32 k = 0; k < n; k += 2) {
         Partial& p = voice.partials[k];
@@ -153,17 +157,27 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
                 continue;
             }
             const i32 d = (t.target - r.amplitude) >> 6;
-            r.phase = written ? sound(mix, r.phase, t.increment, r.amplitude, d)
-                              : sound_first(mix, r.phase, t.increment, r.amplitude, d);
-            written = true;
+            const u32 bus = k + j == 0 ? 0 : 1 + (j ^ flip);
+            r.phase = written[bus] ? sound(mix[bus], r.phase, t.increment, r.amplitude, d)
+                                   : sound_first(mix[bus], r.phase, t.increment, r.amplitude, d);
+            written[bus] = true;
             r.amplitude = t.target;
         }
     }
-    if (!written) for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
+    for (u32 bus = 0; bus < 3; ++bus)
+        if (!written[bus]) for (u32 i = 0; i < opxy::block_frames; ++i) mix[bus][i] = 0;
     voice.random = random;
     // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level),
     // at 0.625: at most 0.21 of full scale, and a chord of eight peaks near 0.5.
-    for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = (mix[i] >> 1) + (mix[i] >> 3);
+    // Each channel holds both sides, the sides half as far apart as they go in
+    // the middle's share, so left plus right is always twice the mono voice.
+    for (u32 i = 0; i < opxy::block_frames; ++i) {
+        const i32 a = mix[1][i], b = mix[2][i];
+        const i32 middle = mix[0][i] + a + b, side = (a - b) >> 1;
+        const i32 scaled = (middle >> 1) + (middle >> 3), wide = (side >> 1) + (side >> 3);
+        output[2 * i] = scaled + wide;
+        output[2 * i + 1] = scaled - wide;
+    }
 }
 
 }  // namespace bloom
