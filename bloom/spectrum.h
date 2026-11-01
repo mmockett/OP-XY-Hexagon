@@ -156,7 +156,7 @@ inline u32 vowel_shown(i32 control) {
 // Blur: cents of random spread, 120 * u^1.5.
 inline u32 blur_power(i32 control) {   // u^1.5, Q16
     const u32 u = unit16(control);
-    return u * root(u << 16) >> 16;
+    return u ? u * root(u << 16) >> 16 : 0u;
 }
 inline i32 blur_log2(i32 control) { return static_cast<i32>(6554u * blur_power(control) >> 16); }
 inline u32 blur_cents(i32 control) { return (120u * blur_power(control) + 32768u) >> 16; }
@@ -193,16 +193,17 @@ inline Controls decode(const i32* parameters) {
     // smoothed noise's spread near 0.45 of the deviation whatever the rate.
     c.blur = blur_log2(parameters[5]);
     c.blur_alpha = 299u + (unit16(parameters[5]) * 1000u >> 16);
-    c.blur_gain = 200u * root(((8192u - c.blur_alpha) << 16) / c.blur_alpha) >> 8;
+    c.blur_gain = c.blur ? 200u * root(((8192u - c.blur_alpha) << 16) / c.blur_alpha) >> 8 : 0u;   // only blur reads it
     // Haze: the pair's frequency ratio minus one, and how fully it beats
     // (in over the first quarter of the travel).
     const i32 cents_log = static_cast<i32>(5461u * haze_square(parameters[6]) >> 16);
     c.haze_ratio = pow2((16 << 16) + cents_log) - 65536u;
     const u32 h = unit16(parameters[6]);
     c.haze_depth = h >= 16384u ? 32768u : h << 1;
-    // The beat envelope 1 - m + m cos: mean square (1 - m)^2 + m^2 / 2.
+    // The beat envelope 1 - m + m cos: mean square (1 - m)^2 + m^2 / 2. No beat
+    // and a full beat, most of the travel, need no root: 1 and sqrt(1/2).
     const u32 m = c.haze_depth, rest = 32768u - m;
-    c.haze_loud = root(((rest * rest >> 15) + (m * m >> 16)) << 15);
+    c.haze_loud = !m ? 32768u : m == 32768u ? 23170u : root(((rest * rest >> 15) + (m * m >> 16)) << 15);
     c.step = time_step(parameters[7]);
     return c;
 }
