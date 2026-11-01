@@ -176,7 +176,7 @@ inline void shape(Line& line, u32 wave, i32 d, i32 warp, i32 most = 32767) {
         const i32 k[3] = {q, 32768, 32768 + q};
         slopes(line, sl, k);
     } else if (wave == PULSE) {
-        const i32 hold = dd * 9 / 5;   // 0.9 d, Q16
+        const i32 hold = static_cast<i32>(static_cast<u32>(dd) * 117965u >> 16);   // 0.9 d, Q16: dd * 9 / 5 without the divide
         const i32 rise = static_cast<i32>((static_cast<u32>(g) << 17) / static_cast<u32>(65536 - hold));
         const i32 sl[4] = {0, rise, rise, rise};
         const i32 k[3] = {hold, 49152 + (hold >> 2), 57344 + (hold >> 3)};

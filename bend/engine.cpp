@@ -280,6 +280,7 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     const i32 d = pd::bent(bend, envelope);
 
     Plan plan[2];
+    bool same = true;   // the lines' maps are one
     for (unsigned k = 0; k < 2; ++k) {
         Plan& l = plan[k];
         l.increment = offset[k] ? pd::transpose(note, offset[k]) : note;
@@ -293,12 +294,19 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
             band.top = pd::ceiling(wave, l.increment, warp);
             band.inverse = 0xffffffffu / (l.increment | 1u);
         }
-        pd::shape(l.line, wave, d, band.top.warp, band.top.d);
+        if (k && band.top.warp == voice.band[0].top.warp && band.top.d == voice.band[0].top.d) {
+            // The same limit makes the same map.
+            l.line = plan[0].line;
+            l.jump = plan[0].jump;
+        } else {
+            pd::shape(l.line, wave, d, band.top.warp, band.top.d);
+            // The step where the cycle ends, from the map's last value to its
+            // first: the reso windows' edge and warp's overrun.
+            l.jump = wave == RESO1 || wave == RESO3 || (warp && wave != RESO2)
+                       ? pd::output(l.line, wave, 0) - pd::output(l.line, wave, 65535) : 0;
+            same = !k;
+        }
         if (voice.fresh) voice.rate[k] = l.line.r;
-        // The step where the cycle ends, from the map's last value to its
-        // first: the reso windows' edge and warp's overrun.
-        l.jump = wave == RESO1 || wave == RESO3 || (warp && wave != RESO2)
-                   ? pd::output(l.line, wave, 0) - pd::output(l.line, wave, 65535) : 0;
         l.inverse = band.inverse;
         l.gain = 16384;
     }
@@ -323,7 +331,11 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
     }
 
     i32 lines[2][opxy::block_frames + 1];
-    for (unsigned k = 0; k < 2; ++k) {
+    // At unison without detune the two lines are one: line 2 would play what
+    // line 1 has just played, sample for sample, so line 1 stands for both.
+    const bool twin = same && plan[0].increment == plan[1].increment && plan[0].inverse == plan[1].inverse &&
+                      voice.phase[0] == voice.phase[1] && voice.rate[0] == voice.rate[1] && voice.last[0] == voice.last[1];
+    for (unsigned k = 0; k < (twin ? 1u : 2u); ++k) {
         const Plan& l = plan[k];
         const i32 glide = (static_cast<i32>(l.line.r) - static_cast<i32>(voice.rate[k])) / 64;
         lines[k][0] = voice.last[k];
@@ -332,6 +344,13 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
         voice.last[k] = lines[k][opxy::block_frames];
         voice.rate[k] = l.line.r;
     }
+
+    if (twin) {
+        voice.phase[1] = voice.phase[0];
+        voice.last[1] = voice.last[0];
+        voice.rate[1] = voice.rate[0];
+    }
+    const i32* const second = twin ? lines[0] : lines[1];
 
     const i32 level = (gain * wave_gain[wave]) >> 14;
     // A new voice's DC blocker starts at its waves' mean, so the bent waves'
@@ -361,11 +380,11 @@ inline void render(Voice& voice, Shared&, u32, opxy::Output output, opxy::Parame
         const u32 step = 1u << (26 - pd::lofi_bits(p[LOFI]));   // the DAC spans two lines' peaks, Q24
         m.half = static_cast<i32>(step >> 1);
         m.mask = ~static_cast<i32>(step - 1);
-        if (m.level_step) mix<true, true>(output, lines[0], lines[1], m, voice);
-        else mix<true, false>(output, lines[0], lines[1], m, voice);
+        if (m.level_step) mix<true, true>(output, lines[0], second, m, voice);
+        else mix<true, false>(output, lines[0], second, m, voice);
     } else {
-        if (m.level_step) mix<false, true>(output, lines[0], lines[1], m, voice);
-        else mix<false, false>(output, lines[0], lines[1], m, voice);
+        if (m.level_step) mix<false, true>(output, lines[0], second, m, voice);
+        else mix<false, false>(output, lines[0], second, m, voice);
     }
     voice.level = level;
 }
