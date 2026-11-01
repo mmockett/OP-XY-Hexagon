@@ -17,6 +17,8 @@
 namespace bloom {
 
 const u32 partial_count = 24;
+// Without a vowel only so many sound, the last few fading toward the limit: it keeps bright sounds' cost down.
+const u32 sounding_most = 16;
 // A partial is silent at or above 30.85 octaves of phase increment (19.9 kHz;
 // 31 is Nyquist) and fades out over the quarter octave below (from 16.7 kHz).
 const i32 log2_cutoff = 30 * 65536 + 55706;
@@ -344,6 +346,11 @@ inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const 
         const i32 frequency = note + pitch;
         if (c.vowel_depth) level += vowel_boost(f1, f2, c.vowel_depth, frequency);
         u32 g = shape_gain(c, w.pulse, k);
+        // A vowel keeps them all, for the formants they reach on a low note.
+        if (!c.vowel_depth) {
+            if (k >= sounding_most) g = 0;
+            else if (k + 5 > sounding_most) g = g * (sounding_most - k) / 5;
+        }
         if (frequency >= log2_cutoff) g = 0;
         else if (frequency > log2_fade) level -= (frequency - log2_fade) * 40;
         gain[k] = g;
