@@ -59,13 +59,16 @@ struct Note {
     }
     // Renders blocks into out (if given); returns the largest magnitude seen.
     i32 run(unsigned blocks, i32* out = 0) {
-        i32 peak = 0, block[opxy::block_frames];
+        i32 peak = 0, block[2 * opxy::block_frames];
         for (unsigned b = 0; b < blocks; ++b) {
             bloom::render(voice, shared, 1, block, parameters, pitch);
             for (unsigned i = 0; i < opxy::block_frames; ++i) {
-                const i32 m = block[i] < 0 ? -block[i] : block[i];
-                if (m > peak) peak = m;
-                if (out) out[b * opxy::block_frames + i] = block[i];
+                const i32 left = block[2 * i], right = block[2 * i + 1];
+                const i32 l = left < 0 ? -left : left, r = right < 0 ? -right : right;
+                if (l > peak) peak = l;
+                if (r > peak) peak = r;
+                // What the sound tests read: the mono sum, which is the mono voice.
+                if (out) out[b * opxy::block_frames + i] = (left >> 1) + (right >> 1);
             }
         }
         return peak;

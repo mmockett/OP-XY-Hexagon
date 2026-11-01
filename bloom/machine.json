@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sdk": "1.10",
+  "sdk": "1.12",
   "kind": "synth",
   "description": "Breathing additive pads: 24 sine partials shaped by tilt, shape, stretch and a sung vowel, drifting, beating in detuned pairs and blurring into breath.",
   "presets": "presets"

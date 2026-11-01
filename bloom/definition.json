@@ -140,6 +140,7 @@
     "voiceCapacity": 8,
     "sharedBytes": 12,
     "outputPeakQ31": 450600000,
+    "stereoOutput": 1,
     "display": {
       "stateBytes": 92,
       "stateAlignment": 4,
