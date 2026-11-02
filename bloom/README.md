@@ -83,6 +83,8 @@ sun. Each partial is a stem with a blossom, placed across the screen by its
 pitch (log scale) and as tall as its level. The levels and pitches come from
 `spectrum.h`, for C3, so the meadow follows the controls the way the sound
 does:
+The screen still draws partials a voice leaves out for being too quiet to hear,
+so up to four stems can stand without sounding.
 
 - **tilt** slopes the meadow and raises the sun as the tone brightens.
 - **shape** shortens the even stems toward square, then cuts the pulse's
