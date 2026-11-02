@@ -36,12 +36,11 @@ inline i32 read(const i16* table, u32 phase) {
 }
 
 // The sample loops are plain functions, each a counted walk over the block
-// with few values live, so each compiles to a Blackfin hardware loop (they
-// stay out of line, held so by the attribute: inlined, they lose their
-// hardware loops).
+// with few values live, so each compiles to a Blackfin hardware loop (the
+// two sets' loops stay out of line: inlined, they lose their hardware loops).
 //
 // One set over the block: the wave times its gain, into `out`; returns its phase.
-__attribute__((noinline)) u32 play(i32* out, const i16* table, u32 phase, u32 increment, i32 gain) {
+u32 play(i32* out, const i16* table, u32 phase, u32 increment, i32 gain) {
     const i16 g = static_cast<i16>(gain);
     i32* o = out;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++o) {
@@ -51,7 +50,7 @@ __attribute__((noinline)) u32 play(i32* out, const i16* table, u32 phase, u32 in
     return phase;
 }
 // Or added to it.
-__attribute__((noinline)) u32 add(i32* out, const i16* table, u32 phase, u32 increment, i32 gain) {
+u32 add(i32* out, const i16* table, u32 phase, u32 increment, i32 gain) {
     const i16 g = static_cast<i16>(gain);
     i32* o = out;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++o) {
@@ -62,7 +61,7 @@ __attribute__((noinline)) u32 add(i32* out, const i16* table, u32 phase, u32 inc
 }
 // The fade from the last block, `from` falling to nothing across this one,
 // within the ceiling.
-__attribute__((noinline)) void fade(i32* out, i32 from) {
+void fade(i32* out, i32 from) {
     const i32 slope = -(from >> 6);
     i32* o = out;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++o) {
@@ -73,7 +72,7 @@ __attribute__((noinline)) void fade(i32* out, i32 from) {
 
 // Grit's DAC below 44.1 kHz: its clock, and each sample that takes a new
 // value (all ones) or holds the last (zero).
-__attribute__((noinline)) void ticks(u32* tick, u32& clock, u32 increment) {
+void ticks(u32* tick, u32& clock, u32 increment) {
     u32 c = clock;
     u32* t = tick;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++t) {
@@ -85,7 +84,7 @@ __attribute__((noinline)) void ticks(u32* tick, u32& clock, u32 increment) {
 // One set through that DAC: its phase moves a whole DAC sample (`step`) at
 // each tick and holds between them, so the wave is sampled at the DAC's rate
 // and held, aliasing as an old DAC does. Into `out`, or added to it.
-__attribute__((noinline)) u32 play_held(i32* out, const i16* table, u32 phase, u32 step, i32 gain, const u32* tick) {
+u32 play_held(i32* out, const i16* table, u32 phase, u32 step, i32 gain, const u32* tick) {
     const i16 g = static_cast<i16>(gain);
     i32* o = out;
     const u32* t = tick;
@@ -95,7 +94,7 @@ __attribute__((noinline)) u32 play_held(i32* out, const i16* table, u32 phase, u
     }
     return phase;
 }
-__attribute__((noinline)) u32 add_held(i32* out, const i16* table, u32 phase, u32 step, i32 gain, const u32* tick) {
+u32 add_held(i32* out, const i16* table, u32 phase, u32 step, i32 gain, const u32* tick) {
     const i16 g = static_cast<i16>(gain);
     i32* o = out;
     const u32* t = tick;
@@ -107,7 +106,7 @@ __attribute__((noinline)) u32 add_held(i32* out, const i16* table, u32 phase, u3
 }
 // And its bits: each sample rounded to the DAC's steps (recip, Q15, turns a
 // sample >> 15 into steps; a step is scale << shift).
-__attribute__((noinline)) void bits(i32* out, i32 recip, i32 scale, i32 shift) {
+void bits(i32* out, i32 recip, i32 scale, i32 shift) {
     const i16 r = static_cast<i16>(recip), s = static_cast<i16>(scale);
     i32* o = out;
     for (u32 n = 0; n < opxy::block_frames; ++n, ++o) {
