@@ -7,5 +7,13 @@
     "engine": 39,
     "page": 112
   },
+  "presetDefaults": {
+    "amp": {
+      "attack": 5043,
+      "decay": 7536,
+      "sustain": 23755,
+      "release": 9501
+    }
+  },
   "presets": "presets"
 }

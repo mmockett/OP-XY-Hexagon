@@ -165,7 +165,7 @@ int main() {
             play(c, 1 + static_cast<u32>(n) % 8, 40, n % 2 != 0, name);
         }
     }
-    // The animation lasts while a note is held, not a fixed time: at the defaults,
+    // The animation lasts while a note is held, not a fixed time: at Clean,
     // with no drift or strike, the last two seconds of a six-second note still
     // move the light; with reduced motion they don't.
     {

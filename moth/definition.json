@@ -6,7 +6,7 @@
     {
       "id": "fold",
       "label": "Fold",
-      "default": 0.2,
+      "default": 0.18,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -17,7 +17,7 @@
     {
       "id": "fm",
       "label": "FM",
-      "default": 0,
+      "default": 0.43,
       "mapping": {
         "kind": "power",
         "maximum": 4,
@@ -28,7 +28,7 @@
     {
       "id": "ratio",
       "label": "Ratio",
-      "default": 0.0938,
+      "default": 0.9062,
       "mapping": {
         "kind": "enum",
         "labels": [
@@ -55,7 +55,7 @@
     {
       "id": "strike",
       "label": "Strike",
-      "default": 0,
+      "default": 0.35,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -67,7 +67,7 @@
       "id": "glow",
       "label": "Glow",
       "control": 0,
-      "default": 0.7,
+      "default": 0.33,
       "mapping": {
         "kind": "exponential",
         "minimum": 40,
@@ -79,7 +79,7 @@
       "id": "bias",
       "label": "Bias",
       "control": 1,
-      "default": 0,
+      "default": 0.15,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -91,7 +91,7 @@
       "id": "mode",
       "label": "Mode",
       "control": 2,
-      "default": 0.5,
+      "default": 0.06,
       "mapping": {
         "kind": "linear",
         "minimum": 0,
@@ -103,7 +103,7 @@
       "id": "drift",
       "label": "Drift",
       "control": 3,
-      "default": 0,
+      "default": 0.54,
       "mapping": {
         "kind": "anchors",
         "values": [
@@ -127,6 +127,16 @@
       "bias": 0,
       "mode": 0.5,
       "drift": 0
+    },
+    "Porchlight": {
+      "fold": 0.18,
+      "fm": 0.43,
+      "ratio": 0.9062,
+      "strike": 0.35,
+      "glow": 0.33,
+      "bias": 0.15,
+      "mode": 0.06,
+      "drift": 0.54
     },
     "Ping": {
       "fold": 0.55,

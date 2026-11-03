@@ -29,22 +29,26 @@ and the drift.
 
 | Control | Range | Default | Caption | What it does |
 | --- | --- | --- | --- | --- |
-| fold | drive 0.02 to 6.82 radians | 20 | amount | The folder, sin(A (x + b/2)) scaled so its peak is 1. At 0 the carrier passes untouched (harmonics 94 dB down); past a quarter turn of drive every further half turn adds a fold, about four at 100. |
-| fm | index 0 to 4 (4 x²) | 0 | index, `0.36` | How far the modulator moves the carrier's phase: from a pure sine, through the first sidebands, to a dense FM spectrum. |
-| ratio | 0.50, 1.00, 1.01, 1.41, 1.50, 2.00, 2.02, 2.50, 2.76, 3.00, 3.50, 4.00, 4.70, 5.00, 6.00, 7.00 | 1.00 | the ratio, `3.50` | The modulator's frequency over the carrier's, sixteen stops: harmonic (0.50, 1, 1.5, 2...), near-harmonic (1.01 and 2.02 beat slowly) and inharmonic (1.41, 2.76, 4.70: bells and bongos). It glides between stops over a few milliseconds. Heard through fm. |
-| strike | 0 to 100 | 0 | amount | How hard a note strikes the vactrol. The LED is held at 1 - strike while the note is held, and every strike above 0 pulses it fully for 4 ms, so the gate pings over the held level: 2.5 dB at 25, 6 dB at 50, 12 dB at 75, a pluck that dies away at 100. A harder strike is also up to 1.6 dB louder. Below 12.5 the pulse is gentler, so a light touch eases in. |
-| glow | 40 ms to 6.0 s, exponentially | 1.3 s | time, `0.18s` or `1.3s` | The photocell's memory: how long a struck gate takes to close, from fully open to -60 dB (in vca mode; it is measured within a third of the caption at every setting). It closes three times faster while still bright and slower as it darkens, as a vactrol does. An unstruck note opens at a twentieth of glow's pace, so a long glow also swells in (2 ms at 0, 0.6 s at 100). |
-| bias | 0 to 100 | 0 | amount | Offsets the folder's input by up to half its swing, so the wave folds one way more than the other and gains even harmonics. Its offset is predicted (sin(c) J0(A)) and removed, so a biased note starts without a thump. |
-| mode | lp to combo to vca | combo | the nearest of `lp`, `both` (combo) and `vca` | How the gate acts: at lp it only closes a low-pass, at vca it only fades, at combo it does both, and between them each follows the cell's light to that power, so the morph is even in decibels. The low-pass is two one-poles whose cutoff follows the light (open from 0.8 up, about 9 kHz times the light below, never under 3 Hz). |
-| drift | 0 to 25 cents, 12.5 (x + x²) | 0 | cents, `3.9c` | Slow seeded wander (0.11 to 0.16 Hz and 0.29 to 0.39 Hz, each voice its own): the pitch up to the cents shown, the modulator on its own as far again, so FM's sidebands drift against the carrier, and the fold's drive up to 25% either way. |
+| fold | drive 0.02 to 6.82 radians | 18 | amount | The folder, sin(A (x + b/2)) scaled so its peak is 1. At 0 the carrier passes untouched (harmonics 94 dB down); past a quarter turn of drive every further half turn adds a fold, about four at 100. |
+| fm | index 0 to 4 (4 x²) | 43 | index, `0.36` | How far the modulator moves the carrier's phase: from a pure sine, through the first sidebands, to a dense FM spectrum. |
+| ratio | 0.50, 1.00, 1.01, 1.41, 1.50, 2.00, 2.02, 2.50, 2.76, 3.00, 3.50, 4.00, 4.70, 5.00, 6.00, 7.00 | 6.00 | the ratio, `3.50` | The modulator's frequency over the carrier's, sixteen stops: harmonic (0.50, 1, 1.5, 2...), near-harmonic (1.01 and 2.02 beat slowly) and inharmonic (1.41, 2.76, 4.70: bells and bongos). It glides between stops over a few milliseconds. Heard through fm. |
+| strike | 0 to 100 | 35 | amount | How hard a note strikes the vactrol. The LED is held at 1 - strike while the note is held, and every strike above 0 pulses it fully for 4 ms, so the gate pings over the held level: 2.5 dB at 25, 6 dB at 50, 12 dB at 75, a pluck that dies away at 100. A harder strike is also up to 1.6 dB louder. Below 12.5 the pulse is gentler, so a light touch eases in. |
+| glow | 40 ms to 6.0 s, exponentially | 0.21 s | time, `0.18s` or `1.3s` | The photocell's memory: how long a struck gate takes to close, from fully open to -60 dB (in vca mode; it is measured within a third of the caption at every setting). It closes three times faster while still bright and slower as it darkens, as a vactrol does. An unstruck note opens at a twentieth of glow's pace, so a long glow also swells in (2 ms at 0, 0.6 s at 100). |
+| bias | 0 to 100 | 15 | amount | Offsets the folder's input by up to half its swing, so the wave folds one way more than the other and gains even harmonics. Its offset is predicted (sin(c) J0(A)) and removed, so a biased note starts without a thump. |
+| mode | lp to combo to vca | 6 (lp) | the nearest of `lp`, `both` (combo) and `vca` | How the gate acts: at lp it only closes a low-pass, at vca it only fades, at combo it does both, and between them each follows the cell's light to that power, so the morph is even in decibels. The low-pass is two one-poles whose cutoff follows the light (open from 0.8 up, about 9 kHz times the light below, never under 3 Hz). |
+| drift | 0 to 25 cents, 12.5 (x + x²) | 54 | cents, `3.9c` | Slow seeded wander (0.11 to 0.16 Hz and 0.29 to 0.39 Hz, each voice its own): the pitch up to the cents shown, the modulator on its own as far again, so FM's sidebands drift against the carrier, and the fold's drive up to 25% either way. |
 
-Fm, bias and drift colour the sound, so they default to 0: the init sound,
-Clean, is a soft, held sine pad. Ratio is heard through fm, and glow and mode
-act through the gate, so they are heard as soon as fm is up or the gate
-moves (strike above 0, or an unstruck note swelling in).
+The init sound, Porchlight, is a struck FM tone: the modulator at 6.00 over
+a light fold and a little bias, each note striking a few decibels over its
+held level, closing mostly a low-pass (mode near lp) at a short glow, and
+drifting about 10 cents. Its amp envelope eases each note in and lets it fall
+back to a lower sustain. Clean, the plain soft sine pad held open, is a
+preset: fm, bias, strike and drift at 0. Ratio is heard through fm, and glow
+and mode act through the gate, so they are heard as soon as fm is up or the
+gate moves (strike above 0, or an unstruck note swelling in).
 
 Measured on one held note of 220 Hz at 0, 25, 50, 75 and 100, the other
-controls at the defaults except where a control acts through another
+controls at Clean's settings except where a control acts through another
 (`tests/sound.cpp` checks each step; `MOTH_REPORT=1` prints these):
 
 | Control | 0 | 25 | 50 | 75 | 100 |
@@ -67,7 +71,8 @@ Combo is the darkest and quickest to fade, as both act at once.
 
 | Preset | Sound | 8 notes, peak |
 | --- | --- | --- |
-| Clean | The init sound: a soft sine pad, held open, easing in | 0.78 |
+| Clean | A soft sine pad, held open, easing in | 0.78 |
+| Porchlight | The init sound: FM at 6.00, lightly folded and biased, struck over a held level through lp, drifting | 0.81 |
 | Ping | The board's sound: folded FM at 3.50, struck hard over a low held level | 0.45 (struck together) |
 | Bongo | Inharmonic FM at 2.76, biased, a short combo pluck | 0.41 (struck together) |
 | Marimba | FM at 4.00, struck between lp and combo, a woody decay | 0.59 (struck together) |
@@ -110,10 +115,10 @@ down:
   the modulator's index fades out as the modulator rises from 12.5 to
   14.5 kHz, before its second sideband passes 29.1 kHz.
 
-The governor leaves every preset untouched up to A5 (Ping), C#6 (Bongo) or
-A6 to F#7 (the rest), and the init sound everywhere. Fold, fm and ratio all
-high are trimmed from the bottom of the keyboard up, so those settings are
-darker than their bandwidth alone would make them.
+The governor leaves every preset untouched up to F#5 (Porchlight), A5
+(Ping), C#6 (Bongo) or A6 to F#7 (the rest), and Clean everywhere. Fold, fm
+and ratio all high are trimmed from the bottom of the keyboard up, so those
+settings are darker than their bandwidth alone would make them.
 
 Measured as the power off the harmonics, worst of C3, C5, C6, C7 and C8:
 
@@ -260,7 +265,7 @@ Departures from the board:
 - Drift's caption follows its new law: 3.9c at 25 (the board showed 1.6c for
   25 x²), so a quarter turn is clearly heard.
 - Clean holds the gate open (strike 0) in combo, where the board's sketch had
-  strike 10 in lp, so the init sound swells in and glow and strike are heard
+  strike 10 in lp, so it swells in and glow and strike are heard
   from the first turn.
 
 ## For the screen

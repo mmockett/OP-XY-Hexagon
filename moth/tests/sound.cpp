@@ -36,7 +36,7 @@ u32 increment(double hz) { return static_cast<u32>(hz / kRate * 4294967296.0); }
 // A ratio stop's control value: the middle of its sixteenth, as the device stores it.
 double stop(unsigned k) { return (k + 0.5) / 16; }
 
-// The defaults (definition.json: the Clean preset).
+// The baseline: the Clean preset (definition.json), a plain held sine pad.
 struct Controls {
     double c[8] = {0.2, 0, stop(1), 0, 0.7, 0, 0.5, 0};
     Controls with(unsigned i, double v) const { Controls o = *this; o.c[i] = v; return o; }
@@ -360,7 +360,7 @@ void aliasing() {
     }
 }
 
-// Each control at 0, 25, 50, 75 and 100, from the defaults (or, where it acts
+// Each control at 0, 25, 50, 75 and 100, from Clean (or, where it acts
 // through another, with that one up: ratio with fm, mode and glow with strike).
 void sweeps() {
     double v[5];
@@ -430,7 +430,7 @@ void sweeps() {
         row("glow: an unstruck note's rise to 90%", v, "s");
         check("glow slows an unstruck note's swell at every step", v[0] < 0.02 && rising(v + 1, 4, 1.5) && v[4] > 0.3);
     }
-    {  // bias: the even harmonics (2 and 4) against the odd (1 and 3), at the default fold.
+    {  // bias: the even harmonics (2 and 4) against the odd (1 and 3), at Clean's fold.
         for (unsigned i = 0; i < 5; ++i) {
             const std::vector<double> s = spectrum(play(Controls().with(kBias, kSteps[i]), 220, 2), 1, 1);
             v[i] = (at(s, 440) + at(s, 880)) / (at(s, 220) + at(s, 660));
