@@ -15,6 +15,9 @@ and the folder wander slowly, as analogue ones do.
 The vactrol is the instrument's own character, not an envelope control: it
 is how this voice speaks. The OP-XY's amp envelope still applies on top.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Press any encoder to switch pages. Page 1 shapes the tone, page 2 the gate
@@ -192,6 +195,15 @@ nothing sounds the screen is still, and a note that has died away under a
 held key (strike 100) is nothing sounding. Reduced motion, a reset and a track change
 show the end state at once.
 
+Each voice also follows the track's amp envelope (M2). The engine cannot see a
+release, so a voice's vactrol stays lit as if held until the envelope ends it,
+and what the wings, the eyespots and the LED show is that light through the
+envelope: it swells over the attack, settles to the sustain and fades over the
+release. A short release darkens the moth with the sound; a long one keeps it
+glowing and breathing as long as the note rings. If the envelope can't be
+read, the screen follows the held notes as before, each cell closing at
+glow's pace once its note is released.
+
 ### Redrawing little
 
 The OP-XY redraws whatever changes, so the screen changes little:
@@ -287,11 +299,15 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 - `laws.h`, `sine.h`: the controls' laws, the vactrol and the sine tables,
   shared by audio and the screen.
 - `display.cpp`, `display.h`, `wing.h`: the screen.
+- `amp.h`: the suite's follower for the track's amp envelope, kept identical
+  in all six synths.
 - `panel.svg.fragment`: the screen's artwork, written with `wing.h` by
   `tools/make_panel.py`. Run the script after changing a shape, and commit
   all three.
 - `tests/sound.cpp`, `tests/screen.cpp`, `tests/churn.cpp`: the sound and screen
   checks and the screen's cost, run by `sdk.py test`.
+- `tests/envelope.cpp`: the screen against the amp envelope (unchanged when
+  it is unknown, a short against a long one, the cost), run by `sdk.py test`.
 
 ## CPU
 
