@@ -3,11 +3,13 @@
 // read it: a checksum of a scripted session (notes held, staggered, restruck,
 // released and played between frames, every control turned over a chord,
 // reduced motion, a track change, unknown note activity) taken from the
-// screen before the change. A short envelope against a long one: the long
-// attack swells the motion in, and the motion stops soon after a short
-// release but goes on through a long one, ending with the sound. And the
-// churn with a note held and through a long release stays within budget,
-// with none once the release is over.
+// screen before the change. A short envelope against a long one, by stock's
+// curves (amp_curve.h): the long attack swells the motion in, and the motion
+// stops soon after a short release but goes on through a long one, ending
+// with the sound. A larger attack word swells slower and a larger release
+// word (stock's inverted release) ends the motion sooner. And the churn with
+// a note held and through a long release stays within budget, with none once
+// the release is over.
 #include "../display.cpp"
 #include <cstdio>
 #include <cstring>
@@ -33,11 +35,13 @@ const int kPeak = 30;
 
 i32 q31(double v) { return static_cast<i32>(v * 2147483647.0 + (v < 1 ? 0.5 : 0)); }
 const Envelope unknown = {envelope_unavailable, envelope_unavailable, envelope_unavailable, envelope_unavailable};
-// A short envelope (instant attack and decay, full sustain, a 0.05 s release)
-// and a long one (a 1.25 s attack, full sustain, a 3.4 s release), by the
-// curve amp.h assumes.
-const Envelope shortest = {0, 0, 0x7fffffff, q31(0.171)};
-const Envelope longest = {q31(0.5), 0, 0x7fffffff, q31(0.7)};
+// A short envelope (instant attack and decay, full sustain, release word
+// 0x7f000000: stock's 6 ms) and a long one (attack word 0x40000000, 1.45 s;
+// full sustain; release word 0x40000000, 3 s to -66 dB). A larger release
+// word is a shorter release.
+const Envelope shortest = {0, 0, 0x7fffffff, 0x7f000000};
+const Envelope longest = {0x40000000, 0, 0x7fffffff, 0x40000000};
+Envelope with(i32 attack, i32 release) { const Envelope e = {attack, 0, 0x7fffffff, release}; return e; }
 
 u32 mix(u32 h, u32 v) { return (h ^ v) * 16777619u; }
 u32 sum(u32 h, const Frame& f) {
@@ -164,11 +168,28 @@ int main() {
     const Played quick = play(shortest, 3, 150, 400, defaults), slow = play(longest, 3, 150, 400, defaults);
     std::printf("envelope: moving %.2f s after a short release, %.2f s after a long one; at 0.3 s the motion is %d short, %d long\n",
                 quick.moving / 60.0, slow.moving / 60.0, quick.early, slow.early);
-    if (quick.moving > 30) { std::printf("FAIL the motion runs on %.2f s past a 0.05 s release\n", quick.moving / 60.0); ++failures; }
-    if (slow.moving < 150) { std::printf("FAIL the motion stops %.2f s into a 3.4 s release\n", slow.moving / 60.0); ++failures; }
-    if (slow.moving > 300) { std::printf("FAIL the motion runs on %.2f s past a 3.4 s release\n", slow.moving / 60.0); ++failures; }
-    if (!(slow.early * 2 < quick.early)) { std::printf("FAIL a 1.25 s attack doesn't hold the motion back: %d against %d\n", slow.early, quick.early); ++failures; }
+    if (quick.moving > 30) { std::printf("FAIL the motion runs on %.2f s past a 6 ms release\n", quick.moving / 60.0); ++failures; }
+    if (slow.moving < 45) { std::printf("FAIL the motion stops %.2f s into a 3 s release\n", slow.moving / 60.0); ++failures; }
+    if (slow.moving > 240) { std::printf("FAIL the motion runs on %.2f s past a 3 s release\n", slow.moving / 60.0); ++failures; }
+    if (!(slow.early * 2 < quick.early)) { std::printf("FAIL a 1.45 s attack doesn't hold the motion back: %d against %d\n", slow.early, quick.early); ++failures; }
     if (quick.rest || slow.rest) { std::printf("FAIL %d and %d nodes changed at rest after the release\n", quick.rest, slow.rest); ++failures; }
+
+    // Stock's directions: a larger release word ends the motion sooner (7.9 s,
+    // 3 s, 1.35 s and 6 ms to -66 dB), and a larger attack word swells slower
+    // (0.36 s, 1.45 s and 5.8 s).
+    const i32 releases[4] = {0x20000000, 0x40000000, 0x60000000, 0x7f000000};
+    int lasted[4];
+    for (int k = 0; k < 4; ++k) lasted[k] = play(with(0, releases[k]), 3, 60, 600, defaults).moving;
+    std::printf("envelope: release words 0x20, 0x40, 0x60, 0x7f move on %.2f, %.2f, %.2f and %.2f s\n",
+                lasted[0] / 60.0, lasted[1] / 60.0, lasted[2] / 60.0, lasted[3] / 60.0);
+    for (int k = 0; k < 3; ++k)
+        if (!(lasted[k] > lasted[k + 1])) { std::printf("FAIL release word %#x doesn't end the motion sooner than %#x\n", releases[k + 1], releases[k]); ++failures; }
+    const i32 attacks[3] = {0x30000000, 0x40000000, 0x50000000};
+    i32 swell[3];
+    for (int k = 0; k < 3; ++k) swell[k] = play(with(attacks[k], 0x7f000000), 1, 60, 30, defaults).early;
+    std::printf("envelope: at 0.3 s attack words 0x30, 0x40, 0x50 have swelled to %d, %d and %d\n", swell[0], swell[1], swell[2]);
+    for (int k = 0; k < 2; ++k)
+        if (!(swell[k] > swell[k + 1])) { std::printf("FAIL attack word %#x doesn't swell slower than %#x\n", attacks[k + 1], attacks[k]); ++failures; }
 
     // Churn with the long envelope: one note and eight, held 3 s and released, at
     // the defaults and at the machine's heaviest settings.
@@ -177,7 +198,7 @@ int main() {
     int peak = 0;
     for (int s = 0; s < 2; ++s)
         for (u32 notes = 1; notes <= 8; notes += 7) {
-            const Played r = play(longest, notes, 180, 300, s ? heavy : defaults);
+            const Played r = play(longest, notes, 180, 400, s ? heavy : defaults);
             std::printf("envelope churn, %s, %u note%s: %.1f nodes a frame on average, peak %d, %d at rest\n",
                         s ? "heaviest" : "defaults", notes, notes > 1 ? "s" : "", r.mean, r.peak, r.rest);
             if (r.mean > worst) worst = r.mean;

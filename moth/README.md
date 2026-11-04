@@ -299,8 +299,9 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 - `laws.h`, `sine.h`: the controls' laws, the vactrol and the sine tables,
   shared by audio and the screen.
 - `display.cpp`, `display.h`, `wing.h`: the screen.
-- `amp.h`: the suite's follower for the track's amp envelope, kept identical
-  in all six synths.
+- `amp.h`, `amp_curve.h`: the suite's follower for the track's amp envelope
+  and the OP-XY's envelope times and shapes it follows, kept identical in all
+  six synths.
 - `panel.svg.fragment`: the screen's artwork, written with `wing.h` by
   `tools/make_panel.py`. Run the script after changing a shape, and commit
   all three.

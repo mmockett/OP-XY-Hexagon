@@ -9,56 +9,47 @@
 // it here, so its motion swells with the attack, settles to the sustain while
 // notes are held and fades over the release, lasting as long as the sound.
 //
-// Stock hands the screen the envelope page's control positions, not times, and
-// its curve from position to time is not documented. This assumes one curve for
-// attack, decay and release: a stage lasts 10 s times the cube of its position,
-// so 0 is instant, a quarter 0.16 s, a half 1.25 s and the end of travel 10 s.
-// Attack rises in a straight line; decay and release ease out, as a square of
-// the time left. Sustain is a level, drawn as its square root (loudness, not
-// amplitude), so a quiet sustain still moves. Integer arithmetic only.
+// The times and shapes are stock OS 1.2.1's, from amp_curve.h (also identical in
+// every machine). A larger attack or decay is a longer stage, but a larger
+// release is a shorter one. The attack rises concavely, fast at first and
+// slower at the top; the decay falls exponentially and stops at the sustain
+// level plus 1%; the sustain is a linear level; the release fades
+// exponentially from wherever it starts to -66 dB, where the motion stops.
+// Integer arithmetic only.
 #pragma once
 
 namespace amp {
+#include "amp_curve.h"
+
 const opxy::i32 one = 32768;   // a level of 1, Q15
-
-// A stage's length, Q10 seconds, at its control position (Q31): 10 s x position^3.
-inline opxy::i32 seconds(opxy::i32 position) {
-    const opxy::i32 x = position < 0 ? 0 : position >> 16;   // Q15
-    return (((x * x) >> 15) * x >> 15) * 10240 >> 15;
-}
-
-// The square root of v, rounded down.
-inline opxy::u32 root(opxy::u32 v) {
-    opxy::u32 r = 0, bit = 1u << 30;
-    while (bit > v) bit >>= 2;
-    while (bit) {
-        if (v >= r + bit) { v -= r + bit; r = (r >> 1) + bit; } else r >>= 1;
-        bit >>= 2;
-    }
-    return r;
-}
-
-// The sustain's drawn level, Q15: the square root of its position.
-inline opxy::i32 held_level(const opxy::draw::Envelope& e) {
-    const opxy::u32 s = e.sustain < 0 ? 0u : static_cast<opxy::u32>(e.sustain) >> 16;   // Q15
-    const opxy::i32 level = static_cast<opxy::i32>(root(s << 15));
-    return s >= 32767u ? one : level;
-}
 
 const opxy::u32 quiet = 0, attack = 1, decay = 2, sustain = 3, release = 4;
 
-// One voice's envelope as the screen follows it: its level (Q15, one at the
-// attack's peak), its stage, the level its release began from and how far
-// through its stage it is (Q15). 16 bytes; zero is quiet.
+// One voice's envelope as the screen follows it: its level (Q24, 1 << 24 at
+// the attack's peak) and its stage. 16 bytes, the size each machine declares
+// for it; zero is quiet.
 struct Follower {
-    opxy::i32 level, from, progress;
+    opxy::i32 level;
     opxy::u32 stage;
+    opxy::u32 spare[2];
 };
 
-// How far a stage of `length` (Q10 s) moves in dt (Q10 s), Q15 of the stage.
-inline opxy::i32 advance(opxy::i32 length, opxy::i32 dt) { return length <= dt ? one : (dt << 15) / length; }
-// What is left of an ease-out over a stage at progress p (Q15): (1 - p)^2.
-inline opxy::i32 left(opxy::i32 p) { const opxy::i32 r = one - p; return r * r >> 15; }
+const opxy::i32 full = 1 << 24;               // a level of 1, Q24
+const opxy::i32 peak = attack_peak_q15 << 9;  // 0.99: the attack's end
+const opxy::i32 cut = 8389;                   // 0.0005, -66 dB: the release's end
+
+// A frame (Q10 s) in microseconds.
+inline unsigned frame_us(opxy::i32 dt) { return static_cast<unsigned>(dt) * 15625u >> 4; }
+// A Q24 level (0 .. 2 << 24) times a Q15 factor, in 32 bits.
+inline opxy::i32 scaled(opxy::i32 level, unsigned factor) {
+    const unsigned l = static_cast<unsigned>(level);
+    return static_cast<opxy::i32>((l >> 15) * factor + (((l & 0x7fffu) * factor) >> 15));
+}
+// One frame of the attack's concave rise, L(u) = 2 (1 - 0.505^u): what is left
+// below 2 shrinks by the attack's factor.
+inline opxy::i32 rise(opxy::i32 level, const opxy::draw::Envelope& e, unsigned us) {
+    return 2 * full - scaled(2 * full - level, attack_frame_q15(e.attack, us));
+}
 
 // One frame of a voice: gate while its note is held; struck when it starts or
 // starts again this frame; dt the frame (Q10 s, clamped by the caller); jump
@@ -66,42 +57,39 @@ inline opxy::i32 left(opxy::i32 p) { const opxy::i32 r = one - p; return r * r >
 // released note rests. A note struck while it sounds rises again from where it
 // is. Returns the level, Q15.
 inline opxy::i32 follow(Follower& f, const opxy::draw::Envelope& e, bool gate, bool struck, opxy::i32 dt, bool jump) {
-    const opxy::i32 top = held_level(e);
+    const opxy::i32 top = sustain_q15(e.sustain) << 9;
     if (jump) {
         f.stage = gate ? sustain : quiet;
         f.level = gate ? top : 0;
-        f.from = f.progress = 0;
-        return f.level;
+        return f.level >> 9;
     }
-    if (dt < 0) dt = 0;
-    if (gate && (struck || f.stage == quiet || f.stage == release)) { f.stage = attack; f.progress = 0; }
+    const unsigned us = frame_us(dt < 0 ? 0 : dt);
+    if (gate && (struck || f.stage == quiet || f.stage == release)) f.stage = attack;
     if (!gate && struck) {
         // Played and let go of between frames: it rose for at most a frame, then
         // released from there.
-        const opxy::i32 length = seconds(e.attack);
-        const opxy::i32 rose = length <= dt ? one : f.level + (dt << 15) / length;
-        f.level = rose < one ? rose : one;
+        f.level = rise(f.level, e, us);
+        if (f.level > full) f.level = full;
         f.stage = attack;
     }
-    if (!gate && f.stage != quiet && f.stage != release) { f.stage = release; f.from = f.level; f.progress = 0; }
-    if (f.stage == attack) {
-        const opxy::i32 length = seconds(e.attack);
-        f.level = length <= dt ? one : f.level + (dt << 15) / length;
-        if (f.level >= one) { f.level = one; f.stage = decay; f.progress = 0; }
-        return f.level;
+    if (!gate && f.stage != quiet && f.stage != release) f.stage = release;
+    else if (f.stage == attack) {
+        f.level = rise(f.level, e, us);
+        if (f.level >= peak) { f.level = full; f.stage = decay; }
+        return f.level >> 9;
     }
     if (f.stage == decay) {
-        f.progress += advance(seconds(e.decay), dt);
-        if (f.progress >= one) f.stage = sustain;
-        else f.level = top + ((one - top) * left(f.progress) >> 15);
+        // Exponentially toward 0, ending at the sustain level plus 1%.
+        f.level = scaled(f.level, decay_frame_q15(e.decay, us));
+        if (f.level <= top + full / 100) f.stage = sustain;
     }
     if (f.stage == sustain) f.level = top;
     if (f.stage == release) {
-        f.progress += advance(seconds(e.release), dt);
-        if (f.progress >= one) { f.stage = quiet; f.level = 0; }
-        else f.level = f.from * left(f.progress) >> 15;
+        // Exponentially from where it starts, ending at -66 dB.
+        f.level = scaled(f.level, release_frame_q15(e.release, us));
+        if (f.level < cut) { f.stage = quiet; f.level = 0; }
     }
-    return f.level;
+    return f.level >> 9;
 }
 
 // Whether the voice still sounds: struck and not yet through its release.

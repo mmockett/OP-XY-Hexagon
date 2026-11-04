@@ -163,8 +163,9 @@ less as their upper partials pass the cutoff and stop.
   blur's pitch noise and haze's beat to each partial, then ramps each
   partial's level across the 64-sample block and sums the sines.
 - `display.cpp`, `display.h`: the screen. `tests/churn.cpp` checks what it costs.
-- `amp.h`: the suite's follower for the track's amp envelope, kept identical
-  in all six synths.
+- `amp.h`, `amp_curve.h`: the suite's follower for the track's amp envelope
+  and the OP-XY's envelope times and shapes it follows, kept identical in all
+  six synths.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run the script after changing a shape, and commit both.
 - `tests/sound.cpp`: the sound checks, run by `sdk.py test`.

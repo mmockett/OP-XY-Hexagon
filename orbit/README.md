@@ -262,8 +262,9 @@ the defaults, where the mix is still.
 - `waves.h`: the wave ROM, written by `tools/make_tables.py`.
 - `engine.cpp`, `core.h`: the voice.
 - `display.cpp`, `display.h`: the screen.
-- `amp.h`: the suite's follower for the track's amp envelope, kept identical
-  in all six synths.
+- `amp.h`, `amp_curve.h`: the suite's follower for the track's amp envelope
+  and the OP-XY's envelope times and shapes it follows, kept identical in all
+  six synths.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run it after changing a shape or a wave, and commit
   both.
