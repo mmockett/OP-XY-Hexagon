@@ -16,6 +16,9 @@ With orbit, grit and detune at zero (the defaults), Orbit is a clean, still
 tone: glass's four waves mixed evenly, band-limited, with nothing between the
 harmonics. The OP-XY's own envelopes, filter, LFOs and effects do the rest.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Press any encoder to switch pages.
@@ -182,6 +185,12 @@ When nothing plays and nothing turns, the screen is still. Reduced motion
 holds the points at the top of the path and drops the pings. A reset or a
 track change shows the end state at once. `NoteTracker` follows the notes.
 
+Each point follows its note through the track's amp envelope (M2): it gathers
+speed and brightness over the attack, travels at the sustain's level while the
+note is held and slows and fades over the release, so it stops when its note
+does. If the envelope can't be read, a point runs at full speed while its note
+is held and coasts to a stop in about 0.15 s, as before.
+
 The device redraws what changes, so `display.cpp` spends a budget: at most 18
 nodes change a frame, however many notes sound. Each part works out where it
 should be and asks; what the budget refuses asks again next frame. Points move
@@ -253,8 +262,12 @@ the defaults, where the mix is still.
 - `waves.h`: the wave ROM, written by `tools/make_tables.py`.
 - `engine.cpp`, `core.h`: the voice.
 - `display.cpp`, `display.h`: the screen.
+- `amp.h`: the suite's follower for the track's amp envelope, kept identical
+  in all six synths.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run it after changing a shape or a wave, and commit
   both.
 - `tests/sound.cpp`: the sound and screen checks, run by `sdk.py test`.
 - `tests/churn.cpp`: the screen's cost and outlines, run by `sdk.py test`.
+- `tests/envelope.cpp`: the screen against the amp envelope (unchanged when
+  it is unknown, a short against a long one, the cost), run by `sdk.py test`.
