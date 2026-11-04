@@ -15,6 +15,17 @@ project.
 **Status: experimental.** All six pass the SDK's tests and have been played on
 the OP-XY, and their CPU use has been measured on it (below).
 
+All six are live in the [open-xy.com](https://open-xy.com) builder:
+[Wane](https://open-xy.com/#preview/machines/wane),
+[Bloom](https://open-xy.com/#preview/machines/bloom),
+[Hollow](https://open-xy.com/#preview/machines/hollow),
+[Orbit](https://open-xy.com/#preview/machines/orbit),
+[Bend](https://open-xy.com/#preview/machines/bend) and
+[Moth](https://open-xy.com/#preview/machines/moth). The builder installs the
+version the Open-XY catalog pins for each, which can be older than this
+repository's latest tag (`v1.6.0`): Wane `v1.1.0`, Bloom `v1.5.0`, Hollow
+`v1.3.0`, Orbit and Bend `v1.2.0`, Moth `v1.6.0`.
+
 ## The synths
 
 <table>
@@ -186,8 +197,8 @@ is 8.5% a voice.
 | Moth | 3.4% | ~27% |
 
 The OP-XY's own engines measure 1.6–2.7% a voice in the same test. Orbit and
-Bend are in that range; Wane, Hollow and Moth cost about twice as much, and
-Bloom about two and a half times. A full chord on one track is fine; several
+Bend are in that range; Wane, Bloom, Hollow and Moth cost up to about twice
+as much. A full chord on one track is fine; several
 tracks of big Bloom or Hollow chords at once, with effects, can run out. The
 test plays one setting; heavier settings cost more, and the screens are not
 included.

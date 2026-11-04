@@ -85,7 +85,7 @@ the control slots and depths the captions use.
 
 Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
 runs: one voice playing middle C with the first four controls at their
-midpoint costs **4.11%** of the 580,352-cycle audio block, about
+midpoint costs **4.10%** of the 580,352-cycle audio block, about
 23,800 cycles, so eight voices take about 33%. The OP-XY's own engines
 measure 1.6–2.7% a voice in the same test. The test plays one setting;
 heavier settings cost more.
