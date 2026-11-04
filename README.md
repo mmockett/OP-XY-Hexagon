@@ -177,9 +177,10 @@ All notes of one synth share some state across tracks: Wane's tape, Bloom's
 slow drift and Hollow's sympathy. Two tracks using the same synth will move
 together.
 
-Levels are matched across the set. An eight-note chord on any preset peaks
-between 0.4 and 0.8 of full scale, leaving room for the OP-XY's own filter and
-effects.
+Levels are matched across the set and with the other suites. A single note of
+any preset peaks at most at 0.4 of full scale (2 dB under the SDK's half-scale
+ceiling), and an eight-note chord's raw sum, before the OP-XY's velocity,
+envelope and volume, peaks between 0.55 and 1.2.
 
 Synth voices are mono in the Open-XY SDK, so Hollow's spread thickens each
 voice rather than panning. For width, send it to the OP-XY's chorus.

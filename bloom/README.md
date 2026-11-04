@@ -55,8 +55,8 @@ oo, oh, ah, eh and ee, and ee lifts the harmonics near 2.3 kHz 30 dB over oo.
 
 Loudness is held even across every control: a note's partial levels are
 scaled to a fixed root-sum-square, and they sum to at most 22000 (Q15), so
-one voice peaks at most at 0.21 of full scale (`outputPeakQ31`). Eight-note
-chords of the presets peak at about 0.43 to 0.62.
+one voice peaks at most at 0.39 of full scale (`outputPeakQ31`). Eight-note
+chords of the presets peak at about 0.8 to 1.1.
 
 ### Older sounds
 

@@ -19,13 +19,15 @@
 // Integer arithmetic only, 32-bit, with 16 x 16 multiplies in the sample loops.
 namespace orbit {
 namespace engine {
-const i32 loud = 310000000;            // a set's peak, Q31: 15500 (rom_peak) x 20000, 0.144 of full scale
+const i32 loud = 310000000;            // a set's peak, Q31: 15500 (rom_peak) x 20000, 0.144 of full scale before the table's 1.5625 x
 const i32 quietest = 9688;             // a mix this quiet or quieter is lifted 1.6 times, no more
 const i32 even = 140900000;            // a set's loudness, Q31 rms: loud / 2.2, unless its peak would pass loud
-const i32 ceiling = 434000000;         // both sets at once (1.4 x loud), where the fades are held
-const i32 peak = 436000000;            // with grit's rounding: definition.json's outputPeakQ31
+// The table holds each mixed wave at 1.5625 x (+3.9 dB), so a set peaks at
+// 0.225 of full scale and a chord of eight near full scale.
+const i32 ceiling = 678125000;         // both sets at once (1.4 x loud, 1.5625 x), where the fades are held
+const i32 peak = 681250000;            // with grit's rounding: definition.json's outputPeakQ31
 const u32 lowest_band = 40807059u;     // the increment of 419 Hz: above it, half the harmonics an octave
-const i32 loud_octaves = 1848619;      // log2(loud), Q16: 28.21 octaves
+const i32 loud_octaves = 1890819;      // log2(1.5625 loud), Q16: 28.85 octaves
 
 // The block's wave at a phase, Q14: point phase >> 25, interpolated by the
 // next 15 bits.
@@ -116,7 +118,7 @@ void bits(i32* out, i32 recip, i32 scale, i32 shift) {
 }
 
 // One band's four corners, weighted (Q14): into `sum` (Q28), or with Add,
-// added to it; with Final, into the table (Q14) instead.
+// added to it; with Final, into the table (Q14, at the output's 1.5625 x) instead.
 template <bool Add, bool Final>
 inline void corners(i32* sum, i16* table, const u32* words, i32 a, i32 b, i32 c, i32 d) {
     const i16 wa = static_cast<i16>(a), wb = static_cast<i16>(b), wc = static_cast<i16>(c), wd = static_cast<i16>(d);
@@ -126,7 +128,7 @@ inline void corners(i32* sum, i16* table, const u32* words, i32 a, i32 b, i32 c,
     for (u32 n = 0; n < 128; ++n, ++o, ++t, corner += 4) {
         i32 v = corner[0] * wa + corner[1] * wb + corner[2] * wc + corner[3] * wd;
         if (Add) v += *o;
-        if (Final) *t = static_cast<i16>(v >> 14);
+        if (Final) *t = static_cast<i16>((v >> 14) + (v >> 15) + (v >> 18));   // 1.5625 x, at most 24219
         else *o = v;
     }
 }

@@ -18,10 +18,10 @@ using pd::clamp;
 
 // Each wave's level, Q14: the reso waves' windows leave them a third of a sine's power.
 const i32 wave_gain[pd::waves] = {16384, 16384, 16384, 16384, 16384, 24576, 24576, 20480};
-// The voice's output gain: a line at its peak is 0.047 of full scale.
-const i32 gain = 1536;
+// The voice's output gain: a line at its peak is 0.0875 of full scale.
+const i32 gain = 2860;
 // The output's ceiling, Q31 (definition.json's outputPeakQ31).
-const i32 ceiling = 0x18000000;
+const i32 ceiling = 749731840;   // 0.349 of full scale
 // Line 2 fades out above 16 kHz, gone at pd::fastest.
 const u32 fade_from = 1558345273u;
 

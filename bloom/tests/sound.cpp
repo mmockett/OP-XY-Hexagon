@@ -13,7 +13,7 @@ using bloom::u32;
 
 const double rate = 44100.0, pi = 3.14159265358979323846;
 const i32 full = 0x7fffffff;
-const i32 declared_peak = 450600000;   // definition.json outputPeakQ31
+const i32 declared_peak = 833610000;   // definition.json outputPeakQ31
 int failures = 0;
 
 void check(bool ok, const char* what) {

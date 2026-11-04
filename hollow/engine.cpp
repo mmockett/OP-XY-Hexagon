@@ -198,19 +198,21 @@ inline void release(Mode& m, u32 increment, i32* acc, bool& written) {
     m.a = m.b = m.sa = m.sb = 0;
 }
 
-// Soft limit to half scale: unchanged below a quarter of full scale, then a
-// quadratic knee, y = m - o^2 / 2^31 for o = m - 2^29, reaching half scale at
-// three quarters. Most samples sit below the knee and return at once.
+// The voice's level, 1.28 x (41/32, +2.15 dB), then a soft limit to half
+// scale: unchanged below 0.32 of full scale (a quarter before the level), then
+// a quadratic knee, y = m - o^2 / (4 (2^30 - knee)) for o = m - knee, reaching
+// half scale at 0.68. Most samples sit below the knee and return at once.
 inline i32 soft_limit(i32 x) {
-    const i32 knee = kHalf / 2;
+    const i32 knee = 687865856, reach = 771751936, most = 1139213886;  // most x 41/32 = knee + reach
+    x = x > most ? most : x < -most ? -most : x;
+    x = x + (x >> 2) + (x >> 5);
     const i32 m = x < 0 ? -x : x;
     if (m <= knee) return x;
-    const i32 over = m - knee < kHalf ? m - knee : kHalf;
-    // The root, at most 32768, is held to 32767 so it squares 16 x 16: at
-    // 32768 the result is half scale either way, once clamped below.
-    const i32 root = over >> 15 < 32767 ? over >> 15 : 32767;
-    i32 y = knee + over - (low_by_low(root, root) >> 1);
-    y = y > kHalf ? kHalf : y;  // the truncated root can overshoot by a few thousandths of a dB
+    const i32 over = m - knee < reach ? m - knee : reach;
+    const i32 root = over >> 15;                 // at most 23552, so it squares 16 x 16
+    const i32 t = low_by_low(root, root);        // o^2 / 2^30; times 0.6953 (2^30 / (4 (2^30 - knee)) is 0.6957)
+    i32 y = knee + over - ((t >> 1) + (t >> 3) + (t >> 4) + (t >> 7));
+    y = y > kHalf ? kHalf : y;  // the truncated square can overshoot by a few thousandths of a dB
     return x < 0 ? -y : y;
 }
 

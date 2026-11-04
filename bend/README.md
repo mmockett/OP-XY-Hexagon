@@ -107,11 +107,11 @@ removes; a new voice's blocker starts at its waves' mean, so a note does not
 thump, and its level glides in over its first block, so it does not click.
 Each voice starts at its own place in the cycle, so a chord struck at once does
 not peak at once. The reso waves play 3.5 dB louder (1.5 times; reso3 1.25)
-for the power their windows take. A voice peaks at most at 0.1875 of full
+for the power their windows take. A voice peaks at most at 0.349 of full
 scale (`outputPeakQ31`, guarded by a clamp that engages less than once in a
 million samples, and only at the harshest corners). Eight-note chords of the presets
-peak between 0.42 and 0.71 of full scale; the loudest corner of the controls
-reaches 0.96.
+peak between 0.78 and 1.33 of full scale; the loudest corner of the controls
+reaches 1.79.
 
 ## Presets
 

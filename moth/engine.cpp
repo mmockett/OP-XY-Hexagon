@@ -51,13 +51,13 @@ const i32 kBessel[33] = {32767, 32257, 30751, 28319, 25073, 21164, 16771, 12092,
                          -3050, -224, 2489, 4936, 6982, 8523, 9485, 9833, 9568, 8727, 7380, 5624};
 
 const i32 kCutFloor = 917894;  // the gate's low-pass never closes below 3 Hz, Q31
-// The output: a full-scale fold with the gate fully open sounds at 0.105 of
+// The output: a full-scale fold with the gate fully open sounds at 0.148 of
 // full scale (Q31, times 4 for the output's shift). The offset's removal can
-// raise a folded wave's peak, so a voice stays within 0.2 of full scale,
-// under the declared peak (0.27, definition.json outputPeakQ31), and the
+// raise a folded wave's peak, so a voice stays within 0.28 of full scale,
+// under the declared peak (0.381, definition.json outputPeakQ31), and the
 // clamp only guarantees it.
-const i32 kLevel = 901943132;  // 0.105 * 2^33
-const i32 kPeak = 579820584;    // 0.27 of full scale
+const i32 kLevel = 1274028537;  // 0.148 * 2^33
+const i32 kPeak = 819018344;    // 0.381 of full scale
 
 // The modulator: each sample's offset to the carrier's phase, depth a
 // quarter of the index's phase per unit (I / 2 pi times 2^15). The sine and

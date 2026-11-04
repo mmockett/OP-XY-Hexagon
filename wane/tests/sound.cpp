@@ -13,7 +13,7 @@ using wane::i32;
 using wane::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
-const i32 half = 0x18000000;   // definition.json outputPeakQ31
+const i32 half = 0x20AAAAAB;   // definition.json outputPeakQ31
 const double cent = 65536.0 / 1200.0;   // Q16 octaves per cent
 int failures = 0;
 
