@@ -96,7 +96,10 @@ inline Push plan(i32 log2_loss, i32 bow, i32 breath) {
 // (da, db) a sample, and returns its phase. Kept lean for the Blackfin: the
 // table address worked out a sample ahead, so it is ready when read, and
 // amplitudes within +-4095 (clamp_amplitude), so their top halves multiply
-// as they are, 16 x 16. Out of line, so the loop has the registers to itself.
+// as they are, 16 x 16. Out of line, so the loop has the registers to itself,
+// and summed with q31::add, which GCC keeps in data registers (a plain sum
+// went through address registers, stalling each sample). It saturates only
+// where the plain sum would wrap, which no test or preset reaches.
 __attribute__((noinline)) u32 sound(i32* acc, u32 phase, u32 increment, i32 a, i32 b, i32 da, i32 db) {
     const opxy::i16* at = kSine + (phase >> 22);
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
@@ -105,7 +108,7 @@ __attribute__((noinline)) u32 sound(i32* acc, u32 phase, u32 increment, i32 a, i
         at = kSine + (phase >> 22);
         a += da;
         b += db;
-        acc[i] += sine * high_half(static_cast<u32>(a)) + cosine * high_half(static_cast<u32>(b));
+        acc[i] = opxy::q31::add(acc[i], sine * high_half(static_cast<u32>(a)) + cosine * high_half(static_cast<u32>(b)));
     }
     return phase;
 }
@@ -235,7 +238,7 @@ __attribute__((noinline)) void add_air(i32* acc, u32& seed_state, i32& hiss_stat
         i32 band = (hiss - slow) >> 15;
         band = band > 32767 ? 32767 : band < -32767 ? -32767 : band;
         const i32 breathy = low_by_low(band, air_gain);
-        acc[i] += (breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy);
+        acc[i] = opxy::q31::add(acc[i], breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy);
     }
     seed_state = seed;
     hiss_state = hiss;
