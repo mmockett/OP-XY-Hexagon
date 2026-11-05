@@ -328,6 +328,11 @@ inline void destroy(Voice& voice, Shared& shared, u32 owner) {
 // Controls: Breath, Body, Bright, Ring; Air, Vowel, Spread, Sympathy.
 inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
                    opxy::Parameters parameters, opxy::Pitch pitch) {
+    // A note's first block only plans its modes, in silence: the plan is the
+    // heaviest work a note does, and with it done here no block both plans and
+    // sounds. The note sounds, and other voices hear its pitch, from its
+    // second block: everything as before, 64 samples (1.45 ms) later.
+    const bool preparing = !voice.primed;
     // Controls glide over a few blocks, so Body and Vowel morph rather than step.
     for (u32 c = 0; c < 8; ++c) {
         const i32 target = control(parameters[c]);
@@ -340,11 +345,13 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     const u32 increment = pitch[0] < kLowestIncrement ? kLowestIncrement : pitch[0];
     const i32 octave = log2_q16(increment);
 
-    // This note's pitch, for the other voices.
-    ++shared.clock;
-    Note* note = claim(shared, voice, owner);
-    note->increment = increment;
-    note->stamp = shared.clock;
+    // This note's pitch, for the other voices, once it sounds.
+    if (!preparing) {
+        ++shared.clock;
+        Note* note = claim(shared, voice, owner);
+        note->increment = increment;
+        note->stamp = shared.clock;
+    }
 
     // Ring: the fundamental's per-block amplitude loss is 6.9078 * 64 / (T60 fs),
     // 2^(-6.640 - log2 T60).
@@ -361,14 +368,6 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     const i32 bowed = 32767 - (breath * breath >> 15), puff = 32767 - (rest * rest >> 15);
     const i32 blown = puff + ((32767 - puff) * kBowHiss >> 15);
     const i32 widen = breath_widen_log2(breath);
-    // Spread: the ensemble's copies this block.
-    ++voice.age;
-    const Chorus chorus = ensemble(voice, spread);
-
-    i32 acc[opxy::block_frames];
-    bool written = false;
-    u32 seed = voice.seed;
-
     // The body's modes: plans remade only when what they depend on moves.
     i32 fundamental;      // the first mode's level, for the sympathetic modes
     u32 power;            // the modes' steady power, roughly: bow^2 + 4 breath^2, echoes included
@@ -406,8 +405,19 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
         voice.planned_fundamental = fundamental;
         voice.planned_valid = 1;
     }
+    if (preparing) {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = 0;
+        return;
+    }
     fundamental = voice.planned_fundamental;
     power = voice.planned_power;
+    // Spread: the ensemble's copies this block.
+    ++voice.age;
+    const Chorus chorus = ensemble(voice, spread);
+
+    i32 acc[opxy::block_frames];
+    bool written = false;
+    u32 seed = voice.seed;
     for (u32 k = 0; k < kModes; ++k) {
         const Planned& q = voice.planned[k];
         Mode& m = voice.modes[k];
