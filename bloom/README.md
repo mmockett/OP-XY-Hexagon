@@ -14,6 +14,9 @@ chord brighter or darker together, so a big chord still audibly breathes
 instead of averaging out to a blur. Each note's evolution is deterministic:
 the same notes, played in the same order, sound the same.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Press any encoder to switch pages.
@@ -108,6 +111,12 @@ still. Motion settles within 0.2 s, and with reduced motion the screen jumps
 straight to its end state. The screen keeps its own copy of the drift, timed
 from the controls, because it cannot read the audio.
 
+The blossoms open and close with the sound. They follow the track's amp
+envelope (M2): they open over the attack, stay open as far as the sustain
+while notes are held and close over the release, and the breeze, pollen and
+drift slow with them. If the envelope can't be read, they open while notes are
+held and close within 0.2 s, as before.
+
 The device redraws what changes, so what moves does so in whole pixels and
 stepped sizes, and a frame redraws at most 48 of the meadow's nodes, the partials
 furthest from where they should be first, while the sun and the pollen take
@@ -154,6 +163,11 @@ less as their upper partials pass the cutoff and stop.
   blur's pitch noise and haze's beat to each partial, then ramps each
   partial's level across the 64-sample block and sums the sines.
 - `display.cpp`, `display.h`: the screen. `tests/churn.cpp` checks what it costs.
+- `amp.h`, `amp_curve.h`: the suite's follower for the track's amp envelope
+  and the OP-XY's envelope times and shapes it follows, kept identical in all
+  six synths.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run the script after changing a shape, and commit both.
 - `tests/sound.cpp`: the sound checks, run by `sdk.py test`.
+- `tests/envelope.cpp`: the screen against the amp envelope (unchanged when
+  it is unknown, a short against a long one, the cost), run by `sdk.py test`.

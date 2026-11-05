@@ -225,6 +225,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const u32 lit = held > 8 ? 8 : held;
     const bool reduced = input.reduced_motion != 0;
     const bool fresh = !state.initialized || state.track != input.track;
+    const bool struck = !fresh && (input.note_serial != state.serial || events.hold_started);
     u32& now = state.clock.blocks;
     if (fresh) {
         state.clock.rest = 0;
@@ -233,11 +234,10 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         for (u32 k = 0; k < 8; ++k) state.starts[k] = now - long_ago;
         state.sag_last = state.sag_before = now - long_ago;
     } else {
-        const bool started = input.note_serial != state.serial || events.hold_started;
         const u32 at = reduced ? now - long_ago : now;
         for (u32 k = state.lit; k < lit; ++k) state.starts[k] = at;
-        if (started && lit && lit <= state.lit) state.starts[lit - 1] = at;   // a pitch restruck, or one for another
-        if (started) { state.sag_before = state.sag_last; state.sag_last = at; }
+        if (struck && lit && lit <= state.lit) state.starts[lit - 1] = at;   // a pitch restruck, or one for another
+        if (struck) { state.sag_before = state.sag_last; state.sag_last = at; }
     }
     state.initialized = 1;
     state.track = input.track;
@@ -246,9 +246,15 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
 
     // The tape's speed eases to running while notes are held and back to a
     // stop when they are released, settling within 0.15 s; it is still otherwise.
-    const i32 target = held ? unit : 0;
+    // With the track's amp envelope known it runs as the sound does: it gathers
+    // speed over the attack, runs at the sustain's level while notes are held
+    // and slows to a stop over the release (amp.h), still easing within 0.15 s.
     const i32 dt = clamp(input.elapsed, 0, 102);
+    const i32 target = envelope_known(input.amp)
+        ? amp::follow(state.amp, input.amp, held != 0, struck, dt, fresh || reduced) >> 5
+        : held ? unit : 0;
     if (reduced) state.hold = 0;
+    else if (fresh) state.hold = target;
     else if (state.hold != target) {
         state.hold = target + floor_q10((state.hold - target) *
                                         static_cast<i32>(page_header_detail::remaining(static_cast<u32>(dt)) >> 6));

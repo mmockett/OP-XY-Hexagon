@@ -15,6 +15,9 @@ With the colouring controls at zero (detune, ring, warp, noise, lofi) Bend is
 a clean CZ saw at bend 25: two lines in unison, plucked by the contour. The
 OP-XY's own envelopes, filter, LFOs and effects do the rest.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Press any encoder to switch pages.
@@ -150,6 +153,13 @@ slide and the noise's roll (4 times a second) run only while notes are held.
 Every turn settles within 0.2 s; reduced motion and a track change jump
 straight to the end state.
 
+Each dial follows its note through the track's amp envelope (M2): it lights
+over the attack, holds at the sustain's level and goes out over the release,
+and its contour, line 2's slide and the noise's roll run until it is out. So
+the screen moves for as long as each note sounds. If the envelope can't be
+read, a dial lights while its note is held and goes out within 0.2 s, as
+before.
+
 The OP-XY redraws whatever changes in a frame, so the screen changes little,
 whether notes move it or a control does: the map follows the contour to 1/256
 of bend, the dots sit on whole pixels and follow it in steps of 1/32, and
@@ -212,10 +222,15 @@ captions (`detune_tenths`, `lofi_rate_tens`, `lofi_bits`, `noise_depth`).
 - `tables.h`: the cosine and powers of two, written by `tools/make_tables.py`.
 - `engine.cpp`, `core.h`: the voice.
 - `display.cpp`, `display.h`: the screen.
+- `amp.h`, `amp_curve.h`: the suite's follower for the track's amp envelope
+  and the OP-XY's envelope times and shapes it follows, kept identical in all
+  six synths.
 - `panel.svg.fragment`: the screen's artwork, written by
   `tools/make_panel.py`. Run the script after changing a shape, and commit both.
 - `tests/sound.cpp`: the sound and screen checks, run by `sdk.py test`.
 - `tests/churn.cpp`: the screen's cost and outlines, run by `sdk.py test`.
+- `tests/envelope.cpp`: the screen against the amp envelope (unchanged when
+  it is unknown, a short against a long one, the cost), run by `sdk.py test`.
 
 ## CPU
 

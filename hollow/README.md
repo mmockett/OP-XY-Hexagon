@@ -8,6 +8,9 @@ at the pitches of the other notes held, so a chord blooms into one sound.
 Long rings turn breath into slowly drifting pure tones; short ones give
 breathy, noisy formant bands.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Page 1 holds what is played most; page 2 sits under it, one alternate per encoder.
@@ -171,6 +174,14 @@ between frames still rings briefly. The clock runs only while something
 rings, slowing as it fades, so the screen is still when nothing sounds.
 Reduced motion, a reset and a track change show the end state at once (a
 still picture of the wave). Controls ease within about 0.15 s.
+
+With the track's amp envelope (M2) the modes follow the sound itself. The
+engine cannot see a release, so the resonance stays driven for as long as the
+envelope sounds, and no mode rings louder than the envelope lets it: the modes
+bloom at their own pace under the attack, settle to the sustain and fade over
+the release, and the partner rings on while two or more notes do. If the
+envelope can't be read, they bloom while a note is held and ring out over
+their ring times, as before.
 
 `tools/make_panel.py` draws the artwork from the bodies' real proportions
 and writes `panel.svg.fragment` (about 60 KB) and the generated block of

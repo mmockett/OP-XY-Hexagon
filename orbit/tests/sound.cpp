@@ -536,6 +536,7 @@ bool encloses(const orbit::Frame& f) {
 void screen() {
     std::memset(&state, 0, sizeof state);
     std::memset(&input, 0, sizeof input);
+    input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
     input.track = 1;
     orbit::display_reset(state);
     bool valid = true, enclosed = true;

@@ -583,6 +583,7 @@ double ribbon_swing(double tape_controls, bool* valid, bool* distinct) {
     wane::display_reset(state);
     opxy::draw::Input input;
     std::memset(&input, 0, sizeof input);
+    input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
     for (unsigned k = 0; k < 8; ++k) input.slots[k] = word(k >= 4 && k < 7 ? tape_controls : 1);
     input.slots[wane::controls::DRIFT] = word(tape_controls);
     input.track = 1;
@@ -615,6 +616,7 @@ unsigned wear_shown(double age, bool* still) {
     wane::display_reset(state);
     opxy::draw::Input input;
     std::memset(&input, 0, sizeof input);
+    input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
     for (unsigned k = 4; k < 7; ++k) input.slots[k] = word(1);
     input.slots[wane::controls::AGE] = word(age);
     input.track = 1;

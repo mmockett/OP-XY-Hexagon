@@ -307,21 +307,33 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const Vactrol held_law = vactrol(strike, glow);
     Vactrol released = held_law;
     released.sustain = 0;
+    // With the track's amp envelope known each voice follows it (amp.h). The
+    // engine cannot see a release, so a voice's vactrol stays lit as if held for
+    // as long as its envelope sounds; what the wings and eyespots show is the
+    // cell's light through the envelope, swelling with the attack, settling to
+    // the sustain and fading over the release.
+    const bool known = envelope_known(input.amp);
+    u32 struck_voices = 0;
+    for (u32 s = 0; s < strikes; ++s) struck_voices |= 1u << struck[s];
     i32 top = 0, sum = 0, led = 0;
     i32 cells[8];
     for (u32 k = 0; k < 8; ++k) {
         Lamp& lamp = state.lamps[k];
+        const i32 level = known ? amp::follow(state.amps[k], input.amp, lamp.held != 0, (struck_voices >> k) & 1u,
+                                              clamp(input.elapsed, 0, 102), still) : 0;
+        const bool driven = known ? amp::sounding(state.amps[k]) : lamp.held != 0;
         if (still) {
-            lamp.cell = lamp.held ? held_law.sustain : 0;
+            lamp.cell = driven ? held_law.sustain : 0;
         } else {
-            lamp.cell = gate_step(lamp.cell, lamp.since, dt, log2_dt, lamp.held ? held_law : released);
-            if (!lamp.held && lamp.cell < 4295000) lamp.cell = 0;  // 0.004: dark
+            lamp.cell = gate_step(lamp.cell, lamp.since, dt, log2_dt, driven ? held_law : released);
+            if (!driven && lamp.cell < 4295000) lamp.cell = 0;  // 0.004: dark
         }
         // The LED: held at 1 - strike, flashing as the note is struck.
         const i32 flash = strike && lamp.since < 6 * kFlash ? static_cast<i32>(decay(log2_q16(lamp.since | 1) - log2_q16(kFlash)) >> 1) : 0;
-        const i32 light = lamp.held ? (32767 - strike > flash ? 32767 - strike : flash) : (still ? 0 : flash);
+        const i32 steady = known ? (32767 - strike) * level >> 15 : 32767 - strike;
+        const i32 light = driven ? (steady > flash ? steady : flash) : (still ? 0 : flash);
         if (light > led) led = light;
-        cells[k] = lamp.cell >> 15;  // Q15
+        cells[k] = known ? (lamp.cell >> 15) * level >> 15 : lamp.cell >> 15;  // Q15
         if (cells[k] > top) top = cells[k];
         sum += cells[k];
         if (lamp.since < (60u << 16)) lamp.since += dt;

@@ -1,12 +1,8 @@
 {
   "schema": 1,
-  "sdk": "1.4",
+  "sdk": "1.10",
   "kind": "synth",
   "description": "A west-coast complex oscillator: an FM'd sine through a wavefolder into a vactrol lowpass gate that pings, holds and glows.",
-  "identity": {
-    "engine": 39,
-    "page": 112
-  },
   "presetDefaults": {
     "amp": {
       "attack": 5043,

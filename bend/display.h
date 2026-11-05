@@ -3,6 +3,8 @@
 #include "pd.h"
 
 namespace bend {
+#include "amp.h"   // inside the namespace: each machine's own copy of the suite's envelope follower
+
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
 using Frame = opxy::draw::Frame<2, 64, 256, 16, 16>;
 
@@ -47,5 +49,6 @@ struct DisplayState {
     opxy::u32 map_key;           // what the map outlines were drawn for
     opxy::i32 dots_bend;         // the bend the dots show, Q15: it follows in steps of 1/32
     opxy::u32 turn;              // frames drawn: where the beam is, and whose turn it is among the dials
+    amp::Follower amps[8];       // each dial's note through the track's amp envelope, when known (SDK 1.10)
 };
 }
