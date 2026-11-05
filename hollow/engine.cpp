@@ -406,6 +406,11 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
         voice.planned_valid = 1;
     }
     if (preparing) {
+        // While silent, read the sine table through once, a cache line (16
+        // entries) at a time, so the first block that sounds finds it in the
+        // cache instead of fetching it on top of a full block of sound.
+        const volatile opxy::i16* const table = kSine;
+        for (u32 i = 0; i < 1280; i += 16) static_cast<void>(table[i]);
         for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = 0;
         return;
     }
