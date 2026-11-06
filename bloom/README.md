@@ -126,26 +126,25 @@ slow with them. If the envelope can't be read, they open while notes are
 held and close within 0.2 s, as before.
 
 The device redraws what changes, so what moves does so in whole pixels and
-stepped sizes, and a frame redraws at most 48 of the meadow's nodes, the partials
-furthest from where they should be first, while the sun and the pollen take
-turns. The solid blossoms and dark halos still move, because they are the look,
-so the fast presets run well over the usual 20 nodes a frame. With a note held
+stepped sizes, and a frame redraws at most 15 of the meadow's nodes, the
+partials furthest from where they should be first, while the sun takes its
+turn. The stripes, the horizon and the dots' tracks are drawn once and never
+change; the hills rise as whole solids rather than reshaping. With a note held
 at 60 frames a second:
 
 | Preset | Nodes changed a frame, average | Peak |
 | --- | --- | --- |
-| Still Life | 1.9 | 49 |
-| Init | 2.9 | 38 |
-| Bloom | 16 | 50 |
-| Fog | 22 | 50 |
-| Tape Choir | 25 | 50 |
-| Seasick | 37 | 56 |
-| Juno Dusk | 42 | 56 |
-| Glass Bells | 48 | 56 |
-| Frost | 52 | 56 |
+| Init | 2.3 | 15 |
+| Frost | 12.8 | 16 |
+| Juno Dusk | 13.7 | 16 |
+| Bloom, Tape Choir, Glass Bells, Fog | 15.0 | 16 |
+| Seasick | 15.3 | 17 |
 
-The heaviest settings reach 54.3 on average with a peak of 59, and nothing
-changes at rest. `tests/churn.cpp` holds it to 60 and 60.
+Still Life, at `hold`, moves only its pairs' beating and its halos' shimmer.
+With the amp envelope known, through a long release, the heaviest settings
+average 6.0 a frame with a peak of 15, and nothing changes at rest.
+`tests/churn.cpp` holds every setting to 20 a frame on average and a peak of
+30 (before this screen it was 54.3 and 59 at the heaviest).
 
 ## CPU
 
