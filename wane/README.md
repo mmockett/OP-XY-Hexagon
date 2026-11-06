@@ -12,7 +12,7 @@ OP-XY's own envelopes, filter, LFOs and effects do the rest; the init preset
 has a slow attack and long release.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+SDK 1.10, on its `staging` branch.
 
 ## Controls
 
@@ -93,12 +93,15 @@ the control slots and depths the captions use.
 
 ## CPU
 
-Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, three
-runs: one voice playing middle C with the first four controls at their
-midpoint costs **4.10%** of the 580,352-cycle audio block, about
-23,800 cycles, so eight voices take about 33%. The OP-XY's own engines
-measure 1.6–2.7% a voice in the same test. The test plays one setting;
-heavier settings cost more.
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, as three
+captures of its sweep on a firmware holding v1.7.0's sound code (the screen
+runs outside the audio block and isn't measured): one voice playing middle C
+with the first four controls at their midpoint costs **3.81%** of the
+580,352-cycle audio block, so eight voices take about 30%, and its worst
+single block is **5.39%**. The heaviest setting in the sweep, Shape at 12.5%,
+costs **3.83%**. In the same firmware v1.6.0's Wane measured 4.50% at the
+midpoint, with a worst block of 5.46%. The OP-XY's own engines measure
+1.6–2.7% a voice in the same test.
 
 The SDK's host estimate (`sdk.py test`) is about 7,000 to 10,000 Blackfin
 instructions per voice block at the heaviest setting. Each voice runs its

@@ -15,7 +15,7 @@ instead of averaging out to a blur. Each note's evolution is deterministic:
 the same notes, played in the same order, sound the same.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+SDK 1.10, on its `staging` branch.
 
 ## Controls
 

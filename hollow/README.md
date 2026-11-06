@@ -9,7 +9,8 @@ Long rings turn breath into slowly drifting pure tones; short ones give
 breathy, noisy formant bands.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+SDK 1.10, on its `staging` branch. Each note sounds one block (64 samples,
+1.45 ms) after its key: Hollow plans the note in that silent block.
 
 ## Controls
 
@@ -230,12 +231,17 @@ Controls are 0..32767; use `control(q31)` to convert a Q31 value.
 
 ## CPU
 
-Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, at
-`v1.3.0`, as one capture of its sweep: one voice playing middle C with the
-first four controls at their midpoint costs **4.09%** of the 580,352-cycle
-audio block, about 23,800 cycles, so eight voices take about 33%. The heaviest
-setting in the sweep, Air at 100%, costs **4.53%**, so eight voices there take
-about 36%. The OP-XY's own engines measure 1.6–2.7% a voice at the midpoint.
+Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`, as three
+captures of its sweep, on Hollow's sound code just before v1.7.0 (v1.7.0 adds
+one read through its sine table in a note's silent first block): one voice
+playing middle C with the first four controls at their midpoint costs
+**4.46%** of the 580,352-cycle audio block, so eight voices take about 36%,
+and its worst single block is **5.46%**. The heaviest setting in the sweep,
+Air at 12.5%, costs **4.79%**, and the worst block over the whole sweep is
+**5.89%**. In the same firmware v1.6.0's Hollow measured 4.63% at the midpoint,
+a worst block of 5.64% there and 6.21% over the sweep. The OP-XY's own engines
+measure 1.6–2.7% a voice at the midpoint. The screen runs outside the audio
+block and isn't measured.
 
 The host estimate (`sdk.py test`) is about 7,800 Blackfin instructions per
 voice block at the heaviest setting (one note, so no sympathetic modes; the
