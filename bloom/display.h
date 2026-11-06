@@ -5,16 +5,15 @@ namespace bloom {
 #include "amp.h"   // inside the namespace: each machine's own copy of the suite's envelope follower
 
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
-// Two mutable outlines, the vowel's hills, each 64 points; every other shape
-// is authored and moved (tools/make_panel.py).
-const opxy::u32 hill_points = 64;
-using Frame = opxy::draw::Frame<2, hill_points, 126, 16, 16>;
+// No mutable outlines: every shape is authored and moved (tools/make_panel.py).
+using Frame = opxy::draw::Frame<0, 0, 111, 16, 16>;
 
-// Nodes: the two hills (outlines must come first), the header's bar, the sun
-// and its stripes, each partial's stem, halo, blossom and twin, the pollen,
-// then the horizon. The artwork draws them sun, hills, partials, pollen, horizon.
-const opxy::u32 hill_first = 0, hill_count = 2, header_first = 2, sun_node = 10, stripe_first = 11, stripe_count = 4,
-                partial_first = 15, partial_nodes = 4, mote_first = 111, mote_count = 14, horizon_node = 125;
+// Nodes: the header's bar, the sun, the vowel's two hills, each partial's
+// stem, halo, blossom and twin, then the four status dots. The artwork draws
+// them sun (its stripes over it), hills, halos, stems, blossoms, the ground
+// below the horizon, the horizon, the dots.
+const opxy::u32 header_first = 0, sun_node = 8, hill_first = 9, hill_count = 2, partial_first = 11, partial_nodes = 4,
+                dot_first = 107, dot_count = 4;
 
 // The screen's own copy of the drift: one meadow for the track, its note
 // time and weather clock advanced from elapsed time while notes are held (the

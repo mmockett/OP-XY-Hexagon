@@ -30,8 +30,8 @@ i32 amount(const State& s) { return s.open; }
 // The checksum of the scripted session with the envelope unknown, before the
 // screen read the envelope.
 const u32 kBefore = 3240300787u;
-const double kMean = 25;   // changed nodes a frame on average, held and through the release
-const int kPeak = 50;
+const double kMean = 20;   // changed nodes a frame on average, held and through the release
+const int kPeak = 30;
 
 i32 q31(double v) { return static_cast<i32>(v * 2147483647.0 + (v < 1 ? 0.5 : 0)); }
 const Envelope unknown = {envelope_unavailable, envelope_unavailable, envelope_unavailable, envelope_unavailable};

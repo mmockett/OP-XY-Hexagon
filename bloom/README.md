@@ -81,31 +81,39 @@ different settings and need their sound remade.
 
 ## Screen
 
-Below the two-page header, a meadow of partials stands under a low striped
-sun. Each partial is a stem with a blossom, placed across the screen by its
-pitch (log scale) and as tall as its level. The levels and pitches come from
+Below the two-page header, a low sun sits on the horizon, a silhouette: one
+flat light disc with four stripes knocked out of it. In front of it stands a
+meadow of partials, each a dark stem with a blossom, placed across the screen
+by its pitch (log scale, 88 px an octave) and as tall as its level in dB, down
+to a stub 54 dB below the loudest. The levels and pitches come from
 `spectrum.h`, for C3, so the meadow follows the controls the way the sound
 does:
 The screen still draws partials a voice leaves out for being too quiet to hear,
 so up to four stems can stand without sounding.
 
-- **tilt** slopes the meadow and raises the sun as the tone brightens.
+Under the horizon four status dots carry the stock look's grey code, one for
+each encoder in its grey (the first hollow, then dark, mid and light), each
+at its control's travel on the page the encoders turn.
+
+- **tilt** slopes the meadow and raises the sun as the tone brightens, from
+  half set to clear of the stripes.
 - **shape** shortens the even stems toward square, then cuts the pulse's
   notches into the meadow.
 - **stretch** spreads the partials to the right; the highest leave the screen.
-- **vowel** raises two hills behind the meadow, one at each formant, and the
-  stems under them grow tall. The hills wander with breath.
+- **vowel** raises two black mounds out of the ground, one at each formant,
+  cut into the sun, and the stems over them grow tall. The mounds wander with
+  breath.
 - **breath** makes the stems rise and fall while notes are held. The shared
-  weather lifts and lowers the sun, and pollen drifts up from the blossoms.
+  weather lifts and lowers the sun.
 - **blur** sets each blossom in a dark halo as wide as the partial's spread,
   which shimmers while notes are held.
 - **haze** splits each blossom into its detuned pair, apart by the detune;
   while notes are held the pair swells and shrinks in turn, a slowed-down beat.
 - **time** sets how fast the drift moves, and a breeze that nods the meadow.
-  At `hold` the scene turns white and stands still, but for a little pollen.
+  At `hold` the scene stands still.
 
-Holding notes opens and brightens the blossoms, and each new note swells
-them briefly. A slow breeze and a little pollen keep moving for as long as a
+Holding notes opens the blossoms, and each new note swells them briefly. A
+slow breeze keeps moving for as long as a
 note is held, whatever the controls. When no notes are held the screen stays
 still. Motion settles within 0.2 s, and with reduced motion the screen jumps
 straight to its end state. The screen keeps its own copy of the drift, timed
@@ -113,8 +121,8 @@ from the controls, because it cannot read the audio.
 
 The blossoms open and close with the sound. They follow the track's amp
 envelope (M2): they open over the attack, stay open as far as the sustain
-while notes are held and close over the release, and the breeze, pollen and
-drift slow with them. If the envelope can't be read, they open while notes are
+while notes are held and close over the release, and the breeze and drift
+slow with them. If the envelope can't be read, they open while notes are
 held and close within 0.2 s, as before.
 
 The device redraws what changes, so what moves does so in whole pixels and

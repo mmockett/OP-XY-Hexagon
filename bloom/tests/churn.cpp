@@ -5,9 +5,8 @@
 // solid parts within their sizes, the redraw budget kept, the animation lasting
 // as long as the note, none changing at rest. Also turning each control, whether
 // each control moves the drawing, and every caption's width.
-// The sun, the halos and the blossoms are solid because the screen looks wrong
-// without them, so the fast presets are over the 20 a frame of docs/screens.md:
-// these caps hold what it costs now, they aren't that budget.
+// The budget is the device's: on average at most 20 nodes a frame, a peak of
+// at most 30 (the meadow redraws at most 15 a frame, the sun takes its turn).
 #include "../display.cpp"
 #include <cstdio>
 #include <cstdlib>
@@ -19,8 +18,8 @@ using Picture = bloom::Frame;
 int failures = 0;
 bloom::DisplayState state;
 Picture frame, last;
-const double mean_budget = 60;
-const int peak_budget = 60;
+const double mean_budget = 20;
+const int peak_budget = 30;
 
 opxy::i32 q31(double v) { return v >= 1 ? 0x7fffffff : static_cast<opxy::i32>(v * 2147483647.0 + 0.5); }
 bool same(const Node& a, const Node& b) {
@@ -131,7 +130,7 @@ double travel(const Picture& a, const Picture& b) {
         const bool shown_n = n.x < hidden_x * unit, shown_m = m.x < hidden_x * unit;
         if (!shown_n && !shown_m) continue;
         double d = 0;
-        const bool ring = i >= bloom::partial_first && i < bloom::mote_first && (i - bloom::partial_first) % bloom::partial_nodes == 1;
+        const bool ring = i >= bloom::partial_first && i < bloom::dot_first && (i - bloom::partial_first) % bloom::partial_nodes == 1;
         if (shown_n != shown_m) d = ring ? (shown_n ? n : m).scale / 1024.0 * 12 : 4;
         else {
             d = (std::abs(n.x - m.x) + std::abs(n.y - m.y)) / 1024.0;
