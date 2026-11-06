@@ -13,10 +13,10 @@ matched levels and a shared layout, so they layer and swap cleanly within a
 project.
 
 **Status: experimental.** All six pass the SDK's tests and have been played on
-the OP-XY, and their CPU use has been measured on it (below). Their screens
-now follow each track's amp envelope, which needs Open-XY SDK 1.10.
-SDK 1.10 isn't released yet, so this version can't ship until it is; until
-then the builder installs the earlier versions listed below.
+the OP-XY, and their CPU use has been measured on it (below). In v1.7.0
+their screens follow each track's amp envelope, which needs Open-XY SDK 1.10,
+on its `staging` branch, and Hollow and Wane cost less, with the same sound.
+Hollow now sounds each note one block (1.45 ms) after its key.
 
 All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Wane](https://open-xy.com/#preview/machines/wane),
@@ -26,8 +26,10 @@ All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Bend](https://open-xy.com/#preview/machines/bend) and
 [Moth](https://open-xy.com/#preview/machines/moth). The builder installs the
 version the Open-XY catalog pins for each, which can be older than this
-repository's latest tag (`v1.6.0`): Wane `v1.1.0`, Bloom `v1.5.0`, Hollow
-`v1.3.0`, Orbit and Bend `v1.2.0`, Moth `v1.6.0`.
+repository's latest tag (`v1.7.0`): Wane `v1.1.0`, Bloom `v1.5.0`, Hollow
+`v1.3.0`, Orbit and Bend `v1.2.0`, Moth `v1.6.0`. Bloom, Orbit, Bend and Moth
+are moving to v1.7.0, which needs SDK 1.10; until the builder has it, build
+v1.7.0 from source (below).
 
 ## The synths
 
@@ -197,18 +199,24 @@ easing out. Nothing in the sound changes, and saved sounds play as before.
 
 Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`: one voice
 playing middle C with the first four controls at their midpoint, as a share of
-the OP-XY's audio block. Bloom is from one capture at `v1.5.0`, Hollow from one at `v1.3.0`,
-Moth from one at `v1.4.0`, the others from three runs at `v1.1.0`. Heavier settings cost more: Bloom's heaviest
-is 8.5% a voice.
+the OP-XY's audio block: the mean over the test, and its worst single block.
+Wane and Hollow are from three captures of one firmware holding v1.7.0's sound
+code (Hollow's as it was just before it learned to read its sine table while a
+note is still silent), Bloom from one capture at `v1.5.0`, Moth from one at
+`v1.4.0`, Orbit and Bend from three runs at `v1.1.0`. Heavier settings cost
+more: Bloom's heaviest is 8.5% a voice.
 
-| Synth | One voice | Eight voices |
-| --- | ---: | ---: |
-| Wane | 4.1% | ~33% |
-| Bloom | 4.1% | ~33% |
-| Hollow | 4.1% | ~33% |
-| Orbit | 2.4% | ~19% |
-| Bend | 2.6% | ~21% |
-| Moth | 3.4% | ~27% |
+| Synth | One voice | Worst block | Eight voices |
+| --- | ---: | ---: | ---: |
+| Wane | 3.81% | 5.39% | ~30% |
+| Bloom | 4.1% | – | ~33% |
+| Hollow | 4.46% | 5.46% | ~36% |
+| Orbit | 2.4% | – | ~19% |
+| Bend | 2.6% | – | ~21% |
+| Moth | 3.4% | – | ~27% |
+
+In the same firmware, v1.6.0's Wane measured 4.50% a voice and Hollow 4.63%,
+with worst blocks of 5.46% and 5.64%.
 
 The OP-XY's own engines measure 1.6–2.7% a voice in the same test. Orbit and
 Bend are in that range; Wane, Bloom, Hollow and Moth cost up to about twice

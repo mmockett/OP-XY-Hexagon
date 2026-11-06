@@ -17,7 +17,7 @@ tone: glass's four waves mixed evenly, band-limited, with nothing between the
 harmonics. The OP-XY's own envelopes, filter, LFOs and effects do the rest.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+SDK 1.10, on its `staging` branch.
 
 ## Controls
 
