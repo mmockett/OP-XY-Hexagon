@@ -43,29 +43,6 @@ int changed_nodes() {
     }
     return changed;
 }
-// The device's rules for each reshaping outline: neighbours at least 1/8 px
-// apart, a closing edge of at least 1/4 px, some area, no turn straight back.
-bool outlines_ok(const char* name, int t) {
-    for (unsigned p = 0; p < Picture::path_count; ++p) {
-        const auto& path = frame.paths[p];
-        const unsigned n = Picture::point_count;
-        long long twice = 0;
-        for (unsigned i = 0; i < n; ++i) {
-            const Point& a = path.points[i];
-            const Point& b = path.points[(i + 1) % n];
-            const Point& c = path.points[(i + 2) % n];
-            const long long ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
-            twice += static_cast<long long>(a.x) * b.y - static_cast<long long>(b.x) * a.y;
-            const char* fault = nullptr;
-            if (i + 1 < n && std::llabs(ux) < unit / 8 && std::llabs(uy) < unit / 8) fault = "points under 1/8 px apart";
-            if (i + 1 == n && ux * ux + uy * uy < unit * unit / 16) fault = "closing edge under 1/4 px";
-            if (ux * vy - uy * vx == 0 && ux * vx + uy * vy < 0) fault = "a turn straight back";
-            if (fault) { std::printf("FAIL %s, frame %d, path %u: %s\n", name, t, p, fault); ++failures; return false; }
-        }
-        if (std::llabs(twice) < unit * unit / 10) { std::printf("FAIL %s, frame %d, path %u: no area\n", name, t, p); ++failures; return false; }
-    }
-    return true;
-}
 // The solid parts that move stay at their sizes: blossoms, authored 4 px with
 // half a pixel of stroke, within 8.5 px; halos, authored 12 px, within 19 px.
 bool fills_ok(const char* name, int t) {
@@ -98,7 +75,7 @@ Result play(const double* c, int notes, int hold, const char* name) {
         last = frame;
         bloom::display(state, input, frame);
         if (!valid(frame)) { std::printf("FAIL %s, frame %d: not valid\n", name, t); ++failures; return r; }
-        if (!outlines_ok(name, t) || !fills_ok(name, t)) return r;
+        if (!fills_ok(name, t)) return r;
         const int changed = changed_nodes();
         if (t < hold) sum += changed;
         if (t >= hold * 2 / 3 && t < hold) r.late += changed;

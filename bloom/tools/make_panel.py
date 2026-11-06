@@ -139,6 +139,40 @@ for i, (fill, stroke, width) in enumerate(PALETTE):
     out.append(f'<circle id="{ID}_palette_{i}" cx="640" cy="0" r="1" fill="{fill}" stroke="{stroke}" '
                f'stroke-width="{num(width)}"/>')
 out.append("</g>")
+
+
+# Every authored outline as the device draws it: no neighbouring points within
+# an eighth of a pixel, no closing edge under a quarter, some area, no turn
+# straight back. Nodes move without turning, at scales of 1 or more for the
+# outlines (circles are the renderer's own).
+def faults(points):
+    found, n = [], len(points)
+    for i in range(n - 1):
+        if abs(points[i + 1][0] - points[i][0]) < 0.125 and abs(points[i + 1][1] - points[i][1]) < 0.125:
+            found.append("points merge")
+    if max(abs(points[0][0] - points[-1][0]), abs(points[0][1] - points[-1][1])) < 0.25:
+        found.append("a closing edge under a quarter of a pixel")
+    if abs(sum(points[i][0] * points[(i + 1) % n][1] - points[(i + 1) % n][0] * points[i][1] for i in range(n))) < 0.1:
+        found.append("no area")
+    for i in range(n):
+        a, b, c = points[i - 1], points[i], points[(i + 1) % n]
+        u, v = (b[0] - a[0], b[1] - a[1]), (c[0] - b[0], c[1] - b[1])
+        lu, lv = math.hypot(*u), math.hypot(*v)
+        if lu and lv and (u[0] * v[0] + u[1] * v[1]) / (lu * lv) < -0.995:
+            found.append("a turn straight back")
+    return found
+
+
+bad = 0
+for element in out:
+    if element.startswith("<path") and ' d="' in element:
+        d = element.split(' d="', 1)[1].split('"', 1)[0]
+        points = [tuple(float(v) for v in token.split(",")) for token in d.replace("M", " ").replace("L", " ").replace("Z", " ").split()]
+        for fault in faults(points):
+            print("outline:", fault, element[:70])
+            bad += 1
+if bad:
+    raise SystemExit(f"{bad} outlines break the device's rules")
 target = ROOT / "panel.svg.fragment" if len(sys.argv) < 3 else pathlib.Path(sys.argv[2])
 target.write_text("\n".join(out) + "\n")
 print("wrote", target)
