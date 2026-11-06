@@ -50,6 +50,7 @@ bool same(const Node& a, const Node& b) {
 bool shown(const Node& n) { return n.x < hidden_x * unit; }
 void prepare(Input& input, const double* c) {
     std::memset(&input, 0, sizeof input);
+    input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
     for (int k = 0; k < 8; ++k) input.slots[k] = q31(c[k]);
     for (int k = 0; k < 4; ++k) { input.parameters[k] = input.slots[k]; input.shown[k] = static_cast<opxy::u8>(k); }
     input.track = 1;

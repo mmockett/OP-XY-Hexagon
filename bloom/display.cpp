@@ -230,12 +230,16 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     page_header(state.header, input, frame, titles, values, header_first, slots);
 
     // Notes: held opens the blossoms, each start swells them; a reset, a track
-    // change or reduced motion shows the end state at once.
-    state.notes.update(input);
+    // change or reduced motion shows the end state at once. With the track's amp
+    // envelope known they open as the sound does: over the attack, to the
+    // sustain's level while notes are held, closing over the release (amp.h).
+    const NoteEvents events = state.notes.update(input);
     const bool held = input.held_notes > 0 && input.held_notes <= 128;
     const bool snap = !state.initialized || state.track != input.track || input.reduced_motion;
     const i32 elapsed = clamp(input.elapsed, 0, 102);
-    const i32 opened = held ? 65536 : 0;
+    const bool struck = !snap && (input.note_serial != state.serial || events.hold_started);
+    const i32 opened = envelope_known(input.amp) ? amp::follow(state.amp, input.amp, held, struck, elapsed, snap) << 1
+                                                 : held ? 65536 : 0;
     if (snap) {
         state.open = opened;
         state.pop = 0;

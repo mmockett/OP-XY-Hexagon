@@ -89,9 +89,16 @@ inline i32 blep(u32 distance, u32 reciprocal) {
 // A band-limited saw of a phase, Q15, given the step that reached it.
 inline i32 saw(u32 phase, u32 step, u32 reciprocal) {
     i32 s = static_cast<i32>(phase >> 16) - 32768;
-    if (phase < step) s += blep(phase, reciprocal);                 // just past the reset
-    else if (phase > 0u - step) s -= blep(0u - phase, reciprocal);  // just before it
+    if (__builtin_expect(phase < step, 0)) s += blep(phase, reciprocal);                 // just past the reset
+    else if (__builtin_expect(phase > 0u - step, 0)) s -= blep(0u - phase, reciprocal);  // just before it
     return s;
+}
+// A triangle in phase with the sine (lowest at phase 0), Q15: 2 f - 32767 for
+// f the phase's top half folded at its middle, which with g that top half
+// signed is |2 g + 1| - 32768.
+inline i32 triangle_wave(u32 phase) {
+    const i32 twice = static_cast<i32>(phase | 0x8000u) >> 15;  // 2 g + 1
+    return (twice < 0 ? -twice : twice) - 32768;
 }
 
 // A sine in phase with the triangle (lowest at phase 0), Q15: tape.h's
@@ -143,42 +150,109 @@ inline Shape shape_of(i32 control) {
     return m;
 }
 
-// One oscillator over a block, added into `out`: its increment glides from the
-// last block's to `target`. Sine, Triangle, Saw and Pulse say which parts the
-// shape uses.
-template <bool Sine, bool Triangle, bool Saw, bool Pulse>
-inline void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 target, const Shape& m) {
+// One oscillator over a block, into `out` (the first oscillator writes it,
+// the second adds): its increment glides from the last block's to `target`.
+// Sine, Triangle, Saw and Pulse say which parts the shape uses. Each kind is
+// its own function, so its loop has the registers to itself.
+template <bool Sine, bool Triangle, bool Saw, bool Pulse, bool First>
+__attribute__((noinline)) void oscillate(i32* out, u32& phase_state, u32& increment_state, u32 target, const Shape& m) {
     u32 phase = phase_state, increment = increment_state;
     const i32 slope = (static_cast<i32>(target) - static_cast<i32>(increment)) / 64;
     const u32 widest = (increment > target ? increment : target) | 1u;
     const u32 reciprocal = 0xffffffffu / widest;
+    const i32 sine = m.sine, triangle = m.triangle, saw_level = m.saw, pulse = m.pulse;
+    const u32 width = m.width;
     for (unsigned i = 0; i < opxy::block_frames; ++i) {
         const u32 step = increment;
         increment += static_cast<u32>(slope);
         phase += step;
         i32 value = 0;
-        if (Saw) value += m15(saw(phase, step, reciprocal), m.saw);
-        if (Sine) value += m15(sine_wave(phase), m.sine);
-        if (Triangle) {
-            const u32 folded = phase >> 16;
-            value += m15(2 * static_cast<i32>(folded < 32768u ? folded : 65535u - folded) - 32767, m.triangle);
-        }
-        if (Pulse) value -= m15(saw(phase + m.width, step, reciprocal), m.pulse);
-        out[i] += value;
+        if (Saw) value = m15(saw(phase, step, reciprocal), saw_level);
+        if (Sine) value = m15(sine_wave(phase), sine);
+        if (Triangle) value += m15(triangle_wave(phase), triangle);
+        if (Pulse) value -= m15(saw(phase + width, step, reciprocal), pulse);
+        out[i] = First ? value : out[i] + value;
     }
     phase_state = phase;
     increment_state = target;
 }
+template <bool First>
 inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Shape& m) {
-    if (m.pulse) oscillate<false, false, true, true>(out, phase, increment, target, m);
-    else if (m.sine) oscillate<true, true, false, false>(out, phase, increment, target, m);
-    else if (m.triangle) oscillate<false, true, true, false>(out, phase, increment, target, m);
-    else oscillate<false, false, true, false>(out, phase, increment, target, m);
+    if (m.pulse) oscillate<false, false, true, true, First>(out, phase, increment, target, m);
+    else if (m.sine) oscillate<true, true, false, false, First>(out, phase, increment, target, m);
+    else if (m.triangle) oscillate<false, true, true, false, First>(out, phase, increment, target, m);
+    else oscillate<false, false, true, false, First>(out, phase, increment, target, m);
 }
 
-// x (Q31, |x| < 2^31 / 3) times c (Q15) with one 16 x 16 multiply; the low
-// 16 bits of x are dropped (-90 dB), which these filters never hear.
-inline i32 m31(i32 x, i32 c) { return static_cast<i32>(static_cast<opxy::i16>(x >> 16)) * static_cast<opxy::i16>(c) * 2; }
+// The voice's passes over a block, after the oscillators. Kept out of line so
+// each loop has the registers to itself. Their products are written plainly:
+// every operand fits 16 bits, so they equal m15's 16-bit forms, and plain
+// they cost GCC fewer instructions.
+namespace {
+// The sub (a triangle) and the breath, into the mix; the noise kept for the hiss.
+__attribute__((noinline)) void sources(i32* mix, i32* white, u32& phase, u32 step, i32 slope, u32& noise_state,
+                                       i32 sub, i32 breath) {
+    u32 sub_phase = phase, noise = noise_state;
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        sub_phase += step;
+        step += static_cast<u32>(slope);
+        const i32 sub_wave = triangle_wave(sub_phase);
+        noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
+        const i32 noise_now = static_cast<i32>(noise >> 17) - 16384;   // Q15, +-0.5
+        white[i] = noise_now;
+        mix[i] += (sub_wave * sub >> 15) + (noise_now * breath >> 15);
+    }
+    phase = sub_phase;
+    noise_state = noise;
+}
+// Soft saturation: the voice in Q31 (peaking near a third of full scale)
+// driven into x - x^3 / 3 (the cube at 16 bits), then levelled back down by
+// `gain` and halved, ahead of the filters so they darken what it adds. The mix
+// stays within 2^18, so its Q31 form's top half is mix / 8; driven and
+// clipped, the top half of that is c below, and the result,
+// (c - c^3 / 3 in Q31) x gain / 2, is exactly (c - c^3 / 3) x gain.
+__attribute__((noinline)) void saturate(i32* mix, i32 drive, i32 gain, i32 step) {
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        const i32 c = clamp((mix[i] >> 3) * drive, -0x07ffffff, 0x07ffffff) >> 12;
+        const i32 cube = ((c * c >> 15) * c >> 15) * 10923 >> 15;
+        mix[i] = (c - cube) * gain;
+        gain += step;
+    }
+}
+// The filters take x (Q31, |x| < 2^31 / 3) times c (Q15, 0..32767) as the
+// top half of x times 2 c: the low 16 bits of x are dropped (-90 dB), which
+// these filters never hear.
+// The warm low-pass: two poles.
+__attribute__((noinline)) void lowpass(i32* mix, i32* state, i32 low) {
+    const i32 twice = low * 2;
+    i32 low_1 = state[0], low_2 = state[1];
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        low_1 += ((mix[i] - low_1) >> 16) * twice;
+        low_2 += ((low_1 - low_2) >> 16) * twice;
+        mix[i] = low_2;
+    }
+    state[0] = low_1;
+    state[1] = low_2;
+}
+// The head's loss (two poles), then the voice is tripled: 1.5 x. Hiss: the
+// noise's first difference, bright, under the music.
+__attribute__((noinline)) void head_out(i32* output, const i32* mix, const i32* white, i32* state, i32& last_white,
+                                        i32 head, i32 hiss) {
+    const i32 twice = head * 2;
+    i32 worn = state[0], heard = state[1], last = last_white;
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        worn += ((mix[i] - worn) >> 16) * twice;
+        heard += ((worn - heard) >> 16) * twice;
+        const i32 noise_now = white[i];
+        const i32 out = heard + (noise_now - last) * hiss;
+        last = noise_now;
+        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+    }
+    state[0] = worn;
+    state[1] = heard;
+    last_white = last;
+}
+}
 
 // The tape's next block: its pitch, with the start sag, and how well the
 // worn head touches it (a new random target every 0.19 s, eased).
@@ -277,10 +351,9 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     const i32 sub_slope = (static_cast<i32>(target[0] >> 1) - static_cast<i32>(sub_increment)) / 64;
 
     i32 mix[opxy::block_frames];
-    for (unsigned i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
     const Shape shape = shape_of(p[SHAPE]);
-    oscillate(mix, voice.phase[0], voice.increment[0], target[0], shape);
-    oscillate(mix, voice.phase[1], voice.increment[1], target[1], shape);
+    oscillate<true>(mix, voice.phase[0], voice.increment[0], target[0], shape);
+    oscillate<false>(mix, voice.phase[1], voice.increment[1], target[1], shape);
 
     // Warmth: a darker low-pass (17.8 kHz down to 370 Hz at 220 Hz, following
     // the keyboard by up to half as it closes), more sub, a breath of noise,
@@ -304,43 +377,13 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     const i32 level = makeup;                                       // Q15
     const i32 level_step = (level - voice.level) / 64;
 
-    u32 sub_phase = voice.phase[2], sub_step = sub_increment, noise = voice.noise;
-    i32 low_1 = voice.low[0], low_2 = voice.low[1], worn = voice.head[0], heard = voice.head[1];
-    i32 last = voice.hiss, gain = voice.level;
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
-        sub_phase += sub_step;
-        sub_step += static_cast<u32>(sub_slope);
-        const u32 folded = sub_phase >> 16;
-        const i32 sub_wave = 2 * static_cast<i32>(folded < 32768u ? folded : 65535u - folded) - 32767;
-        noise ^= noise << 13; noise ^= noise >> 17; noise ^= noise << 5;
-        const i32 white = static_cast<i32>(noise >> 17) - 16384;   // Q15, +-0.5
-        // The voice in Q31, peaking near a third of full scale.
-        const i32 x = (mix[i] + m15(sub_wave, sub) + m15(white, breath)) * 8192;
-        // Soft saturation: driven into x - x^3 / 3 (the cube at 16 bits), then
-        // levelled back down by `gain` and halved, ahead of the filters so
-        // they darken what it adds.
-        const i32 u = clamp((x >> 16) * drive, -0x07ffffff, 0x07ffffff) * 16;
-        const i32 u15 = u >> 16;
-        const i32 warm = m31(u - m15(m15(m15(u15, u15), u15), 10923) * 65536, gain) / 2;
-        low_1 += m31(warm - low_1, low);
-        low_2 += m31(low_1 - low_2, low);
-        // The head's loss, then the voice is tripled: 1.5 x.
-        worn += m31(low_2 - worn, head);
-        heard += m31(worn - heard, head);
-        gain += level_step;
-        // Hiss: the noise's first difference, bright, under the music.
-        const i32 hissing = (white - last) * hiss;
-        last = white;
-        const i32 out = heard + hissing;
-        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
-    }
-    voice.phase[2] = sub_phase;
-    voice.noise = noise;
-    voice.low[0] = low_1;
-    voice.low[1] = low_2;
-    voice.head[0] = worn;
-    voice.head[1] = heard;
-    voice.hiss = last;
+    // The rest runs as short passes over the block (engine.cpp's passes), each
+    // with few enough live values that the Blackfin keeps them in registers.
+    i32 white[opxy::block_frames];
+    sources(mix, white, voice.phase[2], sub_increment, sub_slope, voice.noise, sub, breath);
+    saturate(mix, drive, voice.level, level_step);
     voice.level = level;
+    lowpass(mix, voice.low, low);
+    head_out(output, mix, white, voice.head, voice.hiss, head, hiss);
 }
 }

@@ -241,7 +241,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // A track change or reset shows the end state at once, as reduced motion always does.
     const bool fresh = !state.started || !state.notes.initialized || state.notes.track != input.track;
     const bool jump = fresh || input.reduced_motion;
-    state.notes.update(input);
+    const NoteEvents events = state.notes.update(input);
     const i32 dt = clamp(input.elapsed, 0, 102);
 
     // The controls as the screen shows them: each eases to a turn in about
@@ -265,19 +265,32 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // Notes: each mode blooms while a note is held (as fast as the engine's
     // resonance fills: slower with a longer ring, sooner with more breath,
     // high modes first) and rings out over its own ring time once released.
+    //
+    // With the track's amp envelope known the modes follow the sound instead:
+    // the engine cannot see a release, so the resonance stays driven for as long
+    // as the envelope sounds, and no mode rings louder than the envelope lets it
+    // (amp.h). They bloom at their own pace under the attack, settle to the
+    // sustain's level and fade over the release, going still with the sound.
     const u32 held = input.held_notes <= 128 ? input.held_notes : 0;
+    const bool known = envelope_known(input.amp);
+    const bool struck = !fresh && (input.note_serial != state.serial || events.hold_started);
+    const i32 level = known ? amp::follow(state.amp, input.amp, held != 0, struck, dt, jump) : 0;
+    if (!known || !amp::sounding(state.amp)) state.chord = 0;
+    else if (held) state.chord = held;
+    const bool driven = known ? amp::sounding(state.amp) : held != 0;
+    const bool paired = known ? state.chord >= 2 : held >= 2;
     const i32 coupling = sympathy * (11469 + (21299 * sympathy >> 15)) >> 15;   // as the engine's, Q15
     const i32 echo_ring = ring_log2_seconds(ring, body) + coupling * 3 - widen;  // up to 2.8 times longer
     if (fresh) state.tau = 0;
     if (jump) {
-        for (u32 k = 0; k < kModes; ++k) state.energy[k] = held ? 32768 : 0;
-        state.echo = held >= 2 && coupling ? 32768 : 0;
+        for (u32 k = 0; k < kModes; ++k) state.energy[k] = driven ? 32768 : 0;
+        state.echo = paired && coupling ? 32768 : 0;
     } else {
         for (u32 k = 0; k < kModes; ++k) {
             i32& e = state.energy[k];
-            if (held) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(sound.ring[k] - 169408) + 3277)) >> 1) >> 15;
+            if (driven) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(sound.ring[k] - 169408) + 3277)) >> 1) >> 15;
             else e -= e * ((65536 - decay(dt, exp2_q16(sound.ring[k] - 131072))) >> 1) >> 15;
-            if (!held && e < lit_floor) e = 0;
+            if (!driven && e < lit_floor) e = 0;
         }
         // A note started and released between frames still rings.
         const u32 starts = input.note_serial - state.serial;
@@ -285,9 +298,13 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             for (u32 k = 0; k < kModes; ++k) state.energy[k] = state.energy[k] > 9830 ? state.energy[k] : 9830;
         // The sympathetic partner blooms slowly while two or more notes ring together.
         i32& e = state.echo;
-        if (held >= 2 && coupling) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(echo_ring - 103872))) >> 1) >> 15;
+        if (paired && coupling) e += (32768 - e) * ((65536 - decay(dt, exp2_q16(echo_ring - 103872))) >> 1) >> 15;
         else e -= e * ((65536 - decay(dt, exp2_q16(echo_ring - 131072))) >> 1) >> 15;
-        if (e < lit_floor && !(held >= 2 && coupling)) e = 0;
+        if (e < lit_floor && !(paired && coupling)) e = 0;
+    }
+    if (known) {
+        for (u32 k = 0; k < kModes; ++k) state.energy[k] = state.energy[k] < level ? state.energy[k] : level;
+        state.echo = state.echo < level ? state.echo : level;
     }
     state.serial = input.note_serial;
     state.held = held;

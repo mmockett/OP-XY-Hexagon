@@ -140,7 +140,7 @@
     "sharedBytes": 32,
     "outputPeakQ31": 402653184,
     "display": {
-      "stateBytes": 116,
+      "stateBytes": 132,
       "stateAlignment": 4,
       "paths": 4,
       "points": 64,

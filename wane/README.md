@@ -11,6 +11,9 @@ clean, steady pad: two saws 8 cents apart through a gentle low-pass. The
 OP-XY's own envelopes, filter, LFOs and effects do the rest; the init preset
 has a slow attack and long release.
 
+**Status:** the screen follows the track's amp envelope, which needs Open-XY
+SDK 1.10. SDK 1.10 isn't released yet, so this version can ship once it is.
+
 ## Controls
 
 Press any encoder to switch pages. Each control is plainly heard by a quarter
@@ -38,6 +41,13 @@ play wider wow, flutter, sag, drift and detune than they did.
 A compact cassette fills the middle of the page, drawn to real proportions
 (100.4 × 63.8 mm), with the oscillator on the left and a needle for each held
 note on the right. It is still until you play or turn something.
+
+The tape runs as long as the sound does. It follows the track's amp envelope
+(M2): it gathers speed over the attack, runs at the sustain's level while notes
+are held and slows to a stop over the release, so a long release keeps the
+reels turning and a short one stops them with the sound. The needles still
+show the held notes. If the envelope can't be read, the tape runs while notes
+are held and stops within 0.15 s of the last release, as before.
 
 - **osc** shows two cycles of the oscillator: shape morphs it from sine
   through triangle, saw and square to a narrow pulse, and warmth rounds it off. Detune

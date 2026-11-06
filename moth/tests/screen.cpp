@@ -26,6 +26,7 @@ struct Player {
     opxy::draw::Input input;
     Player(const double* controls, u32 page) {
         std::memset(&input, 0, sizeof input);
+        input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
         for (u32 i = 0; i < 8; ++i) input.slots[i] = static_cast<i32>(controls[i] * 2147483647.0);
         for (u32 i = 0; i < 4; ++i) {
             input.shown[i] = static_cast<opxy::u8>(i + 4 * page);

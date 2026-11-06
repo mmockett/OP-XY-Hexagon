@@ -2,6 +2,8 @@
 #include <opxy/page_header.hpp>
 
 namespace bloom {
+#include "amp.h"   // inside the namespace: each machine's own copy of the suite's envelope follower
+
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
 // Two mutable outlines, the vowel's hills, each 64 points; every other shape
 // is authored and moved (tools/make_panel.py).
@@ -30,5 +32,6 @@ struct DisplayState {
     opxy::u32 serial;     // the note-start serial last seen
     opxy::u32 track;
     opxy::u32 initialized;
+    amp::Follower amp;    // the track's amp envelope as the blossoms follow it, when known (SDK 1.10)
 };
 }

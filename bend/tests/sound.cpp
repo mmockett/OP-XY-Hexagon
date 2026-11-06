@@ -592,6 +592,7 @@ struct Screen {
         std::memset(&state, 0, sizeof state);
         std::memset(&frame, 0, sizeof frame);
         std::memset(&input, 0, sizeof input);
+        input.amp.attack = input.amp.decay = input.amp.sustain = input.amp.release = opxy::draw::envelope_unavailable;   // unknown: tests/envelope.cpp has it known
         bend::display_reset(state);
         input.track = 1;
         for (unsigned k = 0; k < 4; ++k) input.shown[k] = static_cast<opxy::u8>(k);

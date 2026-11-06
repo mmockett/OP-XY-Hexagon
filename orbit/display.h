@@ -3,6 +3,8 @@
 #include "vector.h"
 
 namespace orbit {
+#include "amp.h"   // inside the namespace: each machine's own copy of the suite's envelope follower
+
 // Matches resources.display in definition.json: paths, points, nodes, texts, palette.
 using Frame = opxy::draw::Frame<3, 64, 253, 16, 16>;
 
@@ -49,5 +51,6 @@ struct DisplayState {
     opxy::u32 sweep;           // the beam's place along the wave, Q32 of its width
     opxy::u32 frames;          // counts frames: whose turn it is to be redrawn
     Note voices[8];
+    amp::Follower amps[8];     // each note through the track's amp envelope, when known (SDK 1.10)
 };
 }

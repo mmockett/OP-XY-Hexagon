@@ -274,6 +274,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // of the path; released, it coasts to a stop and fades. A new start of a
     // pitch already held restarts the newest point.
     const bool started = !fresh && (input.note_serial != state.serial || events.hold_started);
+    u32 struck = 0;   // the notes started this frame, a bit each
     for (u32 k = 0; k < 8; ++k) {
         Note& v = state.voices[k];
         const bool on = k < lit_count;
@@ -292,6 +293,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             v.head = v.filled = 0;
             v.count = node::trails;
             state.newest = k;
+            struck |= 1u << k;
         }
         v.on = on;
     }
@@ -302,6 +304,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         v.head = v.filled = 0;
         v.count = node::trails;
         state.newest = lit_count - 1;
+        struck |= 1u << (lit_count - 1);
     }
     if (fresh) state.newest = lit_count ? lit_count - 1 : 0;
     if (lit_count && state.newest >= lit_count) state.newest = lit_count - 1;
@@ -309,10 +312,16 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     state.track = input.track;
     state.serial = input.note_serial;
     state.held = lit_count;
+    // Each point's light: 1 while its note is held, 0 once released. With the
+    // track's amp envelope known it follows its note's envelope instead (amp.h),
+    // so a point travels and glows as long as its note sounds, slowing and
+    // fading over the release.
+    const bool known = envelope_known(input.amp);
     i32 sounding = 0;
     for (u32 k = 0; k < 8; ++k) {
         Note& v = state.voices[k];
-        const i32 target = v.on ? unit : 0;
+        const i32 target = known ? amp::follow(state.amps[k], input.amp, v.on != 0, (struck >> k) & 1u, dt, fresh || reduced) >> 5
+                                 : v.on ? unit : 0;
         v.level = keep ? ease(v.level, target, keep) : target;
         if (v.level < 10) v.level = 0;
         if (unit - v.level < 4 && v.on) v.level = unit;

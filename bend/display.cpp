@@ -382,13 +382,14 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     state.blocks += state.rest >> 14;
     state.rest &= 16383u;
     const u32 now = state.blocks;
+    u32 struck = 0;   // the dials whose notes started this frame, a bit each
     if (fresh) {
         for (u32 k = 0; k < 8; ++k) state.start[k] = now - long_ago;
         state.newest = held ? held - 1 : 0;
     } else {
         const bool started = input.note_serial != state.serial || events.hold_started;
-        for (u32 k = state.held; k < held; ++k) state.start[k] = now;
-        if (started && held && held <= state.held) state.start[held - 1] = now;
+        for (u32 k = state.held; k < held; ++k) { state.start[k] = now; struck |= 1u << k; }
+        if (started && held && held <= state.held) { state.start[held - 1] = now; struck |= 1u << (held - 1); }
         if (held) state.newest = held - 1;
     }
     state.held = held;
@@ -402,8 +403,13 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 target = pd::q15(slot[i]);
         state.value[i] = snap ? target : eased(state.value[i], target, controls, 328);
     }
+    // With the track's amp envelope known each dial's light follows its note's
+    // envelope instead (amp.h): it comes up over the attack, holds at the
+    // sustain's level and goes out over the release, as the note sounds.
+    const bool known = envelope_known(input.amp);
     for (u32 k = 0; k < 8; ++k) {
-        const i32 target = k < held ? 32768 : 0;
+        const i32 target = known ? amp::follow(state.amps[k], input.amp, k < held, (struck >> k) & 1u, dt, snap)
+                                 : k < held ? 32768 : 0;
         state.lit[k] = snap ? target : eased(state.lit[k], target, left(dt, k < held ? tau_30 : tau_35), 328);
     }
     if (fresh || state.wave != wave) {
