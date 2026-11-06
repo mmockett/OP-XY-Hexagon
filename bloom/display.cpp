@@ -269,7 +269,9 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     const i32 open_scale = 36045 + (29491 * state.open >> 16);   // 0.55 closed .. 1 open, Q16
     const i32 pop_scale = 65536 + (9830 * state.pop >> 16);      // up to 1.15 on a note start
     const u32 blur = blur_cents(input.slots[5]), haze = haze_cents(input.slots[6]);
-    const bool alive = state.open > 19661 && !frozen && !input.reduced_motion;   // beats and shimmer while notes are held
+    // Beats and shimmer while notes are held, even at hold, which stills the
+    // drift but not the pairs' beating; the breeze stops at hold.
+    const bool alive = state.open > 19661 && !input.reduced_motion, breezy = alive && !frozen;
     // A slow breeze nods the meadow a pixel or so for as long as notes are held,
     // at a pace set by time: from 8 s a sweep to 1.2 s.
     const u32 breeze = 11u + ((65535u - unit16(input.slots[7])) * 64u >> 16);
@@ -294,7 +296,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const i32 octaves = relative ? log2_of(relative) - 15 * 65536 + 9 * 65536 : 0;   // above the floor, log2 Q16
         const i32 tall = octaves <= 0 ? 0 : octaves >= 9 * 65536 ? 128 * unit : octaves * 128 / 576;   // Q10 px
         i32 y = base * unit - 4 * unit - tall;
-        if (alive) y += (3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2) * (state.open >> 6) >> 10;   // in as they open
+        if (breezy) y += (3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2) * (state.open >> 6) >> 10;   // in as they open
         p.x = x;
         p.y = whole(y);
         const i32 radius = (((1638 + static_cast<i32>(root_level * 4506u >> 15)) * open_scale >> 16) * pop_scale) >> 16;
