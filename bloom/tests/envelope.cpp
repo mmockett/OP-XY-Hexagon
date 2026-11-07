@@ -27,11 +27,12 @@ Frame frame, last;
 const double defaults[8] = {0.5, 0, 0, 0, 0, 0, 0, 0.6};
 // The screen's note-driven motion as it stands, for the attack check.
 i32 amount(const State& s) { return s.open; }
-// The checksum of the scripted session with the envelope unknown, before the
-// screen read the envelope.
-const u32 kBefore = 3240300787u;
-const double kMean = 25;   // changed nodes a frame on average, held and through the release
-const int kPeak = 50;
+// The checksum of the scripted session with the envelope unknown: first taken
+// before the screen read the envelope, retaken for the stock-look redraw
+// (16ee8da), which changed the drawing, not its timing.
+const u32 kBefore = 3380830425u;
+const double kMean = 20;   // changed nodes a frame on average, held and through the release
+const int kPeak = 30;
 
 i32 q31(double v) { return static_cast<i32>(v * 2147483647.0 + (v < 1 ? 0.5 : 0)); }
 const Envelope unknown = {envelope_unavailable, envelope_unavailable, envelope_unavailable, envelope_unavailable};

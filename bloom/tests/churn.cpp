@@ -5,9 +5,8 @@
 // solid parts within their sizes, the redraw budget kept, the animation lasting
 // as long as the note, none changing at rest. Also turning each control, whether
 // each control moves the drawing, and every caption's width.
-// The sun, the halos and the blossoms are solid because the screen looks wrong
-// without them, so the fast presets are over the 20 a frame of docs/screens.md:
-// these caps hold what it costs now, they aren't that budget.
+// The budget is the device's: on average at most 20 nodes a frame, a peak of
+// at most 30 (the meadow redraws at most 15 a frame, the sun takes its turn).
 #include "../display.cpp"
 #include <cstdio>
 #include <cstdlib>
@@ -19,8 +18,8 @@ using Picture = bloom::Frame;
 int failures = 0;
 bloom::DisplayState state;
 Picture frame, last;
-const double mean_budget = 60;
-const int peak_budget = 60;
+const double mean_budget = 20;
+const int peak_budget = 30;
 
 opxy::i32 q31(double v) { return v >= 1 ? 0x7fffffff : static_cast<opxy::i32>(v * 2147483647.0 + 0.5); }
 bool same(const Node& a, const Node& b) {
@@ -43,29 +42,6 @@ int changed_nodes() {
         if (c) ++changed;
     }
     return changed;
-}
-// The device's rules for each reshaping outline: neighbours at least 1/8 px
-// apart, a closing edge of at least 1/4 px, some area, no turn straight back.
-bool outlines_ok(const char* name, int t) {
-    for (unsigned p = 0; p < Picture::path_count; ++p) {
-        const auto& path = frame.paths[p];
-        const unsigned n = Picture::point_count;
-        long long twice = 0;
-        for (unsigned i = 0; i < n; ++i) {
-            const Point& a = path.points[i];
-            const Point& b = path.points[(i + 1) % n];
-            const Point& c = path.points[(i + 2) % n];
-            const long long ux = b.x - a.x, uy = b.y - a.y, vx = c.x - b.x, vy = c.y - b.y;
-            twice += static_cast<long long>(a.x) * b.y - static_cast<long long>(b.x) * a.y;
-            const char* fault = nullptr;
-            if (i + 1 < n && std::llabs(ux) < unit / 8 && std::llabs(uy) < unit / 8) fault = "points under 1/8 px apart";
-            if (i + 1 == n && ux * ux + uy * uy < unit * unit / 16) fault = "closing edge under 1/4 px";
-            if (ux * vy - uy * vx == 0 && ux * vx + uy * vy < 0) fault = "a turn straight back";
-            if (fault) { std::printf("FAIL %s, frame %d, path %u: %s\n", name, t, p, fault); ++failures; return false; }
-        }
-        if (std::llabs(twice) < unit * unit / 10) { std::printf("FAIL %s, frame %d, path %u: no area\n", name, t, p); ++failures; return false; }
-    }
-    return true;
 }
 // The solid parts that move stay at their sizes: blossoms, authored 4 px with
 // half a pixel of stroke, within 8.5 px; halos, authored 12 px, within 19 px.
@@ -99,7 +75,7 @@ Result play(const double* c, int notes, int hold, const char* name) {
         last = frame;
         bloom::display(state, input, frame);
         if (!valid(frame)) { std::printf("FAIL %s, frame %d: not valid\n", name, t); ++failures; return r; }
-        if (!outlines_ok(name, t) || !fills_ok(name, t)) return r;
+        if (!fills_ok(name, t)) return r;
         const int changed = changed_nodes();
         if (t < hold) sum += changed;
         if (t >= hold * 2 / 3 && t < hold) r.late += changed;
@@ -131,7 +107,7 @@ double travel(const Picture& a, const Picture& b) {
         const bool shown_n = n.x < hidden_x * unit, shown_m = m.x < hidden_x * unit;
         if (!shown_n && !shown_m) continue;
         double d = 0;
-        const bool ring = i >= bloom::partial_first && i < bloom::mote_first && (i - bloom::partial_first) % bloom::partial_nodes == 1;
+        const bool ring = i >= bloom::partial_first && i < bloom::dot_first && (i - bloom::partial_first) % bloom::partial_nodes == 1;
         if (shown_n != shown_m) d = ring ? (shown_n ? n : m).scale / 1024.0 * 12 : 4;
         else {
             d = (std::abs(n.x - m.x) + std::abs(n.y - m.y)) / 1024.0;

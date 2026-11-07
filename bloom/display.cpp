@@ -63,51 +63,46 @@ inline void caption(char (&out)[opxy::draw::header_capacity], u32 slot, i32 valu
 }
 
 // ---- The meadow -----------------------------------------------------------
-// The board: each partial a stem and blossom over a low striped sun, placed
-// across a log axis (partial 1 at x 30, 420 px for a ratio of 60) and as tall
-// as the square root of its level. The levels and pitches are spectrum.h's
+// The stock look's silhouette: a low sun on the horizon, one flat light disc
+// with its stripes knocked out, and the meadow of partials standing in front
+// of it as dark stems, each with a blossom, across a log axis (partial 1 at
+// x 40, 88 px an octave) and as tall as its level, 128 px for the loudest
+// down to a 4 px stub 54 dB below it. The levels and pitches are spectrum.h's
 // own, for one display seed at C3, so tilt, shape, stretch, vowel, breath and
-// the weather draw exactly as they sound. Behind the meadow the vowel's two
-// formants rise as hills; blur rings each blossom with a halo as wide as its
-// spread, and haze splits each blossom into its detuned pair.
+// the weather draw exactly as they sound. The vowel's two formants rise as
+// black mounds cut into the sun; blur rings each blossom with a dark halo as
+// wide as its spread, and haze splits each blossom into its detuned pair.
+// Tilt raises the sun as the sound brightens, and the weather (breath) lifts
+// and lowers it. Under the horizon four status dots carry the grey code,
+// hollow, dark, mid and light, each at its encoder's travel on the page the
+// encoders turn.
 //
 // What it costs: the device redraws what changes. So what moves does so in whole
 // pixels and stepped sizes, and the frame persists between calls: each frame
 // works out where the whole meadow should be, then redraws only the partials
-// furthest from it, up to meadow_budget nodes. The sun and the pollen take turns.
+// furthest from it, up to meadow_budget nodes. The sun takes its turn.
 using opxy::u8;
 using opxy::u16;
 using opxy::draw::unit;
-const i32 base = 206;                   // the horizon
+const i32 base = 200;                   // the horizon
 const u32 display_seed = 0x6b10b5edu;   // one meadow, the same every time
 const i32 display_note = 1546838;       // C3's phase increment, log2 Q16: places the vowel
-// Shades (palette entries; tools/make_panel.py lists the greys).
-const u32 black = 0, faint = 1, halo_grey = 2, sun_grey = 3, ground_grey = 4, rest_grey = 5, stem_grey = 6,
-          frozen_stem = 9, pollen_grey = 11, frozen_ground = 13, white = 15;
-// Blossoms from the lowest partial to the highest, in five bands.
-const u8 blossom_ramp[5] = {14, 12, 10, 8, 7};
-// Pollen: the tip each mote rises from (Q16 of the tips drawn), its speed in
-// px per second (whole, so the 90 s wrap of tau is seamless) and its start, Q10 px.
-const u16 mote_tip[mote_count] = {51264, 55967, 41932, 5240, 32639, 52997, 48392,
-                                   5801, 28390, 64567, 59486, 31555, 23015, 32179};
-const u8 mote_speed[mote_count] = {10, 15, 14, 13, 11, 16, 15, 13, 13, 13, 9, 14, 14, 12};
-const u32 mote_start[mote_count] = {50593, 46255, 30951, 32160, 32058, 1222, 36393,
-                                    37547, 24657, 52166, 20939, 25953, 14611, 60660};
-const u32 mote_turns = 4;          // each mote moves one frame in this many
-const u32 sun_turns = 3;           // and the sun, five nodes
-const u32 tau_wrap = 90 * 1024;    // 90 s, Q10: a whole number of every mote's rises, beats and sways
-// The hills: one outline for each formant, 68 px wide (the lift's reach either side).
-const i32 hill_half = 34;          // px
-const u32 hill_top = hill_points - 2;
+// Shades (palette entries; tools/make_panel.py lists them).
+const u32 sun_shade = 1, hill_shade = 2, stem_shade = 3, halo_shade = 4, dot_shade = 5;
+const u32 sun_turns = 3;           // the sun moves one frame in this many
+const u32 tau_wrap = 90 * 1024;    // 90 s, Q10: a whole number of every beat, shimmer and sway
+const i32 sun_x = 240;             // px; it sits 18 px into the ground (tilt 0) to 40 px over it (tilt 100)
+const i32 hill_high = 34;          // a hill at full depth, px (tools/make_panel.py)
+const i32 dot_track = 30, dot_travel = 60, dot_y = 212;   // px: each dot's track from 30 + 120 i, 60 px long
 // The redraw: nodes of the meadow changed a frame at most.
-const u32 meadow_budget = 48;
+const u32 meadow_budget = 15;
 // Sizes, authored in tools/make_panel.py.
 const i32 blossom_authored = 4, halo_authored = 12;   // px
 const i32 blossom_most = 8 * unit;   // scale 2, the SDK's limit
 const i32 halo_most = 18 * unit;
 
-// x on the meadow's log axis for a log2 ratio (Q16), Q10 px: 420 / log2(60) px an octave.
-inline i32 axis_x(i32 log2_ratio) { return 30 * unit + log2_ratio * 1138 / 1024; }
+// x on the meadow's log axis for a log2 ratio (Q16), Q10 px: 88 px an octave.
+inline i32 axis_x(i32 log2_ratio) { return 40 * unit + log2_ratio * 1408 / 1024; }
 // The angle, tenths of a degree, of something turning `cycles` times every 90 s at time tau.
 inline i32 cycle_tenths(u32 tau, u32 cycles) { return static_cast<i32>((tau * cycles % tau_wrap) * 3600u / tau_wrap); }
 // Q10 to the nearest whole pixel.
@@ -139,32 +134,20 @@ inline void display_reset(DisplayState& state) {
     state.initialized = 0;
 }
 
-// The vowel's hills: each formant's lift as a hill outline centred where it
-// falls on the meadow, 12 px an octave of level (up to 60 px), or hidden
-// (a flat sliver) when vowel is off.
-inline void hills(Frame& frame, const Controls& c, const Wander& w, u32 shade) {
+// The vowel's hills: a black mound where each formant falls on the meadow,
+// rising out of the ground with the vowel's depth (the band below the horizon
+// hides the rest), or hidden when vowel is off.
+inline void hills(Frame& frame, const Controls& c, const Wander& w) {
     using namespace opxy::draw;
-    i32 formant[2] = {0, 0};
-    if (c.vowel_depth) formants(w.vowel, formant[0], formant[1]);
-    for (u32 h = 0; h < hill_count; ++h) {
-        Path<hill_points>& path = frame.paths[hill_first + h];
-        u32 key = 0x9e3779b9u * (h + 1);
-        for (u32 i = 0; i < hill_top; ++i) {
-            const i32 x = -hill_half * unit + static_cast<i32>(i) * (2 * hill_half * unit) / static_cast<i32>(hill_top - 1);
-            i32 height = c.vowel_depth ? formant_lift(x * 1024 / 1138, c.vowel_depth) * 3 >> 4 : 0;   // Q10 px
-            if (height < 307) height = 307;   // a sliver keeps the outline's area
-            path.points[i].x = x;
-            path.points[i].y = -height;
-            key = (key ^ static_cast<u32>(height)) * 0x01000193u;
-        }
-        path.points[hill_top].x = hill_half * unit;
-        path.points[hill_top].y = 410;
-        path.points[hill_top + 1].x = -hill_half * unit;
-        path.points[hill_top + 1].y = 410;
-        path.key = key | 1u;
-        if (c.vowel_depth) place(frame, hill_first + h, whole(axis_x(formant[h] - display_note)), base * unit, unit, shade, stroke);
-        else hide(frame, hill_first + h);
+    if (!c.vowel_depth) {
+        for (u32 h = 0; h < hill_count; ++h) hide(frame, hill_first + h);
+        return;
     }
+    i32 formant[2] = {0, 0};
+    formants(w.vowel, formant[0], formant[1]);
+    const i32 sunk = static_cast<i32>(((32768u - c.vowel_depth) * static_cast<u32>(hill_high * unit)) >> 15);
+    for (u32 h = 0; h < hill_count; ++h)
+        place(frame, hill_first + h, whole(axis_x(formant[h] - display_note)), whole(base * unit + sunk), unit, hill_shade, fill_and_stroke);
 }
 
 // Where a partial's nodes should be. x off the screen hides it; halo or far 0
@@ -174,50 +157,47 @@ struct Plant {
     i32 left, right;   // the blossom's x and its twin's
     i32 near, far;     // their radii
     i32 halo;          // the ring's radius
-    u32 grey;
 };
 const i32 off_screen = opxy::draw::hidden_x * unit;
 
 inline i32 blossom_scale(i32 radius) { return radius / blossom_authored; }
 inline i32 halo_scale(i32 radius) { return radius / halo_authored; }
 // How far a node is from where it should be, quarter pixels; 0 when it is there.
-inline i32 gap(const opxy::draw::Node& node, i32 x, i32 y, i32 scale, i32 size, u32 shade) {
+inline i32 gap(const opxy::draw::Node& node, i32 x, i32 y, i32 scale, i32 size) {
     using namespace opxy::draw;
     const bool away = x >= off_screen, was_away = node.x >= off_screen;
     if (away && was_away) return 0;
     if (away != was_away) return 16;
-    // A blossom opening or a grey changing shows more than a stem shifting a little.
+    // A blossom opening shows more than a stem shifting a little.
     const i32 sized = node.scale != scale ? 3 * distance(node.scale, scale) * size / unit + 1 : 0;
     const i32 moved = distance(node.x, x) + distance(node.y, y) + sized;
-    return (moved ? (moved >> 8) + 1 : 0) + (node.shade != shade ? 32 : 0);
+    return moved ? (moved >> 8) + 1 : 0;
 }
-inline u32 stem_shade(bool frozen) { return frozen ? frozen_stem : stem_grey; }
-inline u32 halo_shade(bool frozen) { return frozen ? faint : halo_grey; }
-inline i32 plant_gap(const Frame& frame, u32 k, const Plant& p, bool frozen, u32& nodes) {
+inline i32 plant_gap(const Frame& frame, u32 k, const Plant& p, u32& nodes) {
     const u32 stem = partial_first + partial_nodes * k;
     const bool shown = p.x < off_screen;
     const i32 parts[4] = {
-        gap(frame.nodes[stem], p.x, p.y, unit, 0, stem_shade(frozen)),
-        gap(frame.nodes[stem + 1], shown && p.halo ? p.x : off_screen, p.y, halo_scale(p.halo), halo_authored, halo_shade(frozen)),
-        gap(frame.nodes[stem + 2], shown ? p.left : off_screen, p.y, blossom_scale(p.near), blossom_authored, p.grey),
-        gap(frame.nodes[stem + 3], shown && p.far ? p.right : off_screen, p.y, blossom_scale(p.far), blossom_authored, p.grey)};
+        gap(frame.nodes[stem], p.x, p.y, unit, 0),
+        gap(frame.nodes[stem + 1], shown && p.halo ? p.x : off_screen, p.y, halo_scale(p.halo), halo_authored),
+        gap(frame.nodes[stem + 2], shown ? p.left : off_screen, p.y, blossom_scale(p.near), blossom_authored),
+        gap(frame.nodes[stem + 3], shown && p.far ? p.right : off_screen, p.y, blossom_scale(p.far), blossom_authored)};
     i32 total = 0;
     nodes = 0;
     for (u32 i = 0; i < 4; ++i) { total += parts[i]; if (parts[i]) ++nodes; }
     return total;
 }
-inline void plant_draw(Frame& frame, u32 k, const Plant& p, bool frozen) {
+inline void plant_draw(Frame& frame, u32 k, const Plant& p) {
     using namespace opxy::draw;
     const u32 stem = partial_first + partial_nodes * k;
     if (p.x >= off_screen) {
         for (u32 i = 0; i < partial_nodes; ++i) hide(frame, stem + i);
         return;
     }
-    place(frame, stem, p.x, p.y, unit, stem_shade(frozen), fill_and_stroke);
-    if (p.halo) place(frame, stem + 1, p.x, p.y, halo_scale(p.halo), halo_shade(frozen), fill_and_stroke);
+    place(frame, stem, p.x, p.y, unit, stem_shade, fill_and_stroke);
+    if (p.halo) place(frame, stem + 1, p.x, p.y, halo_scale(p.halo), halo_shade, fill_and_stroke);
     else hide(frame, stem + 1);
-    place(frame, stem + 2, p.left, p.y, blossom_scale(p.near), p.grey, fill_and_stroke);
-    if (p.far) place(frame, stem + 3, p.right, p.y, blossom_scale(p.far), p.grey, fill_and_stroke);
+    place(frame, stem + 2, p.left, p.y, blossom_scale(p.near), stem_shade, fill_and_stroke);
+    if (p.far) place(frame, stem + 3, p.right, p.y, blossom_scale(p.far), stem_shade, fill_and_stroke);
     else hide(frame, stem + 3);
 }
 
@@ -255,7 +235,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
 
     // The drift moves only while the blossoms are open, slowing as they close.
     const Controls c = decode(input.slots);
-    const bool frozen = bloom::held(input.slots[7]);   // time at hold: the scene turns white and still
+    const bool frozen = bloom::held(input.slots[7]);   // time at hold: the scene stands still
     if (!input.reduced_motion && state.open) {
         const u32 moving = static_cast<u32>(elapsed * state.open) >> 10;   // Q16 seconds
         // c.step a block, 689 blocks a second.
@@ -272,56 +252,53 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     i32 top = 1;
     for (u32 k = 0; k < partial_count; ++k) if (s.level[k] > top) top = s.level[k];
 
-    // The sun: tilt raises it as the sound brightens; the weather's lean, up to
-    // 4.5 dB an octave with full breath, lifts and lowers it. It moves in whole
-    // pixels, in its turn.
+    // The sun: tilt raises it as the sound brightens, from 18 px into the
+    // ground to 40 px over it; the weather's lean, up to 4.5 dB an octave with
+    // full breath, lifts and lowers it. It moves in whole pixels, in its turn.
     const u32 tilt = unit16(input.slots[0]), breath = unit16(input.slots[4]);
     if (snap || state.tick % sun_turns == 0) {
         const i32 lean = ((static_cast<i32>(breath >> 1) * (gust >> 1)) >> 19) * 18;   // Q10 px
-        i32 sun_y = (base - 16) * unit - static_cast<i32>(tilt * 104u >> 6) - lean;
-        if (sun_y < 74 * unit) sun_y = 74 * unit;   // its top stays below the header
-        sun_y = whole(sun_y);
-        place(frame, sun_node, 380 * unit, sun_y, unit, frozen ? faint : sun_grey, fill_and_stroke);
-        for (u32 i = 0; i < stripe_count; ++i) place(frame, stripe_first + i, 380 * unit, sun_y, unit, black, fill_and_stroke);
+        i32 sun_y = (base + 18) * unit - static_cast<i32>(tilt * 58u >> 6) - lean;
+        if (sun_y < 130 * unit) sun_y = 130 * unit;   // its top stays 30 px under the header
+        place(frame, sun_node, sun_x * unit, whole(sun_y), unit, sun_shade, fill_and_stroke);
     }
 
-    hills(frame, c, wander(c, display_seed, state.time), frozen ? frozen_ground : ground_grey);
+    hills(frame, c, wander(c, display_seed, state.time));
 
     // The meadow, where it should be.
     const i32 open_scale = 36045 + (29491 * state.open >> 16);   // 0.55 closed .. 1 open, Q16
     const i32 pop_scale = 65536 + (9830 * state.pop >> 16);      // up to 1.15 on a note start
     const u32 blur = blur_cents(input.slots[5]), haze = haze_cents(input.slots[6]);
-    const bool alive = state.open > 19661 && !frozen && !input.reduced_motion;   // beats and shimmer while notes are held
+    // Beats and shimmer while notes are held, even at hold, which stills the
+    // drift but not the pairs' beating; the breeze stops at hold.
+    const bool alive = state.open > 19661 && !input.reduced_motion, breezy = alive && !frozen;
     // A slow breeze nods the meadow a pixel or so for as long as notes are held,
     // at a pace set by time: from 8 s a sweep to 1.2 s.
     const u32 breeze = 11u + ((65535u - unit16(input.slots[7])) * 64u >> 16);
     Plant plants[partial_count];
-    i32 tip_x[partial_count], tip_y[partial_count];
-    u32 tips = 0;
     for (u32 k = 0; k < partial_count; ++k) {
         Plant& p = plants[k];
         const i32 x = axis_x(s.pitch[k]);
-        if (x > 460 * unit) {
+        if (x > 470 * unit) {
             p.x = off_screen;
             p.y = hidden_y * unit;
             p.left = p.right = off_screen;
             p.near = p.far = unit;
             p.halo = 0;
-            p.grey = 0;
             continue;
         }
-        // Height and size by the square root of the level against the loudest;
-        // a silent partial (an even one at square) keeps a stub.
+        // Height by the level in dB against the loudest, 128 px down to a 4 px
+        // stub 54 dB (nine octaves of amplitude) below it, where a silent
+        // partial (an even one at square) stays; size by its square root.
         const u32 relative = (static_cast<u32>(s.level[k]) << 15) / static_cast<u32>(top);
         u32 root_level = root(relative << 15);   // Q15
         if (root_level < 733) root_level = 733;
-        i32 y = base * unit - 14 * unit - static_cast<i32>(132u * root_level >> 5);
-        if (alive) y += (3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2) * (state.open >> 6) >> 10;   // in as they open
+        const i32 octaves = relative ? log2_of(relative) - 15 * 65536 + 9 * 65536 : 0;   // above the floor, log2 Q16
+        const i32 tall = octaves <= 0 ? 0 : octaves >= 9 * 65536 ? 128 * unit : octaves * 128 / 576;   // Q10 px
+        i32 y = base * unit - 4 * unit - tall;
+        if (breezy) y += (3 * sine(cycle_tenths(state.tau, breeze) + static_cast<i32>(k) * 170) / 2) * (state.open >> 6) >> 10;   // in as they open
         p.x = x;
         p.y = whole(y);
-        tip_x[tips] = x;
-        tip_y[tips] = p.y;
-        ++tips;
         const i32 radius = (((1638 + static_cast<i32>(root_level * 4506u >> 15)) * open_scale >> 16) * pop_scale) >> 16;
         // Blur: a halo as wide as the partial's spread (0.1 px a cent), shimmering while held.
         p.halo = 0;
@@ -332,8 +309,6 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             if (r > halo_most) r = halo_most;
             p.halo = clamp(quarters(r), unit / 4, halo_most);
         }
-        const u32 band = k * 5 / (partial_count - 1);
-        p.grey = frozen ? white : state.open < 32768 ? rest_grey : blossom_ramp[band > 4 ? 4 : band];
         // Haze: the pair half its detune either side, 0.15 px a cent, beating
         // (slowed down to be seen) while held.
         i32 near = radius, far = radius;
@@ -360,7 +335,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // the next in turn, so that none waits long. The first frame sets
     // everything; so does reduced motion, which jumps.
     if (snap) {
-        for (u32 k = 0; k < partial_count; ++k) plant_draw(frame, k, plants[k], frozen);
+        for (u32 k = 0; k < partial_count; ++k) plant_draw(frame, k, plants[k]);
     } else {
         u32 budget = meadow_budget;
         bool done[partial_count] = {};
@@ -372,7 +347,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
                 const u32 k = (n + state.turn) % partial_count;
                 if (done[k]) continue;
                 u32 nodes;
-                const i32 away = plant_gap(frame, k, plants[k], frozen, nodes);
+                const i32 away = plant_gap(frame, k, plants[k], nodes);
                 if (away > furthest && nodes <= budget) {
                     furthest = away;
                     pick = k;
@@ -382,26 +357,18 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
             }
             if (pick == partial_count) break;
             if (turn) { state.turn = (pick + 1) % partial_count; turn = false; }
-            plant_draw(frame, pick, plants[pick], frozen);
+            plant_draw(frame, pick, plants[pick]);
             done[pick] = true;
             budget -= cost;
         }
     }
 
-    // Pollen drifting up from the blossoms as breath stirs them, and a little
-    // whenever a note is held. Each mote takes its turn to move.
-    const u32 motes = state.open > 3277 && tips ? (frozen ? 3u : 2u + ((breath * 12u + 32768u) >> 16)) : 0u;
-    for (u32 i = 0; i < mote_count; ++i) {
-        const u32 node = mote_first + i;
-        if (!snap && (state.tick + i) % mote_turns) continue;
-        if (i >= motes) { hide(frame, node); continue; }
-        const u32 tip = static_cast<u32>(mote_tip[i]) * tips >> 16;
-        const i32 rise = static_cast<i32>((state.tau * mote_speed[i] + mote_start[i]) % tau_wrap);
-        const i32 y = tip_y[tip] - rise;
-        const i32 sway = 6 * sine(static_cast<i32>(state.tau * 720u >> 10) + static_cast<i32>(i) * 573);
-        if (y <= 42 * unit) { hide(frame, node); continue; }
-        place(frame, node, whole(tip_x[tip] + sway), whole(y), unit, pollen_grey, fill_and_stroke);
+    // The grey code: a status dot for each encoder at its control's travel,
+    // on the page the encoders turn.
+    for (u32 i = 0; i < dot_count; ++i) {
+        const i32 travel = static_cast<i32>(unit16(input.parameters[i]) * static_cast<u32>(dot_travel) >> 6);   // Q10 px
+        place(frame, dot_first + i, whole((dot_track + 120 * static_cast<i32>(i)) * unit + travel), dot_y * unit, unit,
+              dot_shade + i, fill_and_stroke);
     }
-    place(frame, horizon_node, 16 * unit, base * unit, unit, frozen ? frozen_ground : ground_grey, fill_and_stroke);
 }
 }
