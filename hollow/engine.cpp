@@ -28,6 +28,15 @@
 // mode's amplitude turned and scaled once a block by centre + side (e^iu +
 // e^id): a true unison's beating and drift, for a few multiplies a block and
 // nothing more per sample.
+//
+// Stereo is Spread's too. At Spread 0 everything sounds into one bus and both
+// channels are one sound. As Spread opens, the modes sound into three buses whose
+// sum is the mono voice: the first mode stays in the middle, and the rest, the
+// sympathetic modes with them, are shared out between two sides, turn about, the
+// owner saying which side goes first so a chord's notes spread differently. The
+// channels are the voice plus and minus half the sides' difference, scaled by
+// Spread, so their mean is the voice whatever the setting. Breath's Air stays in
+// the middle with the voice it follows.
 namespace hollow {
 namespace {
 using opxy::q31::multiply;
@@ -244,6 +253,24 @@ __attribute__((noinline)) void add_air(i32* acc, u32& seed_state, i32& hiss_stat
     hiss_state = hiss;
     slow_state = slow;
 }
+// The channels from the limited voice and half the sides' difference, at a gain
+// (level, Q10 << 16) ramping by step a sample, as apply_gain multiplies: the
+// voice plus and minus the side, the side held within the room the voice leaves
+// below half scale, so neither channel passes it and their mean stays the voice.
+__attribute__((noinline)) void lean(i32* output, const i32* voice_out, const i32* difference, i32 level, i32 step) {
+    const i32 ceiling = 0x4fffffff >> 6;
+    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        level += step;
+        const i32 x = voice_out[i], d = difference[i];
+        i32 high = high_by_high(static_cast<u32>(d), level);
+        high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
+        i32 side = high * 64 + (low_by_high(static_cast<u32>(d) << 16 >> 17, level) >> 9);
+        const i32 room = kHalf - (x < 0 ? -x : x);
+        side = side > room ? room : side < -room ? -room : side;
+        output[2 * i] = x + side;
+        output[2 * i + 1] = x - side;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // The registry: one entry per sounding voice, keyed by owner, so destroy can
@@ -334,6 +361,7 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     // second block: everything as before, 64 samples (1.45 ms) later.
     const bool preparing = !voice.primed;
     // Controls glide over a few blocks, so Body and Vowel morph rather than step.
+    const i32 spread_was = voice.controls[6];
     for (u32 c = 0; c < 8; ++c) {
         const i32 target = control(parameters[c]);
         voice.controls[c] = voice.primed ? voice.controls[c] + ((target - voice.controls[c]) >> 2) : target;
@@ -411,7 +439,7 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
         // cache instead of fetching it on top of a full block of sound.
         const volatile opxy::i16* const table = kSine;
         for (u32 i = 0; i < 1280; i += 16) static_cast<void>(table[i]);
-        for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = 0;
+        for (unsigned i = 0; i < 2 * opxy::block_frames; ++i) output[i] = 0;
         return;
     }
     fundamental = voice.planned_fundamental;
@@ -420,21 +448,25 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     ++voice.age;
     const Chorus chorus = ensemble(voice, spread);
 
-    i32 acc[opxy::block_frames];
-    bool written = false;
+    i32 buses[3][opxy::block_frames];
+    bool written[3] = {false, false, false};
+    i32* const acc = buses[0];
+    const u32 flip = owner & 1u;
+    const bool wide = spread || spread_was;  // the side's gain below reaches 0 before everything goes to one bus
     u32 seed = voice.seed;
     for (u32 k = 0; k < kModes; ++k) {
         const Planned& q = voice.planned[k];
         Mode& m = voice.modes[k];
+        const u32 bus = wide && k ? 1 + ((k ^ flip) & 1u) : 0;
         if (!q.level) {  // above the top: fade out whatever still rings, then rest
-            if (m.a || m.b) release(m, q.at < kTopIncrement ? q.at : kTopIncrement, acc, written);
+            if (m.a || m.b) release(m, q.at < kTopIncrement ? q.at : kTopIncrement, buses[bus], written[bus]);
             continue;
         }
         Push p;
         p.decay = q.decay;
         p.bow = q.bow;
         p.noise = q.noise;
-        ring(m, p, q.at, seed, chorus, acc, written);
+        ring(m, p, q.at, seed, chorus, buses[bus], written[bus]);
     }
 
     // Sympathy: modes at other held notes' pitches. The breath drives each; the
@@ -458,7 +490,8 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
                 if (live) echo.increment = shared.notes[j].increment;
             }
         if (!live) {
-            release(echo.mode, echo.increment, acc, written);
+            const u32 bus = wide ? 1 + ((e ^ flip) & 1u) : 0;
+            release(echo.mode, echo.increment, buses[bus], written[bus]);
             echo.owner = echo.increment = 0;
             echo.swell = 0;
         }
@@ -506,7 +539,8 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
             // Its power counts as far as it has bloomed: 1 - decay^2n of its steady power.
             echo.swell = 0x7fffffff - multiply(multiply(0x7fffffff - echo.swell, push.decay), push.decay);
             power += times(static_cast<u32>(bow * bow) + 4u * static_cast<u32>(wind * wind), static_cast<u32>(echo.swell >> 15));
-            ring(echo.mode, push, other.increment, seed, chorus, acc, written);
+            const u32 bus = wide ? 1 + ((bound ^ flip) & 1u) : 0;
+            ring(echo.mode, push, other.increment, seed, chorus, buses[bus], written[bus]);
         }
 
     // Out: the modes at an output gain that holds their steady power (so every
@@ -514,7 +548,13 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     // to +12 dB), then Air, then the soft limit. The sympathetic modes count
     // in that power, so a chord blooms into one sound without growing louder.
     // Spread's copies beat, so they sum in power: centre^2 + 2 side^2.
-    if (!written) for (unsigned i = 0; i < opxy::block_frames; ++i) acc[i] = 0;
+    for (u32 bus = 0; bus < (wide ? 3u : 1u); ++bus)
+        if (!written[bus]) for (unsigned i = 0; i < opxy::block_frames; ++i) buses[bus][i] = 0;
+    if (wide) for (unsigned i = 0; i < opxy::block_frames; ++i) {
+        const i32 a = buses[1][i], b = buses[2][i];
+        acc[i] = opxy::q31::add(acc[i], opxy::q31::add(a, b));
+        buses[1][i] = (a >> 1) - (b >> 1);
+    }
     const i32 share = (chorus.centre * chorus.centre >> 15) + 2 * (chorus.side * chorus.side >> 15);  // Q15
     power = times(power, static_cast<u32>(share) << 1);
     i32 even = (kPower - log2_q16(power | 1u)) >> 1;  // log2 of the gain that brings power to kPower
@@ -524,11 +564,18 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     // The gain ramps across the block from last block's, so no change of it steps.
     i32 level = static_cast<i32>(voice.gain << 16);
     const i32 step = (static_cast<i32>(gain) - static_cast<i32>(voice.gain)) << 10;
+    // The side's gain: the same, times Spread, last block's to this one's.
+    const i32 side_was = static_cast<i32>(voice.gain) * spread_was >> 15, side_now = static_cast<i32>(gain) * spread >> 15;
     voice.gain = gain;
     const opxy::i16 air_gain = static_cast<opxy::i16>(air * kAir >> 15);
     apply_gain(acc, level, step);
     if (air_gain) add_air(acc, seed, voice.hiss, voice.slow, air_gain);
-    for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = soft_limit(acc[i]);
+    if (wide) {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) acc[i] = soft_limit(acc[i]);
+        lean(output, acc, buses[1], side_was << 16, (side_now - side_was) << 10);
+    } else {
+        for (unsigned i = 0; i < opxy::block_frames; ++i) output[2 * i] = output[2 * i + 1] = soft_limit(acc[i]);
+    }
     voice.seed = seed;
 }
 }

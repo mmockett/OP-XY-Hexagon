@@ -31,7 +31,7 @@ Page 1 holds what is played most; page 2 sits under it, one alternate per encode
 | ring | 0.04–40 s (before the body's scale) | 1.0 s | ring time of the fundamental, scaled by the body (vox 0.7×, pipe 0.85×, glass 1.5×), e.g. `28ms`, `0.4s`, `1.0s`, `60s` | How long the modes ring: the bloom when a note starts (at once at 0; about 9 s for vox at 100) and how narrow and pure the breath's tones are (wide noisy bands at 0, slowly drifting pure tones at 100). Higher modes fade sooner by the body's tilt. |
 | air | 0–100 | 0 | amount | Unresonated breath hiss (about 450 Hz to 5 kHz) mixed in, rising evenly with the control: clearly there by 25, about as loud as the voice at 100. |
 | vowel | oo, oh, ah, eh, ee | ah | nearest vowel | The formant envelope over absolute frequency. It shapes the vox body with its formants deepened 1.3× (troughs bottom out 24 dB down) and colours the other bodies strongly too (str 75%, pipe 85%, glass 55%). |
-| spread | 0–30 cents | 0 | cents, e.g. `10c` | An ensemble. Every mode also sounds as a sharp and a flat copy, each detuned by the shown cents either side (4c at 25, 10c at 50, 19c at 75, 30c at 100) and swaying about it, ±35% at about 0.23–0.31 Hz and ±8% at 4.3–5.7 Hz, at each voice's own phase and rate. The copies come in as Spread rises and reach 0.3 each beside the note's 0.4 from 30 up, so the note itself stays the strongest voice. Loudness stays even. |
+| spread | 0–30 cents | 0 | cents, e.g. `10c` | An ensemble. Every mode also sounds as a sharp and a flat copy, each detuned by the shown cents either side (4c at 25, 10c at 50, 19c at 75, 30c at 100) and swaying about it, ±35% at about 0.23–0.31 Hz and ±8% at 4.3–5.7 Hz, at each voice's own phase and rate. The copies come in as Spread rises and reach 0.3 each beside the note's 0.4 from 30 up, so the note itself stays the strongest voice. Loudness stays even. It also opens the stereo: at 0 both channels are one sound, and the side grows to full at 100. |
 | sympathy | 0–100 | 0 | amount | How strongly this voice rings at other held notes' pitches, from nothing to within about 7 dB of the note's own fundamental at 100. The breath excites those modes, up to twice as hard at 100. The bow excites them only where one of this note's harmonics falls within their resonance, so octaves, fifths and twelfths bloom most. They ring longer than the note (up to 2.8× at 100), so they bloom in slowly. The output gain makes room for them as they bloom, so a chord grows fuller rather than louder. |
 
 Air, spread and sympathy colour the sound, so they default to off, and at 0
@@ -40,10 +40,12 @@ preset turns it up. The presets: Choir (the defaults, sympathy up: clean),
 Dusk, Bowed glass, Bottle, Strings (a string section with the ensemble),
 Ensemble (Spread at 30 cents) and Whisper (breath alone, short and airy).
 
-Stereo: Spread would naturally pan its copies apart, but SDK synth voices
-render one mono output (stereo output is only for sample engines), so the
-ensemble is mono here. Width would need SDK support for stereo synth voices;
-until then, the OP-XY's own send chorus adds it.
+Stereo: Spread opens it. At 0 both channels are one sound. As Spread rises the
+first mode stays in the middle, and the others, sympathetic modes included,
+share out between the two sides, each note starting from its own side. Left plus
+right is always the mono voice. Spread's copies stay with their mode: panning
+them apart would double each mode's work. Presets with Spread up (Dusk,
+Strings, Ensemble, Whisper) now play in stereo; the rest stay mono.
 
 Older sounds: Ring's range grew from 0.1–20 s to 0.04–40 s and Spread
 changed from a 15-cent detune to the ensemble, so a sound saved with an

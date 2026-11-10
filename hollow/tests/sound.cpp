@@ -64,8 +64,8 @@ struct Choir {
         hollow::destroy(voices[v], shared, owners[v]);
         on[v] = false;
     }
-    // One block of every sounding voice; out[v] gets voice v's block.
-    void render(const i32* parameters, i32 (*out)[opxy::block_frames]) {
+    // One block of every sounding voice; out[v] gets voice v's block, interleaved.
+    void render(const i32* parameters, i32 (*out)[2 * opxy::block_frames]) {
         for (unsigned v = 0; v < 4; ++v)
             if (on[v]) hollow::render(voices[v], shared, owners[v], out[v], parameters, pitch[v]);
     }
@@ -74,21 +74,28 @@ struct Choir {
 // A long recording of voice 0 (and the others rendered alongside).
 const unsigned kMaxBlocks = 40 * kSecond;
 i32 recording[kMaxBlocks * opxy::block_frames];
+double side_power, sum_power;  // voice 0's, over what record() has seen since cleared
 
 // Plays `blocks` blocks of the choir, recording voice 0 from `at` (in blocks).
 // Returns whether every voice stayed within the declared peak.
 bool record(Choir& choir, const i32* parameters, unsigned blocks, unsigned at = 0) {
-    static i32 out[4][opxy::block_frames];
+    static i32 out[4][2 * opxy::block_frames];
     bool bounded = true;
     for (unsigned b = 0; b < blocks; ++b) {
         choir.render(parameters, out);
         for (unsigned v = 0; v < 4; ++v)
             if (choir.on[v])
-                for (unsigned i = 0; i < opxy::block_frames; ++i)
+                for (unsigned i = 0; i < 2 * opxy::block_frames; ++i)
                     bounded = bounded && out[v][i] >= -kPeak && out[v][i] <= kPeak;
         if (at + b < kMaxBlocks)
-            for (unsigned i = 0; i < opxy::block_frames; ++i)
-                recording[(at + b) * opxy::block_frames + i] = choir.on[0] ? out[0][i] : 0;
+            for (unsigned i = 0; i < opxy::block_frames; ++i) {
+                // What the sound tests read: the mean of the channels, which is the mono voice.
+                const i32 left = choir.on[0] ? out[0][2 * i] : 0, right = choir.on[0] ? out[0][2 * i + 1] : 0;
+                recording[(at + b) * opxy::block_frames + i] = static_cast<i32>((static_cast<long long>(left) + right) / 2);
+                const double m = (static_cast<double>(left) + right) / 2, d = (static_cast<double>(left) - right) / 2;
+                sum_power += m * m;
+                side_power += d * d;
+            }
     }
     return bounded;
 }
@@ -606,7 +613,59 @@ void captions() {
 }
 }
 
+// Spread opens the width. At 0, chord and sympathy included, both channels are
+// one sound; as it rises the side grows, under the sum; moving it on a held note
+// the side doesn't step.
+void stereo() {
+    i32 p[8];
+    defaults(p);
+    p[7] = kFull / 2;
+    static Choir choir;
+    static i32 out[4][2 * opxy::block_frames];
+    choir = Choir();
+    choir.play(0, 1, 220.0);
+    choir.play(1, 2, 330.0);
+    bool same = true;
+    for (unsigned b = 0; b < kSecond; ++b) {
+        choir.render(p, out);
+        for (unsigned v = 0; v < 2; ++v)
+            for (unsigned i = 0; i < opxy::block_frames; ++i) same = same && out[v][2 * i] == out[v][2 * i + 1];
+    }
+    check("stereo: at Spread 0 the channels are bit equal", same);
+    const double spreads[3] = {0.25, 0.5, 1.0};
+    double last = -1000;
+    for (unsigned t = 0; t < 3; ++t) {
+        p[6] = static_cast<i32>(spreads[t] * kFull);
+        choir = Choir();
+        choir.play(0, 1, 220.0);
+        side_power = sum_power = 0;
+        record(choir, p, 3 * kSecond);
+        const double width = 10 * std::log10(side_power / sum_power);
+        std::printf("stereo: Spread %.2f, side %.1f dB under the sum\n", spreads[t], -width);
+        check("stereo: the side grows as Spread opens, and stays under the sum", width > last && width < -5);
+        last = width;
+    }
+    check("stereo: the side is plain at full Spread", last > -18);
+    choir = Choir();
+    choir.play(0, 1, 220.0);
+    double biggest = 0, wave = 0, was = 0;
+    for (unsigned b = 0; b < 2 * kSecond; ++b) {
+        if (b % 300 == 150) p[6] = b % 600 == 150 ? kFull : 0;
+        choir.render(p, out);
+        for (unsigned i = 0; i < opxy::block_frames; ++i) {
+            const double side = (out[0][2 * i] - static_cast<double>(out[0][2 * i + 1])) / 4294967296.0;
+            const double step = side > was ? side - was : was - side;
+            if (i == 0) biggest = biggest > step ? biggest : step;
+            else wave = wave > step ? wave : step;
+            was = side;
+        }
+    }
+    std::printf("stereo: moving Spread, the side's step at a block's edge %.4f, within one %.4f\n", biggest, wave);
+    check("stereo: moving Spread doesn't step the side", biggest <= wave * 1.05);
+}
+
 int main() {
+    stereo();
     extremes();
     long_ring();
     sustain();
