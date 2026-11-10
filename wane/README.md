@@ -11,8 +11,8 @@ clean, steady pad: two saws 8 cents apart through a gentle low-pass. The
 OP-XY's own envelopes, filter, LFOs and effects do the rest; the init preset
 has a slow attack and long release.
 
-**Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch.
+**Status:** stereo output and the screen's view of the track's amp envelope
+need Open-XY SDK 1.12, on its `staging` branch.
 
 ## Controls
 
@@ -24,7 +24,7 @@ between them.
 | Page | Control | Range (0 / 25 / 50 / 75 / 100) | Default | Header | What it does |
 | --- | --- | --- | --- | --- | --- |
 | 1 | shape | sine, triangle, saw, square, pulse | saw (50) | `sine`, `s/tri`, `tri`, `t/saw`, `saw`, `s/sq`, `sq`, `pulse` | Both oscillators: sine to triangle to 25, triangle to saw to 50, saw to square to 80, then the square narrows to a 15% pulse. Band-limited (PolyBLEP). |
-| 1 | detune | 0 / 3.5 / 11 / 30 / 70 cents | 8 cents (40) | cents | How far apart the two oscillators sit, either side of the note: at 220 Hz they beat 0.4, 1.4, 3.8 and 9 times a second. |
+| 1 | detune | 0 / 3.5 / 11 / 30 / 70 cents | 8 cents (40) | cents | How far apart the two oscillators sit, either side of the note: at 220 Hz they beat 0.4, 1.4, 3.8 and 9 times a second. It also opens the stereo: up to the default both channels are one sound, and above it the oscillators lean apart, fully by 30 cents. |
 | 1 | drift | 0 / 5 / 12 / 22 / ±35 cents | 0 | cents | Each note starts a random distance off pitch and each voice wanders slowly on its own; oscillator 2 wanders a little apart. At the top a chord is far out of tune with itself. |
 | 1 | warmth | 0 to 100 | 20 | amount | A darker two-pole low-pass, from 17.8 kHz to 5.1, 2.1, 0.9 and 0.37 kHz at 220 Hz, following the keyboard by up to half as it closes; more of the sub and breath, a harder push into the soft saturation. |
 | 2 | wow | 0 / 16 / 42 / 78 / ±120 cents | 0 | cents | The tape's slow, irregular speed error (about 0.3 to 1.5 Hz), and now and then a drag that pulls everything down by 1.25 times as much (150 cents flat at the top). |
@@ -35,6 +35,13 @@ between them.
 Warmth was 35 by default and darkened less; 20 now sounds as 35 did. The
 other controls' curves changed too, so sounds saved with earlier versions
 play wider wow, flutter, sag, drift and detune than they did.
+
+Stereo: Detune opens it. Up to its default (8 cents) both channels are one
+sound; above it each note's two oscillators lean apart, one to each side,
+fully by 30 cents, and which leans which way is the note's own, so a chord
+spreads. The sub, the breath and the saturation's harmonics stay in the middle.
+Left plus right is always the mono voice. Attic, M3N and Mou5e sit above the
+default, so they now play in stereo; Clean, Glass and Worn stay mono.
 
 ## Screen
 

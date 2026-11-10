@@ -15,8 +15,8 @@ With the colouring controls at zero (detune, ring, warp, noise, lofi) Bend is
 a clean CZ saw at bend 25: two lines in unison, plucked by the contour. The
 OP-XY's own envelopes, filter, LFOs and effects do the rest.
 
-**Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch.
+**Status:** stereo output and the screen's view of the track's amp envelope
+need Open-XY SDK 1.12, on its `staging` branch.
 
 ## Controls
 

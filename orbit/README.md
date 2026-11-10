@@ -16,8 +16,8 @@ With orbit, grit and detune at zero (the defaults), Orbit is a clean, still
 tone: glass's four waves mixed evenly, band-limited, with nothing between the
 harmonics. The OP-XY's own envelopes, filter, LFOs and effects do the rest.
 
-**Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch.
+**Status:** stereo output and the screen's view of the track's amp envelope
+need Open-XY SDK 1.12, on its `staging` branch.
 
 ## Controls
 

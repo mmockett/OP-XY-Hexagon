@@ -8,8 +8,8 @@ at the pitches of the other notes held, so a chord blooms into one sound.
 Long rings turn breath into slowly drifting pure tones; short ones give
 breathy, noisy formant bands.
 
-**Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch. Each note sounds one block (64 samples,
+**Status:** stereo output and the screen's view of the track's amp envelope
+need Open-XY SDK 1.12, on its `staging` branch. Each note sounds one block (64 samples,
 1.45 ms) after its key: Hollow plans the note in that silent block.
 
 ## Controls

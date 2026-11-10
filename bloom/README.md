@@ -14,8 +14,8 @@ chord brighter or darker together, so a big chord still audibly breathes
 instead of averaging out to a blur. Each note's evolution is deterministic:
 the same notes, played in the same order, sound the same.
 
-**Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch.
+**Status:** stereo output and the screen's view of the track's amp envelope
+need Open-XY SDK 1.12, on its `staging` branch.
 
 ## Controls
 

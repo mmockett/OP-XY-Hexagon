@@ -23,6 +23,8 @@ struct Voice {
     i32 hiss;         // the last noise sample, for hiss's first difference
     i32 level;        // output gain at the end of the last block, Q31
     i32 offset[2];    // each oscillator's pitch offset this block, Q16 octaves
+    i32 poles[2];     // the side's two poles
+    i32 width;        // the side's gain at the end of the last block, Q12
 };
 
 // The tape every voice plays through. It advances once per audio block: the
