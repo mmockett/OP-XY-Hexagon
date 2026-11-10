@@ -16,7 +16,8 @@ The vactrol is the instrument's own character, not an envelope control: it
 is how this voice speaks. The OP-XY's amp envelope still applies on top.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
-SDK 1.10, on its `staging` branch.
+SDK 1.10, on its `staging` branch. Moth stays mono; the other five
+play in stereo.
 
 ## Controls
 

@@ -252,3 +252,7 @@ compiles to 17 Blackfin instructions in a zero-overhead hardware loop, so
 twelve modes (eight body modes and four sympathetic ones) cost about 13,000
 instructions a block before the per-block planning. Spread's ensemble adds
 only per-block work, a few dozen instructions a mode.
+
+These figures are for the mono voice, before stereo. With spread at 0 the voice
+does nearly the same work; what stereo costs with spread up is still to be
+measured on the OP-XY.

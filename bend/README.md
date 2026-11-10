@@ -126,6 +126,11 @@ reaches 0.96.
 | Breath | A narrow pulse an octave up in noise: a breathy flute | 0.46 |
 | Toy DAC | sawpl through a 6.6 kHz, 6-bit DAC, a little rung and warped | 0.45 |
 
+Stereo: detune opens it. At 0 both channels are one sound; as it rises the two
+lines lean apart, one to each side, and which leans which way is the note's
+own, so a chord spreads. Left plus right is always the mono voice. Every preset
+but Clean has some detune, so they now play in stereo.
+
 ## Screen
 
 Ported from the design board. Below the two-page header:
@@ -251,3 +256,7 @@ ring and lofi together) that is about 160 instructions a sample, 10,100 a
 block, plus about 1,200 for planning the block and smoothing the steps: about
 11,300 Blackfin instructions per voice block by static count. The SDK's host
 estimate (`sdk.py test`) is about 2,400 to 3,700.
+
+These figures are for the mono voice, before stereo. With detune at 0 the voice
+does nearly the same work; what stereo costs with detune up is still to be
+measured on the OP-XY.

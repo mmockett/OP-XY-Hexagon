@@ -16,7 +16,8 @@ project.
 the OP-XY, and their CPU use has been measured on it (below). In v1.7.0
 their screens follow each track's amp envelope, which needs Open-XY SDK 1.10,
 on its `staging` branch, and Hollow and Wane cost less, with the same sound.
-Hollow now sounds each note one block (1.45 ms) after its key.
+Hollow now sounds each note one block (1.45 ms) after its key. Wane, Bloom,
+Hollow, Orbit and Bend now play in stereo, which needs SDK 1.12.
 
 All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Wane](https://open-xy.com/#preview/machines/wane),
@@ -181,8 +182,12 @@ Levels are matched across the set. An eight-note chord on any preset peaks
 between 0.4 and 0.8 of full scale, leaving room for the OP-XY's own filter and
 effects.
 
-Synth voices are mono in the Open-XY SDK, so Hollow's spread thickens each
-voice rather than panning. For width, send it to the OP-XY's chorus.
+Five of the six play in stereo, each opened by a control it already had, and
+each is mono at its defaults: Wane by detune above its default, Bloom by haze,
+Hollow by spread, Orbit and Bend by detune. With that control at its default
+both channels carry the same sound, and as it rises each note's parts lean apart,
+a chord's notes leaning different ways. Left plus right is always the mono
+voice, so nothing is lost when the output is summed. Moth stays mono.
 
 Each screen moves for as long as its sound does. The synths can't see a note's
 release: a voice sounds until the OP-XY's amp envelope (M2) ends it. So each
@@ -223,11 +228,12 @@ Bend are in that range; Wane, Bloom, Hollow and Moth cost up to about twice
 as much. A full chord on one track is fine; several
 tracks of big Bloom or Hollow chords at once, with effects, can run out. The
 test plays one setting; heavier settings cost more, and the screens are not
-included.
+included. These figures are for the mono voices, before stereo; what stereo
+costs with its control up is still to be measured.
 
 ## Building
 
-The machines need SDK 1.10 (the track's amp envelope on the screen), on the
+The machines need SDK 1.12 (stereo output; the screens' amp envelope is 1.10), on the
 `staging` branch of [etcetc000/open-xy](https://github.com/etcetc000/open-xy). Check it out beside
 this repository as `../open-xy`, fetch its toolchain
 (`python sdk.py toolchain fetch`), then:

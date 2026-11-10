@@ -55,7 +55,7 @@ unsigned capture(const Controls& c, double hz, double seconds) {
     for (; b < blocks && (b + 1) * frames <= max_samples; ++b) {
         bend::render(voice, shared, 1, out, c.p, pitch);
         // What the sound tests read: the mono sum, which is the mono voice.
-        for (unsigned i = 0; i < frames; ++i) sound[b * frames + i] = ((out[2 * i] >> 1) + (out[2 * i + 1] >> 1)) / 2147483648.0;
+        for (unsigned i = 0; i < frames; ++i) sound[b * frames + i] = (static_cast<double>(out[2 * i]) + out[2 * i + 1]) / 4294967296.0;
     }
     return b * frames;
 }
@@ -536,7 +536,7 @@ void chords() {
                 for (unsigned i = 0; i < frames; ++i) pitch[i] = increment(440 * std::pow(2, (notes[v] - 69) / 12.0));
                 i32 out[2 * frames];
                 bend::render(voices[v], shared, v + 1, out, c.p, pitch);
-                for (unsigned i = 0; i < frames; ++i) mix[i] += ((out[2 * i] >> 1) + (out[2 * i + 1] >> 1)) / 2147483648.0;
+                for (unsigned i = 0; i < frames; ++i) mix[i] += (static_cast<double>(out[2 * i]) + out[2 * i + 1]) / 4294967296.0;
             }
             for (unsigned i = 0; i < frames; ++i) loudest = std::fmax(loudest, std::fabs(mix[i]));
         }

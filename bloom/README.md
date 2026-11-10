@@ -29,7 +29,7 @@ Press any encoder to switch pages.
 | 1 | vowel | off, oo, oh, ah, eh, ee | off | `off` `ah` | Two formants (up to 30 dB) at a sung vowel's frequencies, fixed in Hz like a voice's, so the whole keyboard sings the same vowel. Fades in over the first tenth of the travel, then moves oo, oh, ah, eh, ee. Breath makes the vowel wander |
 | 2 | breath | 0 to 100 | 0 | `0` | How far everything drifts: each partial's level up to 18 dB either way, the shared weather's lean up to 4.5 dB/oct, the pulse width and the vowel |
 | 2 | blur | 0 to 120 cents | 0 | `42c` | Each partial's pitch jitters by smoothed noise (8 to 38 Hz), spreading it into a band of noise: a faint fizz, then breath and air. The fundamental is touched least |
-| 2 | haze | 0 to 100 cents | 0 | `25c` | Each partial becomes a pair detuned by this much, so it beats: slow chorus at a few cents, fast shimmer and roughness toward a semitone. The note stays in tune |
+| 2 | haze | 0 to 100 cents | 0 | `25c` | Each partial becomes a pair detuned by this much, so it beats: slow chorus at a few cents, fast shimmer and roughness toward a semitone. The note stays in tune. Haze also opens the stereo: at 0 the voice is mono |
 | 2 | time | 30 ms to 30 s, then hold | 1.9 s | `1.9s` | The time between breath's drift targets: from fast glitter at the bottom to slow evolution at the top. At `hold` the drift freezes where it is (haze and blur keep moving) |
 
 Shape, vowel, breath, blur and haze default to off, so a new sound starts
@@ -57,6 +57,12 @@ Loudness is held even across every control: a note's partial levels are
 scaled to a fixed root-sum-square, and they sum to at most 22000 (Q15), so
 one voice peaks at most at 0.21 of full scale (`outputPeakQ31`). Eight-note
 chords of the presets peak at about 0.43 to 0.62.
+
+Stereo: haze opens it. With no haze both channels are one sound. As haze rises
+the lowest partial stays in the middle and the rest share out between the two
+sides, turn about, each note starting from its own side, so a chord spreads.
+Left plus right is always the mono voice, and a channel peaks at most at 0.31
+of full scale. Every preset but Init uses haze, so they now play in stereo.
 
 ### Older sounds
 
@@ -159,6 +165,10 @@ Bloom runs up to 24 partials, skipping any silent for the whole block, each a ta
 Blackfin instructions a sample in a zero-overhead hardware loop, so a low
 note, with every partial below the cutoff, is its heaviest. High notes cost
 less as their upper partials pass the cutoff and stop.
+
+These figures are for the mono voice, before stereo. With haze at 0 the voice
+does nearly the same work; what stereo costs with haze up is still to be
+measured on the OP-XY.
 
 ## Files
 

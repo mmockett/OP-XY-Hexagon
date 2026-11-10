@@ -114,3 +114,7 @@ The SDK's host estimate (`sdk.py test`) is about 7,000 to 10,000 Blackfin
 instructions per voice block at the heaviest setting. Each voice runs its
 oscillators and filters with 16 × 16 multiplies; the tape is computed once per
 block for all voices.
+
+These figures are for the mono voice, before stereo. With detune at or below
+its default the voice does nearly the same work; what stereo costs above it is
+still to be measured on the OP-XY.

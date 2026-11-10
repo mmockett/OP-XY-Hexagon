@@ -260,6 +260,10 @@ whichever branch it sits on, gives about 9,200, an upper bound.
 The SDK's host estimate is about 1,400. It sweeps one control at a time from
 the defaults, where the mix is still.
 
+These figures are for the mono voice, before stereo. With detune at 0 the voice
+does nearly the same work; what stereo costs with detune up is still to be
+measured on the OP-XY.
+
 ## Files
 
 - `vector.h`: the controls and their units, the paths, the corner weights,
