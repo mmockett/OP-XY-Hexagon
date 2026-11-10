@@ -595,7 +595,7 @@ int main() {
         bloom::Voice other;
         std::memset(&other, 0, sizeof other);
         bloom::initialize(other, chord.shared, 2);
-        i32 out[opxy::block_frames];
+        i32 out[2 * opxy::block_frames];
         chord.run(1);
         bloom::render(other, chord.shared, 2, out, chord.parameters, chord.pitch);
         const u32 cycle = chord.shared.cycle, clock = chord.shared.clock;
