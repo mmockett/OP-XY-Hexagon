@@ -74,7 +74,7 @@ inline void put_number(char*& at, u32 value) {
 }
 // detune in cents: one decimal below 10 ("2.5c"), whole from there ("23c").
 inline void caption_cents(char (&out)[header_capacity], u32 tenths) {
-    char text[header_capacity];
+    char text[header_capacity + 16];   // room for put_number's longest, which newer GCCs ask for
     char* at = text;
     if (tenths < 100) { put_number(at, tenths / 10); *at++ = '.'; put_number(at, tenths % 10); }
     else put_number(at, (tenths + 5) / 10);
@@ -84,7 +84,7 @@ inline void caption_cents(char (&out)[header_capacity], u32 tenths) {
 }
 // lofi's rate in kHz: one decimal below 10 ("5.8k"), whole from there ("23k").
 inline void caption_rate(char (&out)[header_capacity], u32 tens) {
-    char text[header_capacity];
+    char text[header_capacity + 16];   // room for put_number's longest, which newer GCCs ask for
     char* at = text;
     const u32 hundreds = (tens + 5) / 10;
     if (hundreds < 100) { put_number(at, hundreds / 10); *at++ = '.'; put_number(at, hundreds % 10); }

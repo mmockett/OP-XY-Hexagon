@@ -19,7 +19,9 @@ inline void put_decimal(char*& at, u32 value, u32 places) {
 }
 inline void put_text(char*& at, const char* text) { while (*text) *at++ = *text++; }
 inline void caption(char (&out)[opxy::draw::header_capacity], u32 slot, i32 value) {
-    char text[opxy::draw::header_capacity];
+    // Room past the header for the longest numbers put_number could write: the
+    // captions are short, but newer GCCs can't see that and refuse to build.
+    char text[opxy::draw::header_capacity + 16];
     char* at = text;
     if (slot == 0) {            // tilt, dB per octave
         const i32 db = tilt_db(value);
