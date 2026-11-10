@@ -68,7 +68,7 @@ struct Note {
                 if (l > peak) peak = l;
                 if (r > peak) peak = r;
                 // What the sound tests read: the mono sum, which is the mono voice.
-                if (out) out[b * opxy::block_frames + i] = (left >> 1) + (right >> 1);
+                if (out) out[b * opxy::block_frames + i] = static_cast<i32>((static_cast<long long>(left) + right) / 2);
             }
         }
         return peak;

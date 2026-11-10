@@ -60,7 +60,7 @@ struct Rig {
             const i32 l = left < 0 ? -left : left, r = right < 0 ? -right : right;
             if (l > loudest) loudest = l;
             if (r > loudest) loudest = r;
-            out[v][i] = (left >> 1) + (right >> 1);
+            out[v][i] = static_cast<i32>((static_cast<long long>(left) + right) / 2);
         }
     }
 };

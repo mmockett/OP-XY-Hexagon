@@ -44,6 +44,12 @@ Press any encoder to switch pages.
 As on the board, grit's header shows the DAC's rate, which falls as grit
 rises.
 
+Stereo: Detune opens it. At 0 both channels are one sound; as the second set
+comes in, the two sets lean apart, one to each side, fully by 7.5 cents, and
+which leans which way is the note's own, so a chord spreads. Left plus right is
+always the mono voice. Presets with Detune up (Chimes, Drawbars, Dusk Pad,
+Dusty, Old DAC, Wave Seq) now play in stereo; Clean and the init sound stay mono.
+
 ### What each control does, measured
 
 `tests/sound.cpp` measures each control at 0, 25, 50, 75 and 100 and checks
