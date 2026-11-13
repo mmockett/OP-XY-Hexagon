@@ -3,6 +3,15 @@
 #include "spectrum.h"
 
 namespace bloom {
+// Partials below 6 kHz sound at half the sample rate, 32 samples a block,
+// exactly every other sample of the full rate's; a half-band filter of
+// kHalfTaps coefficient pairs fills in the samples between, kLag samples
+// (0.23 ms) later, and the partials above sound at the full rate, delayed
+// as long, so the two keep time.
+const u32 kHalfTaps = 5;
+const u32 kHalfFrames = opxy::block_frames / 2;
+const u32 kHalfHistory = 2 * kHalfTaps - 1;  // half-rate samples the filter reads from the last block
+const u32 kLag = 2 * kHalfTaps;              // full-rate samples of delay
 // The partials, field by field, so a block reads and writes only the fields
 // it uses, each packed contiguously: every block, the phases and amplitudes
 // (192 bytes, 6 cache lines, against 24 lines when each partial's fields sat
@@ -34,6 +43,10 @@ struct Voice {
     u32 cycle;      // the shared block this voice last rendered in
     u32 sounding;   // partials that may still have amplitude
     u32 random;     // blur's noise generator
+    u32 halved;     // bit k: partial k sounds at half rate
+    u32 tail;       // the filter's history (1) or the full rate's delay (2) still holds sound
+    i32 low[kHalfHistory];   // the half-rate mix's last samples, for the filter
+    i32 late[kLag];          // the full-rate mix's last samples, still to play
 };
 // The track's weather: one clock every voice reads, so a chord's voices lean
 // brighter and darker together, and the note counter that seeds each note.
