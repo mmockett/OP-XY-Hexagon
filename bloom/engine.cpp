@@ -20,7 +20,7 @@ const i32 level_floor = 38;
 inline opxy::i16 top_half(i32 amplitude) { return static_cast<opxy::i16>(static_cast<u32>(amplitude) >> 16); }
 inline u32 sound(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
-        *out += sine_table[phase >> 20] * top_half(amplitude);
+        *out += sine_table[phase >> 21] * top_half(amplitude);
         phase += increment;
         amplitude += step;
     }
@@ -29,7 +29,7 @@ inline u32 sound(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
 // The same, writing rather than adding: the block's first sounding partial.
 inline u32 sound_first(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
-        *out = sine_table[phase >> 20] * top_half(amplitude);
+        *out = sine_table[phase >> 21] * top_half(amplitude);
         phase += increment;
         amplitude += step;
     }
@@ -46,14 +46,14 @@ template <bool First>
 __attribute__((noinline)) void sound_two(i32* mix, u32& phase_a, u32 increment_a, i32 amplitude_a, i32 step_a,
                                          u32& phase_b, u32 increment_b, i32 amplitude_b, i32 step_b) {
     u32 a = phase_a, b = phase_b;
-    const opxy::i16* at_a = sine_table + (a >> 20);
-    const opxy::i16* at_b = sine_table + (b >> 20);
+    const opxy::i16* at_a = sine_table + (a >> 21);
+    const opxy::i16* at_b = sine_table + (b >> 21);
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
         const i32 sine_a = *at_a, sine_b = *at_b;
         a += increment_a;
         b += increment_b;
-        at_a = sine_table + (a >> 20);
-        at_b = sine_table + (b >> 20);
+        at_a = sine_table + (a >> 21);
+        at_b = sine_table + (b >> 21);
         const i32 both = sine_a * top_half(amplitude_a) + sine_b * top_half(amplitude_b);
         *out = First ? both : *out + both;
         amplitude_a += step_a;
@@ -132,7 +132,7 @@ inline Step partial_step(const Controls& c, Partial& p, u32& random, i32 note, i
     if (c.haze_depth) {
         p.beat += beat_step(c, p.spread, s.increment);
         const i32 depth = static_cast<i32>(c.haze_depth * partial_reach(k) >> 8);
-        envelope += (depth * sine_table[(p.beat + 0x40000000u) >> 20] >> 15) - depth;
+        envelope += (depth * sine_table[(p.beat + 0x40000000u) >> 21] >> 15) - depth;
     }
     s.target = (level * envelope >> 15) << 16;
     return s;
