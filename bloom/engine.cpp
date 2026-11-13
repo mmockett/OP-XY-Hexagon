@@ -20,7 +20,7 @@ const i32 level_floor = 38;
 inline opxy::i16 top_half(i32 amplitude) { return static_cast<opxy::i16>(static_cast<u32>(amplitude) >> 16); }
 inline u32 sound(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
-        *out += sine_table[phase >> 20] * top_half(amplitude);
+        *out += sine_table[phase >> 22] * top_half(amplitude);
         phase += increment;
         amplitude += step;
     }
@@ -29,7 +29,7 @@ inline u32 sound(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
 // The same, writing rather than adding: the block's first sounding partial.
 inline u32 sound_first(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 step) {
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
-        *out = sine_table[phase >> 20] * top_half(amplitude);
+        *out = sine_table[phase >> 22] * top_half(amplitude);
         phase += increment;
         amplitude += step;
     }
@@ -104,7 +104,7 @@ inline Step partial_step(const Controls& c, Partial& p, u32& random, i32 note, i
     if (c.haze_depth) {
         p.beat += beat_step(c, p.spread, s.increment);
         const i32 depth = static_cast<i32>(c.haze_depth * partial_reach(k) >> 8);
-        envelope += (depth * sine_table[(p.beat + 0x40000000u) >> 20] >> 15) - depth;
+        envelope += (depth * sine_table[(p.beat + 0x40000000u) >> 22] >> 15) - depth;
     }
     s.target = (level * envelope >> 15) << 16;
     return s;
