@@ -75,7 +75,7 @@ struct Bank {
     u32 phase, increment;
     i32 amplitude, step;
     u32* at;
-    void add(u32* where, u32 p, u32 inc, i32 a, i32 d) {
+    __attribute__((noinline)) void add(u32* where, u32 p, u32 inc, i32 a, i32 d) {
         if (N != opxy::block_frames) inc <<= 1, d <<= 1;   // half rate: two steps a sample
         if (!waiting) {
             at = where;
