@@ -38,6 +38,27 @@ namespace moth {
 namespace screen {
 using namespace opxy::draw;
 
+// opxy::draw's sine and rotation, the same math kept in this file. The SDK's
+// are plain inline: a copy GCC keeps out of line becomes a global symbol, and
+// another machine's copy then clashes with it in one firmware (open-xy
+// docs/toolchain.md, "One definition for shared code").
+// sin of a tenth-degree angle, Q10, interpolated between whole degrees.
+static inline i32 sine_tenths(i32 tenths) {
+    tenths %= 3600;
+    if (tenths < 0) tenths += 3600;
+    const i32 sign = tenths >= 1800 ? -1 : 1;
+    tenths %= 1800;
+    if (tenths > 900) tenths = 1800 - tenths;
+    const i32 degree = tenths / 10, fraction = tenths % 10;
+    const i32 low = sine_q10[degree], high = sine_q10[degree < 90 ? degree + 1 : 90];
+    return sign * (low + (high - low) * fraction / 10);
+}
+// A clockwise rotation by tenths of a degree.
+static inline Turn rotated(i32 tenths) {
+    const Turn turn = {sine_tenths(tenths + 900), sine_tenths(tenths)};
+    return turn;
+}
+
 const i32 kCX = 240 * unit, kCY = 124 * unit;
 const i32 kDepth = 7209;        // how far a lobe swells past the dips: 0.22 of the wing's reach, Q15
 const u32 kBeat = 13107;        // an antenna's flick: 0.2 s, Q16 seconds
@@ -110,7 +131,7 @@ inline void pose(Frame& frame, u32 node, const Pose& p, i32 x, i32 y, i32 scale,
     place(frame, node, s.x, s.y, scale, shade, paint);
     opxy::draw::turn(frame, node, compose(p.sway, turn));
 }
-inline Pose posed(const Sway& s) { const Pose p = {rotation(s.tilt), s.bob * unit}; return p; }
+inline Pose posed(const Sway& s) { const Pose p = {rotated(s.tilt), s.bob * unit}; return p; }
 // A sway step toward v: kept until v is three quarters of a step past it.
 inline i32 stepped(i32 now, i32 v, i32 step) {
     const i32 off = v - now * step;
@@ -400,10 +421,10 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     i32 flick = 0;
     if (!input.reduced_motion)
         for (u32 k = 0; k < 8; ++k)
-            if (state.lamps[k].since < kBeat) flick += 120 * strike / 32767 * sine(static_cast<i32>(state.lamps[k].since * 1800u / kBeat)) >> 10;
+            if (state.lamps[k].since < kBeat) flick += 120 * strike / 32767 * sine_tenths(static_cast<i32>(state.lamps[k].since * 1800u / kBeat)) >> 10;
     if (flick > 120) flick = 120;  // tenths of a degree
     flick = (flick + 10) / 20 * 20;
-    const Turn level = rotation(0);
+    const Turn level = rotated(0);
 
     // The gate as drawn, in sixteen steps: the lit edges, their grey and the
     // cell redraw only when it steps.
@@ -479,7 +500,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         for (u32 b = 0; b < 2; ++b) {
             // An antenna turns about its foot, (-1.8, -28) or (1.8, -28) px: placed
             // at foot - R foot, turned by R.
-            const Turn r = rotation(b ? flick : -flick);
+            const Turn r = rotated(b ? flick : -flick);
             const i32 fx = b ? 1843 : -1843, fy = -28 * unit;
             pose(frame, kBodyFirst + b, p, fx - ((fx * r.cos - fy * r.sin) >> 10), fy - ((fx * r.sin + fy * r.cos) >> 10), unit, r, 0, keep);
         }
@@ -544,7 +565,7 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         i32 turn = scale.turn % 3600;
         if (turn < 0) turn += 3600;
         place(frame, kScaleFirst + s, scale.x >> 10 << 10, scale.y >> 10 << 10, unit, grey(768 + (2560 * fade >> 15)), fill_and_stroke);
-        opxy::draw::turn(frame, kScaleFirst + s, rotation((turn + 150) / 300 * 300));
+        opxy::draw::turn(frame, kScaleFirst + s, rotated((turn + 150) / 300 * 300));
     }
 }
 }
