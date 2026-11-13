@@ -29,9 +29,8 @@ const opxy::u32 map_dim = 1, map_bright = 7, dot = 8, twin = 9, twin_ring = 10, 
 // and elapsed time (the display cannot read the audio): each held note's
 // contour on its own dial, the controls eased, line 2's slide and the noise's
 // roll. The OP-XY redraws whatever changes, so the dots sit on whole pixels and
-// a beam redraws them, an eighth of the way across a frame, like a scope's sweep,
-// whatever moved them; the dials take turns; and the dots follow the contour in
-// coarse steps.
+// only those that move are redrawn, at most 26 a frame, walking across the scope
+// like a beam when more move at once; and the dials take turns.
 struct DisplayState {
     opxy::draw::PageHeader header;
     opxy::draw::NoteTracker notes;
@@ -47,8 +46,8 @@ struct DisplayState {
     opxy::u32 beat;              // line 2's slide against line 1, Q32 cycles
     opxy::u32 roll;              // the noise's roll
     opxy::u32 map_key;           // what the map outlines were drawn for
-    opxy::i32 dots_bend;         // the bend the dots show, Q15: it follows in steps of 1/32
-    opxy::u32 turn;              // frames drawn: where the beam is, and whose turn it is among the dials
+    opxy::u32 cursor;            // the dot the next frame's walk across the scope starts from
+    opxy::u32 turn;              // frames drawn: whose turn it is among the dials
     amp::Follower amps[8];       // each dial's note through the track's amp envelope, when known (SDK 1.10)
 };
 }

@@ -140,9 +140,9 @@ Ported from the design board. Below the two-page header:
   dots at its interval, sliding against line 1 at a quarter of detune's beat,
   in 24ths of a cycle, and turning into the ring product as ring rises
   (brighter past half). lofi holds and steps the dots as its DAC would; noise
-  jitters their phases by its rms. A beam redraws them from left to right in
-  0.13 s, like a scope's sweep, and that is how the trace moves whatever moved
-  it: a turn, a note's contour or the noise's roll.
+  jitters their phases by its rms. The trace follows a held note's contour as
+  it breathes, frame by frame; a bigger change (a turn, a new wave, the
+  noise's roll) crosses it from left to right like a scope's sweep.
 - **dcw**: a dial for each held note (up to eight), lit while it is held,
   showing bend plus that note's contour, to the nearest degree; they take
   turns, a quarter of them a frame.
@@ -162,8 +162,9 @@ before.
 
 The OP-XY redraws whatever changes in a frame, so the screen changes little,
 whether notes move it or a control does: the map follows the contour to 1/256
-of bend, the dots sit on whole pixels and follow it in steps of 1/32, and
-only the dots under the beam can change in a frame. The dots stay as many and
+of bend, the dots sit on whole pixels and only those that move are redrawn,
+at most 26 in a frame, walking left to right from where the last frame
+stopped, so a big change sweeps across in about nine frames. The dots stay as many and
 as fine as they are for their look, which puts the heaviest settings over the
 usual 20 elements a frame: about 10 at the defaults, and 26.8 on average with a
 peak of 32 at the heaviest, 36 turning a control. `tests/churn.cpp` sweeps every
@@ -196,8 +197,8 @@ written by `tools/make_panel.py` from the board's geometry. To fit:
 - The dials show the contour fading in over bend's first fifth, as the sound
   does.
 - Turns ease in 35 ms (the board's 45), so that everything settles within
-  0.2 s; the dots move in whole pixels and refresh under the beam rather than
-  easing every frame, and line 2 takes a new interval as the beam reaches it,
+  0.2 s; the dots move in whole pixels and a big change sweeps across them
+  rather than easing, and line 2 takes a new interval as the sweep reaches it,
   without gliding; line 2 slides at a quarter of the
   board's speed, in steps, and the noise rolls 4 times a second (the board's
   14).
