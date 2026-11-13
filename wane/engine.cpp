@@ -107,11 +107,16 @@ inline i32 triangle_wave(u32 phase) {
     return (twice < 0 ? -twice : twice) - 32768;
 }
 
-// A sine in phase with the triangle (lowest at phase 0), Q15: tape.h's
-// parabola refined once, 0.775 p + 0.225 p|p|, its harmonics below -50 dB.
-inline i32 sine_wave(u32 phase) {
-    const i32 p = tape::sine(phase - 0x40000000u);
-    return p + p15(p15(p, p < 0 ? -p : p) - p, 7373);
+// A sine in phase with the triangle (lowest at phase 0), Q15, from the
+// triangle t itself: sin(pi/2 t) is that sine, here as an odd quintic,
+// t (25728 - 10514 t^2 + 1170 t^4) in Q14, all 16 x 16. Within 4 of
+// 32767 sin(pi/2 t) everywhere and never past +-32767 (checked for every t),
+// its harmonics below -80 dB.
+inline i32 sine_of_triangle(i32 t) {
+    const i32 t2 = opxy::q15::product(t, t) >> 15;
+    i32 c = (opxy::q15::product(1170, t2) >> 15) - 10514;
+    c = (opxy::q15::product(c, t2) >> 15) + 25728;
+    return opxy::q15::product(c, t) >> 14;
 }
 
 // How the shape control mixes each oscillator, Q15: sine, triangle, saw, and
@@ -174,8 +179,11 @@ __attribute__((noinline)) void oscillate(i32* out, u32& phase_state, u32& increm
         phase += step;
         i32 value = 0;
         if (Saw) value = m15(saw(phase, step, reciprocal), saw_level);
-        if (Sine) value = p15(sine_wave(phase), sine);
-        if (Triangle) value += p15(triangle_wave(phase), triangle);
+        if (Sine || Triangle) {
+            const i32 t = triangle_wave(phase);
+            if (Sine) value = p15(sine_of_triangle(t), sine);
+            if (Triangle) value += p15(t, triangle);
+        }
         if (Pulse) value -= m15(saw(phase + width, step, reciprocal), pulse);
         out[i] = First ? value : out[i] + value;
     }
