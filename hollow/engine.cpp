@@ -574,11 +574,12 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     apply_gain(acc, level - step, step * 2);
     for (u32 i = 0; i < kHalfHistory; ++i) low[i] = voice.low[i];
     for (u32 i = 0; i < kHalfHistory; ++i) voice.low[i] = low[kHalfFrames + i];
-    i32 full[opxy::block_frames];
-    upsample(low, full);
-    // Air at the full rate, unfiltered; it does not wait the filter's 0.23 ms.
-    if (air_gain) add_air(full, seed, voice.hiss, voice.slow, air_gain);
-    for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = soft_limit(full[i]);
+    // Back to the full rate in the output itself, then Air at the full rate,
+    // unfiltered (it does not wait the filter's 0.23 ms), then the soft limit,
+    // in place: no block buffer of its own.
+    upsample(low, output);
+    if (air_gain) add_air(output, seed, voice.hiss, voice.slow, air_gain);
+    for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = soft_limit(output[i]);
     voice.seed = seed;
 }
 }
