@@ -16,7 +16,8 @@ project.
 the OP-XY, and their CPU use has been measured on it (below). In v1.7.0
 their screens follow each track's amp envelope, which needs Open-XY SDK 1.10,
 on its `staging` branch, and Hollow and Wane cost less, with the same sound.
-Hollow now sounds each note one block (1.45 ms) after its key.
+Hollow now sounds each note one block (1.45 ms) after its key. In v1.7.2 all
+six play at one loudness, and Wane opens on a worn tape.
 
 All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Wane](https://open-xy.com/#preview/machines/wane),
@@ -26,10 +27,8 @@ All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Bend](https://open-xy.com/#preview/machines/bend) and
 [Moth](https://open-xy.com/#preview/machines/moth). The builder installs the
 version the Open-XY catalog pins for each, which can be older than this
-repository's latest tag (`v1.7.0`): Wane `v1.1.0`, Bloom `v1.5.0`, Hollow
-`v1.3.0`, Orbit and Bend `v1.2.0`, Moth `v1.6.0`. Bloom, Orbit, Bend and Moth
-are moving to v1.7.0, which needs SDK 1.10; until the builder has it, build
-v1.7.0 from source (below).
+repository's latest tag (`v1.7.2`). All six are moving to v1.7.2; until the
+builder has it, build v1.7.2 from source (below).
 
 ## The synths
 
@@ -177,9 +176,10 @@ All notes of one synth share some state across tracks: Wane's tape, Bloom's
 slow drift and Hollow's sympathy. Two tracks using the same synth will move
 together.
 
-Levels are matched across the set. An eight-note chord on any preset peaks
-between 0.4 and 0.8 of full scale, leaving room for the OP-XY's own filter and
-effects.
+Levels are matched across the set and with the other suites. A single note of
+any preset peaks at most at 0.4 of full scale (2 dB under the SDK's half-scale
+ceiling), and an eight-note chord's raw sum, before the OP-XY's velocity,
+envelope and volume, peaks between 0.55 and 1.2.
 
 Synth voices are mono in the Open-XY SDK, so Hollow's spread thickens each
 voice rather than panning. For width, send it to the OP-XY's chorus.

@@ -19,7 +19,10 @@ inline void put_decimal(char*& at, u32 value, u32 places) {
 }
 inline void put_text(char*& at, const char* text) { while (*text) *at++ = *text++; }
 inline void caption(char (&out)[opxy::draw::header_capacity], u32 slot, i32 value) {
-    char text[opxy::draw::header_capacity];
+    // Built at the text slots' size, so a number of any width fits while it is
+    // written (GCC's stringop-overflow check counts all ten digits); copy()
+    // then keeps the header's seven characters, which every caption fits.
+    char text[opxy::draw::text_capacity];
     char* at = text;
     if (slot == 0) {            // tilt, dB per octave
         const i32 db = tilt_db(value);

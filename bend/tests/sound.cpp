@@ -15,7 +15,7 @@ using bend::i32;
 using bend::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
-const i32 peak = 0x18000000;   // definition.json outputPeakQ31
+const i32 peak = 749731840;   // definition.json outputPeakQ31
 int failures = 0;
 
 void check(bool ok, const char* what) {
@@ -509,7 +509,8 @@ void onset() {
     check(std::fabs(mean) < 0.01, what);
 }
 // Every preset's eight-note chord (definition.json's presets; C3 G3 C4 E4 G4
-// B4 D5 G5 struck at once) peaks between 0.4 and 0.8 of full scale.
+// B4 D5 G5 struck at once) peaks between 0.74 and 1.5 of full scale: the
+// voices' raw sum, before the OP-XY's velocity, envelope and volume.
 void chords() {
     const struct { const char* name; double c[8]; } presets[8] = {
         {"Clean", {choice(0), 0.25, 0, 0, choice(1), 0, 0, 0}},
@@ -546,7 +547,7 @@ void chords() {
     for (unsigned k = 0; k < 8; ++k) {
         char what[80];
         std::snprintf(what, sizeof what, "chords: %s's eight-note chord peaks at %.2f", presets[k].name, peaks[k]);
-        check(peaks[k] > 0.4 && peaks[k] < 0.8, what);
+        check(peaks[k] > 0.74 && peaks[k] < 1.5, what);
     }
 }
 // No integer equivalent of NaN: a minute at the harshest settings keeps

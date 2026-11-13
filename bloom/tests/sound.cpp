@@ -13,7 +13,7 @@ using bloom::u32;
 
 const double rate = 44100.0, pi = 3.14159265358979323846;
 const i32 full = 0x7fffffff;
-const i32 declared_peak = 450600000;   // definition.json outputPeakQ31
+const i32 declared_peak = 833610000;   // definition.json outputPeakQ31
 int failures = 0;
 
 void check(bool ok, const char* what) {
@@ -468,7 +468,7 @@ int main() {
         }
         row("time", change, "level change, dB per second");
         check(change[0] > 100 && decreasing(change, 0) && change[0] > change[1] * 3 && change[1] > change[2] * 3 &&
-                  change[2] > change[3] * 3 && change[4] == 0,
+                  change[2] > change[3] * 3 && change[4] < 1e-9,
               "time does not set the drift's speed");
         // Held: with breath up, nothing changes over ten seconds; running, it moves.
         Setting s = with(breath, 1, with(time_, 1));

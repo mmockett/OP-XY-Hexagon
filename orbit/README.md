@@ -120,24 +120,25 @@ Nothing is shared between voices.
 
 ### Level
 
-One voice peaks at most at 0.203 of full scale (`outputPeakQ31`, 436000000).
-A set peaks at 0.144, and the twin adds up to 1.4 times that. The fades are
+One voice peaks at most at 0.317 of full scale (`outputPeakQ31`, 681250000).
+A set peaks at 0.225 (its mix at 0.144, lifted 1.5625 times), and the twin adds
+up to 1.4 times that. The fades are
 held within the same ceiling, and the grit's rounding adds at most half a
 step. Each preset's eight-note chord (C3 to G5, the voices' raw sum through
 the SDK's browser engine) peaks at:
 
 | Preset | 1 note | 8 notes |
 | --- | --- | --- |
-| Init | 0.093 | 0.652 |
-| Clean | 0.098 | 0.653 |
-| Dusty | 0.180 | 0.540 |
-| Drawbars | 0.189 | 0.706 |
-| Chimes | 0.177 | 0.739 |
-| Wave Seq | 0.168 | 0.744 |
-| Old DAC | 0.131 | 0.545 |
-| Dusk Pad | 0.163 | 0.691 |
+| Init | 0.145 | 1.019 |
+| Clean | 0.153 | 1.020 |
+| Dusty | 0.281 | 0.844 |
+| Drawbars | 0.295 | 1.103 |
+| Chimes | 0.277 | 1.155 |
+| Wave Seq | 0.263 | 1.163 |
+| Old DAC | 0.205 | 0.852 |
+| Dusk Pad | 0.255 | 1.080 |
 
-The loudest still corner of any bank, with full detune, peaks at 0.87 for
+The loudest still corner of any bank, with full detune, peaks at 1.36 for
 eight notes.
 
 ## Presets

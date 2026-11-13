@@ -18,9 +18,9 @@ namespace engine {
 using opxy::q31::multiply;
 using namespace controls;
 const i32 one = opxy::q31::maximum;
-// The output's ceiling, 0.1875 of full scale: a voice sits low enough that a
-// chord of eight peaks near 0.6.
-const i32 ceiling = 0x18000000;
+// The output's ceiling, 0.255 of full scale: a voice sits low enough that a
+// chord of eight peaks near full scale.
+const i32 ceiling = 0x20AAAAAB;
 const u32 fastest = 0x40000000u;                 // increments capped at a quarter of the sample rate
 
 // A control word as Q15, 0..32767.
@@ -246,7 +246,7 @@ __attribute__((noinline)) void head_out(i32* output, const i32* mix, const i32* 
         const i32 noise_now = white[i];
         const i32 out = heard + (noise_now - last) * hiss;
         last = noise_now;
-        output[i] = clamp(out + (out >> 3), -ceiling, ceiling);   // 1.125 x
+        output[i] = clamp(out + (out >> 1) + (out >> 5), -ceiling, ceiling);   // 1.53 x
     }
     state[0] = worn;
     state[1] = heard;

@@ -14,7 +14,7 @@ using orbit::i32;
 using orbit::u32;
 const unsigned frames = opxy::block_frames;
 const i32 full = 0x7fffffff;
-const i32 declared = 436000000;   // definition.json outputPeakQ31
+const i32 declared = 681250000;   // definition.json outputPeakQ31
 const double quarters[5] = {0, 0.25, 0.5, 0.75, 1};
 int failures = 0;
 

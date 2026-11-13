@@ -173,8 +173,8 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     if (!written) for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
     voice.random = random;
     // Q30 sum of Q15 sines times Q15 levels (summing to at most peak_level),
-    // at 0.625: at most 0.21 of full scale, and a chord of eight peaks near 0.5.
-    for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = (mix[i] >> 1) + (mix[i] >> 3);
+    // at 1.156: at most 0.39 of full scale, and a chord of eight peaks near full scale.
+    for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = mix[i] + (mix[i] >> 3) + (mix[i] >> 5);
 }
 
 }  // namespace bloom

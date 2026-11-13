@@ -74,19 +74,19 @@ Combo is the darkest and quickest to fade, as both act at once.
 
 | Preset | Sound | 8 notes, peak |
 | --- | --- | --- |
-| Clean | A soft sine pad, held open, easing in | 0.78 |
-| Porchlight | The init sound: FM at 6.00, lightly folded and biased, struck over a held level through lp, drifting | 0.81 |
-| Ping | The board's sound: folded FM at 3.50, struck hard over a low held level | 0.45 (struck together) |
-| Bongo | Inharmonic FM at 2.76, biased, a short combo pluck | 0.41 (struck together) |
-| Marimba | FM at 4.00, struck between lp and combo, a woody decay | 0.59 (struck together) |
-| Bell | FM at 1.41, a long ring between combo and vca | 0.78 (struck together) |
-| Lantern | A pad: folded, biased, beating at 2.02, swelling in through lp, drifting | 0.78 |
-| Dusk | A deep fold, half bias, beating slowly at 1.01, a little strike, wide drift | 0.62 |
-| Wingbeat | A sub-octave FM growl (0.50), folded hard, plucked over a held level | 0.57 |
+| Clean | A soft sine pad, held open, easing in | 1.10 |
+| Porchlight | The init sound: FM at 6.00, lightly folded and biased, struck over a held level through lp, drifting | 1.14 |
+| Ping | The board's sound: folded FM at 3.50, struck hard over a low held level | 0.64 (struck together) |
+| Bongo | Inharmonic FM at 2.76, biased, a short combo pluck | 0.58 (struck together) |
+| Marimba | FM at 4.00, struck between lp and combo, a woody decay | 0.83 (struck together) |
+| Bell | FM at 1.41, a long ring between combo and vca | 1.10 (struck together) |
+| Lantern | A pad: folded, biased, beating at 2.02, swelling in through lp, drifting | 1.10 |
+| Dusk | A deep fold, half bias, beating slowly at 1.01, a little strike, wide drift | 0.88 |
+| Wingbeat | A sub-octave FM growl (0.50), folded hard, plucked over a held level | 0.81 |
 
 The peaks are the raw sum of an eight-note chord (C3 to G5), full scale 1:
 held from 1 s for the pads and over the first seconds for the plucks, whose
-notes all strike at once. One voice peaks at 0.1 to 0.15.
+notes all strike at once. One voice peaks at 0.14 to 0.21.
 
 ## How it works
 
@@ -152,10 +152,10 @@ until the OP-XY's amp envelope ends it.
 
 ### Level
 
-A full-scale fold with the gate open sounds at 0.105 of full scale. The
+A full-scale fold with the gate open sounds at 0.148 of full scale. The
 offset's removal can raise a folded wave's peak, and a strike adds up to
-1.6 dB, so a voice stays within 0.19 of full scale (the worst of 1,500 random
-settings and notes) under the declared 0.27 (`outputPeakQ31`), which a clamp
+1.6 dB, so a voice stays within 0.27 of full scale (the worst of 1,500 random
+settings and notes) under the declared 0.381 (`outputPeakQ31`), which a clamp
 guarantees and never reaches.
 
 ## Screen

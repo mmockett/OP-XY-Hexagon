@@ -27,7 +27,7 @@ void check(const char* what, bool ok) {
 
 const double kRate = 44100;
 const unsigned kSecond = 689;      // blocks
-const double kPeak = 579820584.0;  // definition.json outputPeakQ31
+const double kPeak = 819018344.0;  // definition.json outputPeakQ31
 const double kSteps[5] = {0, 0.25, 0.5, 0.75, 1};
 enum { kFold, kFm, kRatio, kStrike, kGlow, kBias, kMode, kDrift };
 
@@ -268,8 +268,8 @@ void extremes() {
         for (unsigned i = 0; i < opxy::block_frames; ++i) bent = bent && std::fabs(static_cast<double>(out[i])) <= kPeak;
     }
     check("within the declared peak through a six-octave bend", bent);
-    // A random search of settings and notes stays under 0.25 of full scale,
-    // so the clamp at the declared peak (0.27) never has to act.
+    // A random search of settings and notes stays under 0.35 of full scale,
+    // so the clamp at the declared peak (0.381) never has to act.
     u32 seed = 7;
     double worst = 0;
     for (unsigned n = 0; n < 1500; ++n) {
@@ -283,7 +283,7 @@ void extremes() {
         worst = std::fmax(worst, peak(play(k, 27.5 * std::pow(2.0, (seed >> 8) / 16777216.0 * 8.5), 0.25)));
     }
     if (reporting) std::printf("worst single-voice peak over 1500 random settings: %.3f of full scale\n", worst);
-    check("a voice peaks under 0.25 of full scale, short of the clamp", worst < 0.25);
+    check("a voice peaks under 0.35 of full scale, short of the clamp", worst < 0.35);
 }
 
 void clean() {

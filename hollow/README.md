@@ -94,10 +94,11 @@ The output gain holds the voice's steady power, its sympathetic modes
 included (as far as they have bloomed), so bodies, vowels, Bright, Spread,
 Sympathy and the keyboard's range all sound about equally loud (the gain
 stays within −12 dB to +12 dB). It ramps across each block, so a change of
-gain never steps. A soft limit keeps every sample within half scale. The
-output sits low enough that eight notes keep headroom: a full chord of the
-presets peaks at 0.53–0.65 of full scale, and at most 0.94 with Breath, Air,
-Bright, Ring, Spread and Sympathy all at 100.
+gain never steps. The
+output is lifted 1.28 times (2.15 dB) into a soft limit that leaves it
+unchanged below 0.32 of full scale and keeps every sample within half scale. A
+full chord of the presets peaks at 0.68–0.83 of full scale, and at most 1.2
+with Breath, Air, Bright, Ring, Spread and Sympathy all at 100.
 
 ### Sympathy and `Shared`
 
