@@ -412,24 +412,33 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     const i32 bowed = 32767 - (breath * breath >> 15), puff = 32767 - (rest * rest >> 15);
     const i32 blown = puff + ((32767 - puff) * kBowHiss >> 15);
     const i32 widen = breath_widen_log2(breath);
-    // The body's modes: plans remade only when what they depend on moves.
-    i32 fundamental;      // the first mode's level, for the sympathetic modes
-    u32 power;            // the modes' steady power, roughly: bow^2 + 4 breath^2, echoes included
+    // The body's modes: plans remade only when what they depend on moves, and
+    // while the note sounds four a block, taking turns, so no block replans
+    // all eight on top of sounding them (the note's silent first block plans
+    // them all). A mode whose plan is a block behind keeps its level, ring
+    // and drive a block longer; every mode's frequency follows the pitch at once.
     const i32 key[6] = {breath, body, bright, ring_control, vowel, static_cast<i32>(increment)};
     bool same = voice.planned_valid != 0;
     for (u32 j = 0; j < 6 && same; ++j) same = voice.planned_for[j] == key[j];
     if (!same) {
+        for (u32 j = 0; j < 6; ++j) voice.planned_for[j] = key[j];
+        voice.planned_valid = 1;
+        voice.stale = (1u << kModes) - 1;
+    }
+    if (voice.stale) {
         const Traits traits = body_traits(body);
-        fundamental = 0;
-        power = 0;
-        for (u32 k = 0; k < kModes; ++k) {
+        u32 budget = preparing ? kModes : kModes / 2, k = voice.next;
+        for (u32 looked = 0; looked < kModes && budget; ++looked, k = (k + 1) & (kModes - 1)) {
+            if (!(voice.stale & (1u << k))) continue;
+            voice.stale &= ~(1u << k);
+            --budget;
             Planned& q = voice.planned[k];
             const Shape shape = body_mode(body, k);
             const u32 at = times(increment, shape.ratio);
             const i32 level = mode_level(shape, traits, vowel, at, octave + shape.log2_ratio);
-            if (!k) fundamental = level;
-            q.at = at;
+            q.ratio = shape.ratio;
             q.level = level;
+            q.power = 0;
             if (!level) continue;
             const u32 bow_roll = power_of_two(-((slope >> 4) * (shape.log2_ratio >> 4) >> 8));
             const i32 over = shape.log2_ratio - cutoff;
@@ -438,16 +447,13 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
             const i32 hush = level * kBreathAmplitude >> 15;
             const i32 bow = static_cast<i32>(times_small(static_cast<u32>(drive * bowed >> 15), bow_roll));
             const i32 wind = static_cast<i32>(times_small(static_cast<u32>(hush * blown >> 15), breath_roll));
-            power += static_cast<u32>(low_by_low(bow, bow)) + 4u * static_cast<u32>(low_by_low(wind, wind));
+            q.power = static_cast<u32>(low_by_low(bow, bow)) + 4u * static_cast<u32>(low_by_low(wind, wind));
             const Push p = plan(log2_loss + shape.log2_fade + widen, bow, wind);
             q.decay = p.decay;
             q.bow = p.bow;
             q.noise = p.noise;
         }
-        for (u32 j = 0; j < 6; ++j) voice.planned_for[j] = key[j];
-        voice.planned_power = power;
-        voice.planned_fundamental = fundamental;
-        voice.planned_valid = 1;
+        voice.next = k;
     }
     if (preparing) {
         // (It no longer reads the sine table through here: measured on the
@@ -455,8 +461,13 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
         for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = 0;
         return;
     }
-    fundamental = voice.planned_fundamental;
-    power = voice.planned_power;
+    const i32 fundamental = voice.planned[0].level;   // the first mode's level, for the sympathetic modes
+    u32 power = 0;   // the modes' steady power, roughly: bow^2 + 4 breath^2, echoes included
+    for (u32 k = 0; k < kModes; ++k) {
+        Planned& q = voice.planned[k];
+        q.at = times(increment, q.ratio);
+        power += q.power;
+    }
     // Spread: the ensemble's copies this block.
     ++voice.age;
     const Chorus chorus = ensemble(voice, spread);
