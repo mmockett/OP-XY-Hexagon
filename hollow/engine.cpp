@@ -1,5 +1,6 @@
 #include "core.h"
 #include "sine.h"
+#include <opxy/q15.hpp>
 #include <opxy/q31.hpp>
 
 // Hollow: a resonator choir. A breath (noise) and a soft bow (a pulse train at
@@ -226,7 +227,9 @@ __attribute__((noinline)) void apply_gain(i32* acc, i32 level, i32 step) {
         level += step;
         i32 high = high_by_high(static_cast<u32>(acc[i]), level);
         high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
-        acc[i] = high * 64 + (low_by_high(static_cast<u32>(acc[i]) << 16 >> 17, level) >> 9);
+        // The low half's operand fits 15 bits, so GCC would multiply it 32 x
+        // 32; opxy::q15::product is the same product, 16 x 16.
+        acc[i] = high * 64 + (opxy::q15::product(static_cast<i32>(static_cast<u32>(acc[i]) << 16 >> 17), opxy::q15::top(level)) >> 9);
     }
 }
 // Air: breath noise, a band from about 450 Hz to 5 kHz, at air_gain (Q15).
@@ -239,7 +242,7 @@ __attribute__((noinline)) void add_air(i32* acc, u32& seed_state, i32& hiss_stat
         slow += (hiss - slow) >> 4;                           // about 450 Hz
         i32 band = (hiss - slow) >> 15;
         band = band > 32767 ? 32767 : band < -32767 ? -32767 : band;
-        const i32 breathy = low_by_low(band, air_gain);
+        const i32 breathy = opxy::q15::product(band, air_gain);   // 16 x 16: band is clamped to 16 bits
         acc[i] = opxy::q31::add(acc[i], breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy);
     }
     seed_state = seed;
