@@ -1,5 +1,6 @@
 #include "core.h"
 #include "sine.h"
+#include <opxy/q15.hpp>
 #include <opxy/q31.hpp>
 
 // Hollow: a resonator choir. A breath (noise) and a soft bow (a pulse train at
@@ -92,17 +93,18 @@ inline Push plan(i32 log2_loss, i32 bow, i32 breath) {
     return p;
 }
 
-// Sounds a mode into acc over a block, its amplitudes ramping from (a, b) by
-// (da, db) a sample, and returns its phase. Kept lean for the Blackfin: the
-// table address worked out a sample ahead, so it is ready when read, and
-// amplitudes within +-4095 (clamp_amplitude), so their top halves multiply
-// as they are, 16 x 16. Out of line, so the loop has the registers to itself,
-// and summed with q31::add, which GCC keeps in data registers (a plain sum
-// went through address registers, stalling each sample). It saturates only
-// where the plain sum would wrap, which no test or preset reaches.
+// Sounds a mode into acc over a block, at half rate, its amplitudes ramping
+// from (a, b) by (da, db) a sample, and returns its phase. Kept lean for the
+// Blackfin: the table address worked out a sample ahead, so it is ready when
+// read, and amplitudes within +-4095 (clamp_amplitude), so their top halves
+// multiply as they are, 16 x 16. Out of line, so the loop has the registers
+// to itself, and summed with q31::add, which GCC keeps in data registers (a
+// plain sum went through address registers, stalling each sample). It
+// saturates only where the plain sum would wrap, which no test or preset
+// reaches.
 __attribute__((noinline)) u32 sound(i32* acc, u32 phase, u32 increment, i32 a, i32 b, i32 da, i32 db) {
     const opxy::i16* at = kSine + (phase >> 22);
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+    for (unsigned i = 0; i < kHalfFrames; ++i) {
         const i32 sine = at[0], cosine = at[256];
         phase += increment;
         at = kSine + (phase >> 22);
@@ -114,7 +116,7 @@ __attribute__((noinline)) u32 sound(i32* acc, u32 phase, u32 increment, i32 a, i
 }
 __attribute__((noinline)) u32 sound_first(i32* acc, u32 phase, u32 increment, i32 a, i32 b, i32 da, i32 db) {
     const opxy::i16* at = kSine + (phase >> 22);
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+    for (unsigned i = 0; i < kHalfFrames; ++i) {
         const i32 sine = at[0], cosine = at[256];
         phase += increment;
         at = kSine + (phase >> 22);
@@ -124,11 +126,14 @@ __attribute__((noinline)) u32 sound_first(i32* acc, u32 phase, u32 increment, i3
     }
     return phase;
 }
-// acc is unwritten until the first mode sounds; that one writes it.
+// acc is unwritten until the first mode sounds; that one writes it. The
+// arguments are the full rate's (sample n reads the phase n steps on and
+// sounds a + (n + 1) da); the half rate's sample m is the full rate's 2m:
+// twice the steps, from a - da.
 inline u32 sound_any(i32* acc, bool& written, u32 phase, u32 increment, i32 a, i32 b, i32 da, i32 db) {
-    if (written) return sound(acc, phase, increment, a, b, da, db);
+    if (written) return sound(acc, phase, increment << 1, a - da, b - db, da * 2, db * 2);
     written = true;
-    return sound_first(acc, phase, increment, a, b, da, db);
+    return sound_first(acc, phase, increment << 1, a - da, b - db, da * 2, db * 2);
 }
 
 // Spread's ensemble this block: the share each copy sounds at (Q15; centre
@@ -220,13 +225,49 @@ inline i32 soft_limit(i32 x) {
 // to itself.
 // acc times the Q10 gain, ramping by step a sample from level (gain << 16),
 // as two 16x16 products: its top half, and its low half less its last bit.
+// At half rate, so step is the full rate's two.
 __attribute__((noinline)) void apply_gain(i32* acc, i32 level, i32 step) {
     const i32 ceiling = 0x4fffffff >> 6;  // with Air, within 1.75 * 2^30
-    for (unsigned i = 0; i < opxy::block_frames; ++i) {
+    for (unsigned i = 0; i < kHalfFrames; ++i) {
         level += step;
         i32 high = high_by_high(static_cast<u32>(acc[i]), level);
         high = high > ceiling ? ceiling : high < -ceiling ? -ceiling : high;
-        acc[i] = high * 64 + (low_by_high(static_cast<u32>(acc[i]) << 16 >> 17, level) >> 9);
+        // The low half's operand fits 15 bits, so GCC would multiply it 32 x
+        // 32; opxy::q15::product is the same product, 16 x 16.
+        acc[i] = high * 64 + (opxy::q15::product(static_cast<i32>(static_cast<u32>(acc[i]) << 16 >> 17), opxy::q15::top(level)) >> 9);
+    }
+}
+// The half-band filter's odd-phase coefficients, Q15: an odd full-rate sample
+// is the sum of c_t times the pair of half-rate samples t + 1/2 either side
+// (19 taps at the full rate, every other one zero). Equiripple, rounded and
+// searched as integers: flat within 0.003 dB to 6.6 kHz, above every mode,
+// and the half-rate images (above 15.45 kHz) 70 dB down.
+const opxy::i16 kHalfBand[kHalfTaps] = {20301, -5421, 2036, -664, 142};
+// Two taps' share of every odd sample, t and t + 1, added to sum (written,
+// for the first). x: each odd sample's left neighbour, the output's top 16
+// bits. Each product is 16 x 16 on its own, so no operand outgrows 16 bits.
+template <u32 t>
+__attribute__((noinline)) void taps(const opxy::i16* x, i32* sum) {
+    const opxy::i16 a = kHalfBand[t], b = kHalfBand[t + 1];
+    for (i32 j = 0; j < static_cast<i32>(kHalfFrames); ++j)
+        sum[j] = (t ? sum[j] : 0) + x[j - static_cast<i32>(t)] * a + x[j + static_cast<i32>(t) + 1] * a +
+                 x[j - static_cast<i32>(t) - 1] * b + x[j + static_cast<i32>(t) + 2] * b;
+}
+// Back to the full rate, kLag samples late: low holds the last block's
+// kHalfHistory half-rate samples, then this block's. Even samples are the
+// half-rate ones as they are; odd ones the filter's value halfway to the
+// next, from the top 16 bits rounded (the output stays within 1.75 * 2^30).
+__attribute__((noinline)) void upsample(const i32* low, i32* out) {
+    opxy::i16 top[kHalfHistory + kHalfFrames];
+    for (u32 i = 0; i < kHalfHistory + kHalfFrames; ++i) top[i] = static_cast<opxy::i16>((low[i] + 32768) >> 16);
+    const opxy::i16* const x = top + kHalfTaps - 1;
+    i32 odd[kHalfFrames];
+    taps<0>(x, odd);
+    taps<2>(x, odd);
+    const opxy::i16 c4 = kHalfBand[4];
+    for (i32 j = 0; j < static_cast<i32>(kHalfFrames); ++j) {
+        out[2 * j] = low[j + kHalfTaps - 1];
+        out[2 * j + 1] = (odd[j] + x[j - 4] * c4 + x[j + 5] * c4) * 2;
     }
 }
 // Air: breath noise, a band from about 450 Hz to 5 kHz, at air_gain (Q15).
@@ -239,7 +280,7 @@ __attribute__((noinline)) void add_air(i32* acc, u32& seed_state, i32& hiss_stat
         slow += (hiss - slow) >> 4;                           // about 450 Hz
         i32 band = (hiss - slow) >> 15;
         band = band > 32767 ? 32767 : band < -32767 ? -32767 : band;
-        const i32 breathy = low_by_low(band, air_gain);
+        const i32 breathy = opxy::q15::product(band, air_gain);   // 16 x 16: band is clamped to 16 bits
         acc[i] = opxy::q31::add(acc[i], breathy > kHalf / 2 ? kHalf / 2 : breathy < -kHalf / 2 ? -kHalf / 2 : breathy);
     }
     seed_state = seed;
@@ -314,6 +355,7 @@ inline void initialize(Voice& voice, Shared&, u32 owner) {
     voice.gain = 0;
     voice.age = 0;
     voice.sway = (owner * 0x85ebca6bu) ^ (owner >> 7) * 0xc2b2ae35u;
+    for (u32 i = 0; i < kHalfHistory; ++i) voice.low[i] = 0;  // the filter starts silent
 }
 
 // A note claims its registry entry at once; its pitch arrives with its first block.
@@ -370,24 +412,33 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     const i32 bowed = 32767 - (breath * breath >> 15), puff = 32767 - (rest * rest >> 15);
     const i32 blown = puff + ((32767 - puff) * kBowHiss >> 15);
     const i32 widen = breath_widen_log2(breath);
-    // The body's modes: plans remade only when what they depend on moves.
-    i32 fundamental;      // the first mode's level, for the sympathetic modes
-    u32 power;            // the modes' steady power, roughly: bow^2 + 4 breath^2, echoes included
+    // The body's modes: plans remade only when what they depend on moves, and
+    // while the note sounds four a block, taking turns, so no block replans
+    // all eight on top of sounding them (the note's silent first block plans
+    // them all). A mode whose plan is a block behind keeps its level, ring
+    // and drive a block longer; every mode's frequency follows the pitch at once.
     const i32 key[6] = {breath, body, bright, ring_control, vowel, static_cast<i32>(increment)};
     bool same = voice.planned_valid != 0;
     for (u32 j = 0; j < 6 && same; ++j) same = voice.planned_for[j] == key[j];
     if (!same) {
+        for (u32 j = 0; j < 6; ++j) voice.planned_for[j] = key[j];
+        voice.planned_valid = 1;
+        voice.stale = (1u << kModes) - 1;
+    }
+    if (voice.stale) {
         const Traits traits = body_traits(body);
-        fundamental = 0;
-        power = 0;
-        for (u32 k = 0; k < kModes; ++k) {
+        u32 budget = preparing ? kModes : kModes / 2, k = voice.next;
+        for (u32 looked = 0; looked < kModes && budget; ++looked, k = (k + 1) & (kModes - 1)) {
+            if (!(voice.stale & (1u << k))) continue;
+            voice.stale &= ~(1u << k);
+            --budget;
             Planned& q = voice.planned[k];
             const Shape shape = body_mode(body, k);
             const u32 at = times(increment, shape.ratio);
             const i32 level = mode_level(shape, traits, vowel, at, octave + shape.log2_ratio);
-            if (!k) fundamental = level;
-            q.at = at;
+            q.ratio = shape.ratio;
             q.level = level;
+            q.power = 0;
             if (!level) continue;
             const u32 bow_roll = power_of_two(-((slope >> 4) * (shape.log2_ratio >> 4) >> 8));
             const i32 over = shape.log2_ratio - cutoff;
@@ -396,33 +447,34 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
             const i32 hush = level * kBreathAmplitude >> 15;
             const i32 bow = static_cast<i32>(times_small(static_cast<u32>(drive * bowed >> 15), bow_roll));
             const i32 wind = static_cast<i32>(times_small(static_cast<u32>(hush * blown >> 15), breath_roll));
-            power += static_cast<u32>(low_by_low(bow, bow)) + 4u * static_cast<u32>(low_by_low(wind, wind));
+            q.power = static_cast<u32>(low_by_low(bow, bow)) + 4u * static_cast<u32>(low_by_low(wind, wind));
             const Push p = plan(log2_loss + shape.log2_fade + widen, bow, wind);
             q.decay = p.decay;
             q.bow = p.bow;
             q.noise = p.noise;
         }
-        for (u32 j = 0; j < 6; ++j) voice.planned_for[j] = key[j];
-        voice.planned_power = power;
-        voice.planned_fundamental = fundamental;
-        voice.planned_valid = 1;
+        voice.next = k;
     }
     if (preparing) {
-        // While silent, read the sine table through once, a cache line (16
-        // entries) at a time, so the first block that sounds finds it in the
-        // cache instead of fetching it on top of a full block of sound.
-        const volatile opxy::i16* const table = kSine;
-        for (u32 i = 0; i < 1280; i += 16) static_cast<void>(table[i]);
+        // (It no longer reads the sine table through here: measured on the
+        // device, nothing a voice reads stays cached into its next block.)
         for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = 0;
         return;
     }
-    fundamental = voice.planned_fundamental;
-    power = voice.planned_power;
+    const i32 fundamental = voice.planned[0].level;   // the first mode's level, for the sympathetic modes
+    u32 power = 0;   // the modes' steady power, roughly: bow^2 + 4 breath^2, echoes included
+    for (u32 k = 0; k < kModes; ++k) {
+        Planned& q = voice.planned[k];
+        q.at = times(increment, q.ratio);
+        power += q.power;
+    }
     // Spread: the ensemble's copies this block.
     ++voice.age;
     const Chorus chorus = ensemble(voice, spread);
 
-    i32 acc[opxy::block_frames];
+    // The modes' half-rate sum, after the filter's history from the last block.
+    i32 low[kHalfHistory + kHalfFrames];
+    i32* const acc = low + kHalfHistory;
     bool written = false;
     u32 seed = voice.seed;
     for (u32 k = 0; k < kModes; ++k) {
@@ -516,7 +568,7 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     // to +12 dB), then Air, then the soft limit. The sympathetic modes count
     // in that power, so a chord blooms into one sound without growing louder.
     // Spread's copies beat, so they sum in power: centre^2 + 2 side^2.
-    if (!written) for (unsigned i = 0; i < opxy::block_frames; ++i) acc[i] = 0;
+    if (!written) for (unsigned i = 0; i < kHalfFrames; ++i) acc[i] = 0;
     const i32 share = (chorus.centre * chorus.centre >> 15) + 2 * (chorus.side * chorus.side >> 15);  // Q15
     power = times(power, static_cast<u32>(share) << 1);
     i32 even = (kPower - log2_q16(power | 1u)) >> 1;  // log2 of the gain that brings power to kPower
@@ -528,9 +580,17 @@ inline void render(Voice& voice, Shared& shared, u32 owner, opxy::Output output,
     const i32 step = (static_cast<i32>(gain) - static_cast<i32>(voice.gain)) << 10;
     voice.gain = gain;
     const opxy::i16 air_gain = static_cast<opxy::i16>(air * kAir >> 15);
-    apply_gain(acc, level, step);
-    if (air_gain) add_air(acc, seed, voice.hiss, voice.slow, air_gain);
-    for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = soft_limit(acc[i]);
+    // At half rate the gain takes two steps a sample, from where the full
+    // rate's sample 0 had it; the filter's history goes before the block.
+    apply_gain(acc, level - step, step * 2);
+    for (u32 i = 0; i < kHalfHistory; ++i) low[i] = voice.low[i];
+    for (u32 i = 0; i < kHalfHistory; ++i) voice.low[i] = low[kHalfFrames + i];
+    // Back to the full rate in the output itself, then Air at the full rate,
+    // unfiltered (it does not wait the filter's 0.23 ms), then the soft limit,
+    // in place: no block buffer of its own.
+    upsample(low, output);
+    if (air_gain) add_air(output, seed, voice.hiss, voice.slow, air_gain);
+    for (unsigned i = 0; i < opxy::block_frames; ++i) output[i] = soft_limit(output[i]);
     voice.seed = seed;
 }
 }

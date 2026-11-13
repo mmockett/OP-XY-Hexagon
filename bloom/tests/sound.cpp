@@ -622,7 +622,7 @@ int main() {
         i32 block[2 * opxy::block_frames];
         for (int b = 0; b < 100; ++b) bloom::render(voice, shared, 1, block, parameters, pitch);
         u32 sounding = 0;
-        for (u32 k = 0; k < bloom::partial_count; ++k) if (voice.partials[k].amplitude) ++sounding;
+        for (u32 k = 0; k < bloom::partial_count; ++k) if (voice.amplitude[k]) ++sounding;
         check(sounding < 12, "quiet partials are left out at a dark tilt");
     }
     return failures ? 1 : 0;

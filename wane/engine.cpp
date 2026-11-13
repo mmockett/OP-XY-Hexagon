@@ -1,5 +1,6 @@
 #include "core.h"
 #include "controls.h"
+#include <opxy/q15.hpp>
 #include <opxy/q31.hpp>
 
 // Wane: an analogue-style polysynth heard through a worn, shared tape.
@@ -27,6 +28,11 @@ const u32 fastest = 0x40000000u;                 // increments capped at a quart
 inline i32 q15(i32 control) { return control < 0 ? 0 : control >> 16; }
 // a x b >> 15 for 16-bit operands: one 16 x 16 multiply on the Blackfin.
 inline i32 m15(i32 a, i32 b) { return (static_cast<i32>(static_cast<opxy::i16>(a)) * static_cast<opxy::i16>(b)) >> 15; }
+// The same through opxy::q15::product, for the sine's and triangle's terms:
+// GCC can see those operands fit 16 bits, drops m15's casts and multiplies
+// 32 x 32. (The saws keep m15, which GCC already multiplies 16 x 16; the
+// product's register constraint made the saw pass spill its level.)
+inline i32 p15(i32 a, i32 b) { return opxy::q15::product(a, b) >> 15; }
 inline i32 clamp(i32 x, i32 low, i32 high) { return x < low ? low : x > high ? high : x; }
 
 // 2^(k/32), k = 0..32, Q29.
@@ -101,11 +107,16 @@ inline i32 triangle_wave(u32 phase) {
     return (twice < 0 ? -twice : twice) - 32768;
 }
 
-// A sine in phase with the triangle (lowest at phase 0), Q15: tape.h's
-// parabola refined once, 0.775 p + 0.225 p|p|, its harmonics below -50 dB.
-inline i32 sine_wave(u32 phase) {
-    const i32 p = tape::sine(phase - 0x40000000u);
-    return p + m15(m15(p, p < 0 ? -p : p) - p, 7373);
+// A sine in phase with the triangle (lowest at phase 0), Q15, from the
+// triangle t itself: sin(pi/2 t) is that sine, here as an odd quintic,
+// t (25728 - 10514 t^2 + 1170 t^4) in Q14, all 16 x 16. Within 4 of
+// 32767 sin(pi/2 t) everywhere and never past +-32767 (checked for every t),
+// its harmonics below -80 dB.
+inline i32 sine_of_triangle(i32 t) {
+    const i32 t2 = opxy::q15::product(t, t) >> 15;
+    i32 c = (opxy::q15::product(1170, t2) >> 15) - 10514;
+    c = (opxy::q15::product(c, t2) >> 15) + 25728;
+    return opxy::q15::product(c, t) >> 14;
 }
 
 // How the shape control mixes each oscillator, Q15: sine, triangle, saw, and
@@ -168,20 +179,29 @@ __attribute__((noinline)) void oscillate(i32* out, u32& phase_state, u32& increm
         phase += step;
         i32 value = 0;
         if (Saw) value = m15(saw(phase, step, reciprocal), saw_level);
-        if (Sine) value = m15(sine_wave(phase), sine);
-        if (Triangle) value += m15(triangle_wave(phase), triangle);
+        if (Sine || Triangle) {
+            const i32 t = triangle_wave(phase);
+            if (Sine) value = p15(sine_of_triangle(t), sine);
+            if (Triangle) value += p15(t, triangle);
+        }
         if (Pulse) value -= m15(saw(phase + width, step, reciprocal), pulse);
         out[i] = First ? value : out[i] + value;
     }
     phase_state = phase;
     increment_state = target;
 }
+// A part at level zero adds exactly zero, so the pass leaves it out: Shape
+// 0% is the sine alone, the triangle's peak (25%) the triangle alone.
 template <bool First>
 inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Shape& m) {
     if (m.pulse) oscillate<false, false, true, true, First>(out, phase, increment, target, m);
-    else if (m.sine) oscillate<true, true, false, false, First>(out, phase, increment, target, m);
-    else if (m.triangle) oscillate<false, true, true, false, First>(out, phase, increment, target, m);
-    else oscillate<false, false, true, false, First>(out, phase, increment, target, m);
+    else if (m.sine) {
+        if (m.triangle) oscillate<true, true, false, false, First>(out, phase, increment, target, m);
+        else oscillate<true, false, false, false, First>(out, phase, increment, target, m);
+    } else if (m.triangle) {
+        if (m.saw) oscillate<false, true, true, false, First>(out, phase, increment, target, m);
+        else oscillate<false, true, false, false, First>(out, phase, increment, target, m);
+    } else oscillate<false, false, true, false, First>(out, phase, increment, target, m);
 }
 
 // The voice's passes over a block, after the oscillators. Kept out of line so
