@@ -27,9 +27,10 @@ Frame frame, last;
 const double defaults[8] = {0.0625, 0.25, 0, 0, 0.1875, 0, 0, 0};
 // The screen's note-driven motion as it stands, for the attack check.
 i32 amount(const State& s) { return s.lit[0]; }
-// The checksum of the scripted session with the envelope unknown, before the
-// screen read the envelope.
-const u32 kBefore = 710129302u;
+// The checksum of the scripted session with the envelope unknown, as the screen
+// draws it without the envelope (taken again when the trace began following
+// the contour every frame).
+const u32 kBefore = 2551113120u;
 const double kMean = 25;   // changed nodes a frame on average, held and through the release
 const int kPeak = 36;
 
