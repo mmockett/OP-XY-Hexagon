@@ -8,8 +8,10 @@ does. Age wears the tape: duller highs, a harder saturation and hiss.
 
 With the colouring controls at zero (drift, wow, flutter, sag, age) Wane is a
 clean, steady pad: two saws 8 cents apart through a gentle low-pass. The
-OP-XY's own envelopes, filter, LFOs and effects do the rest; the init preset
-has a slow attack and long release.
+OP-XY's own envelopes, filter, LFOs and effects do the rest. A new Wane
+track starts already worn: its default preset is a warm, slightly tired tape
+(shape 35, detune 32, drift 2, warmth 60, wow 30, flutter 22, sag 60, age 34)
+with a slow attack and long release. The Clean preset is the steady pad.
 
 **Status:** the screen follows the track's amp envelope, which needs Open-XY
 SDK 1.10, on its `staging` branch.
