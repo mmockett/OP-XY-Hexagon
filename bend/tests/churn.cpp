@@ -3,9 +3,9 @@
 // it most: each frame valid, the map outlines fit for the device (points 1/8 px
 // apart, a closing edge of at least 1/4 px, no turn under 2.5 degrees), and none at
 // rest. Bend keeps its 160 + 69 dots for their look, over the usual 20 nodes a
-// frame at its heaviest: the caps below hold it to what the beam gives it, so a
-// frame never redraws most of the dots, playing or turning a control, slowly or
-// all at once. It
+// frame at its heaviest: a frame redraws at most 26 of them, and the caps below
+// hold it there, so a frame never redraws most of the dots, playing or turning a
+// control, slowly or all at once. It
 // also walks each control in steps of 8 with a note held and fails if one moves
 // nothing, and measures every caption shown.
 #include "../display.cpp"
