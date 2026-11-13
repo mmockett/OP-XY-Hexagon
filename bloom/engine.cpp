@@ -46,14 +46,14 @@ template <bool First>
 __attribute__((noinline)) void sound_two(i32* mix, u32& phase_a, u32 increment_a, i32 amplitude_a, i32 step_a,
                                          u32& phase_b, u32 increment_b, i32 amplitude_b, i32 step_b) {
     u32 a = phase_a, b = phase_b;
-    const opxy::i16* at_a = sine_table + (a >> 22);
-    const opxy::i16* at_b = sine_table + (b >> 22);
+    const opxy::i16* at_a = sine_table + (a >> 20);
+    const opxy::i16* at_b = sine_table + (b >> 20);
     for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
         const i32 sine_a = *at_a, sine_b = *at_b;
         a += increment_a;
         b += increment_b;
-        at_a = sine_table + (a >> 22);
-        at_b = sine_table + (b >> 22);
+        at_a = sine_table + (a >> 20);
+        at_b = sine_table + (b >> 20);
         const i32 both = sine_a * top_half(amplitude_a) + sine_b * top_half(amplitude_b);
         *out = First ? both : *out + both;
         amplitude_a += step_a;
