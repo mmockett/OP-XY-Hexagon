@@ -17,7 +17,8 @@ the OP-XY, and their CPU use has been measured on it (below). In v1.7.0
 their screens follow each track's amp envelope, which needs Open-XY SDK 1.10,
 on its `staging` branch, and Hollow and Wane cost less, with the same sound.
 Hollow now sounds each note one block (1.45 ms) after its key. In v1.7.2 all
-six play at one loudness, and Wane opens on a worn tape.
+six play at one loudness, and Wane opens on a worn tape. In v1.7.3 Moth builds
+into one firmware with MD KIT.
 
 All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Wane](https://open-xy.com/#preview/machines/wane),
@@ -27,8 +28,8 @@ All six are live in the [open-xy.com](https://open-xy.com) builder:
 [Bend](https://open-xy.com/#preview/machines/bend) and
 [Moth](https://open-xy.com/#preview/machines/moth). The builder installs the
 version the Open-XY catalog pins for each, which can be older than this
-repository's latest tag (`v1.7.2`). All six are moving to v1.7.2; until the
-builder has it, build v1.7.2 from source (below).
+repository's latest tag (`v1.7.3`). All six are moving to v1.7.2, and Moth to
+v1.7.3; until the builder has them, build v1.7.3 from source (below).
 
 ## The synths
 
