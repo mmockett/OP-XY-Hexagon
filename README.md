@@ -204,30 +204,27 @@ easing out. Nothing in the sound changes, and saved sounds play as before.
 Measured on an OP-XY (OS 1.2.1) with the SDK's `profile benchmark`: one voice
 playing middle C with the first four controls at their midpoint, as a share of
 the OP-XY's audio block: the mean over the test, and its worst single block.
-Wane and Hollow are from three captures of one firmware holding v1.7.0's sound
-code (Hollow's as it was just before it learned to read its sine table while a
-note is still silent), Bloom from one capture at `v1.5.0`, Moth from one at
-`v1.4.0`, Orbit and Bend from three runs at `v1.1.0`. Heavier settings cost
-more: Bloom's heaviest is 8.5% a voice.
+Wane, Bloom and Hollow are from three captures of one firmware holding them at
+`v1.8.0`, which also play each control through its range, so their worst block
+is the worst of every setting played. Moth is from one capture at `v1.4.0`,
+Orbit and Bend from three runs at `v1.1.0`. Heavier settings cost more:
+Bloom's heaviest, Stretch at 75%, is 6.97% a voice and Hollow's, Air at 12.5%,
+4.13%, while Wane costs much the same at any setting (3.48% at its heaviest).
 
 | Synth | One voice | Worst block | Eight voices |
 | --- | ---: | ---: | ---: |
-| Wane | 3.81% | 5.39% | ~30% |
-| Bloom | 4.1% | – | ~33% |
-| Hollow | 4.46% | 5.46% | ~36% |
+| Wane | 3.46% | 3.60% | ~28% |
+| Bloom | 3.78% | 7.36% | ~30% |
+| Hollow | 3.82% | 5.18% | ~31% |
 | Orbit | 2.4% | – | ~19% |
 | Bend | 2.6% | – | ~21% |
 | Moth | 3.4% | – | ~27% |
 
-In the same firmware, v1.6.0's Wane measured 4.50% a voice and Hollow 4.63%,
-with worst blocks of 5.46% and 5.64%.
-
 The OP-XY's own engines measure 1.6–2.7% a voice in the same test. Orbit and
 Bend are in that range; Wane, Bloom, Hollow and Moth cost up to about twice
 as much. A full chord on one track is fine; several
-tracks of big Bloom or Hollow chords at once, with effects, can run out. The
-test plays one setting; heavier settings cost more, and the screens are not
-included.
+tracks of big Bloom or Hollow chords at once, with effects, can run out.
+The screens are not included.
 
 ## Building
 
