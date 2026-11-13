@@ -72,16 +72,15 @@ inline void start(Voice& voice, Shared& shared, u32) {
     // Seeded starting phases keep the partials (and their beats) from all
     // peaking together; amplitudes start at zero and ramp in over the first block.
     for (u32 k = 0; k < partial_count; ++k) {
-        Partial& p = voice.partials[k];
-        p.phase = hash(voice.seed ^ (k * 0x61c88647u));
-        p.beat = hash(p.phase + 0x2545f491u);
-        p.spread = pair_spread(voice.seed, k);
-        p.amplitude = 0;
-        p.wobble = 0;
+        voice.phase[k] = hash(voice.seed ^ (k * 0x61c88647u));
+        voice.beat[k] = hash(voice.phase[k] + 0x2545f491u);
+        voice.spread[k] = pair_spread(voice.seed, k);
+        voice.amplitude[k] = 0;
+        voice.wobble[k] = 0;
         const u32 h = clock_hash(voice.seed, k);   // clock_offset's and clock_rate's, hashed once
-        p.offset = h ^ (h << 11);
-        p.rate = static_cast<u16>(192u + (h & 127u) + ((h >> 7) & 31u));
-        p.point = 0xffff;
+        voice.offset[k] = h ^ (h << 11);
+        voice.rate[k] = static_cast<u16>(192u + (h & 127u) + ((h >> 7) & 31u));
+        voice.point[k] = 0xffff;
     }
 }
 
@@ -89,15 +88,14 @@ inline void start(Voice& voice, Shared& shared, u32) {
 // lattice values only when a partial's clock passes a lattice point.
 inline void voice_drifts(const Controls& c, Voice& voice, i32 (&out)[partial_count]) {
     for (u32 k = 0; k < partial_count; ++k) {
-        Partial& p = voice.partials[k];
         if (!c.breath) { out[k] = 0; continue; }
-        const u32 clock = (voice.time >> 8) * p.rate + p.offset, n = clock >> 20;
-        if (n != p.point) {
-            p.point = static_cast<u16>(n);
-            p.from = static_cast<i16>(lattice(voice.seed, 2 * k, n));
-            p.to = static_cast<i16>(lattice(voice.seed, 2 * k, n + 1));
+        const u32 clock = (voice.time >> 8) * voice.rate[k] + voice.offset[k], n = clock >> 20;
+        if (n != voice.point[k]) {
+            voice.point[k] = static_cast<u16>(n);
+            voice.from[k] = static_cast<i16>(lattice(voice.seed, 2 * k, n));
+            voice.to[k] = static_cast<i16>(lattice(voice.seed, 2 * k, n + 1));
         }
-        out[k] = between(p.from, p.to, clock);
+        out[k] = between(voice.from[k], voice.to[k], clock);
     }
 }
 
@@ -116,23 +114,24 @@ struct Step {
     u32 increment;
     i32 target;
 };
-inline Step partial_step(const Controls& c, Partial& p, u32& random, i32 note, i32 pitch, i32 level, u32 k) {
+inline Step partial_step(const Controls& c, Voice& voice, u32& random, i32 note, i32 pitch, i32 level, u32 k) {
     if (c.blur) {
         // A one-pole low-pass of white noise, 8..38 Hz, scaled so its spread
         // stays about 0.45 whatever the rate.
         random = random * 1664525u + 1013904223u;
         const i32 white = (static_cast<i32>(random) >> 16) * static_cast<i32>(c.blur_gain) >> 8;
-        p.wobble += (white - p.wobble) * static_cast<i32>(c.blur_alpha) >> 12;
-        pitch += (c.blur * static_cast<i32>(partial_reach(k)) >> 8) * p.wobble >> 15;
+        i32& wobble = voice.wobble[k];
+        wobble += (white - wobble) * static_cast<i32>(c.blur_alpha) >> 12;
+        pitch += (c.blur * static_cast<i32>(partial_reach(k)) >> 8) * wobble >> 15;
     }
     const i32 f = note + pitch;
     Step s;
     s.increment = pow2(f < log2_cutoff ? f : log2_cutoff);   // capped below Nyquist; above it has faded to zero
     i32 envelope = 32768;
     if (c.haze_depth) {
-        p.beat += beat_step(c, p.spread, s.increment);
+        voice.beat[k] += beat_step(c, voice.spread[k], s.increment);
         const i32 depth = static_cast<i32>(c.haze_depth * partial_reach(k) >> 8);
-        envelope += (depth * sine_table[(p.beat + 0x40000000u) >> 21] >> 15) - depth;
+        envelope += (depth * sine_table[(voice.beat[k] + 0x40000000u) >> 21] >> 15) - depth;
     }
     s.target = (level * envelope >> 15) << 16;
     return s;
@@ -170,7 +169,7 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     // it out. One already sounding stays until a little lower, so it doesn't flutter.
     s.sounding = 0;
     for (u32 k = 0; k < partial_count; ++k) {
-        const i32 floor = voice.partials[k].amplitude ? level_floor - (level_floor >> 2) : level_floor;
+        const i32 floor = voice.amplitude[k] ? level_floor - (level_floor >> 2) : level_floor;
         if (s.level[k] < floor) s.level[k] = 0;
         else s.sounding = k + 1;
     }
@@ -188,38 +187,36 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     bool written = false;
     u32 random = voice.random;
     for (u32 k = 0; k < n; k += 2) {
-        Partial& p = voice.partials[k];
-        Partial& q = voice.partials[k + 1];
-        if (!(p.amplitude | q.amplitude | s.level[k] | s.level[k + 1])) continue;
-        const Step sp = partial_step(c, p, random, note, s.pitch[k], s.level[k], k);
-        const Step sq = partial_step(c, q, random, note, s.pitch[k + 1], s.level[k + 1], k + 1);
+        u32 *const phase = voice.phase + k;
+        i32 *const amplitude = voice.amplitude + k;
+        if (!(amplitude[0] | amplitude[1] | s.level[k] | s.level[k + 1])) continue;
+        const Step sp = partial_step(c, voice, random, note, s.pitch[k], s.level[k], k);
+        const Step sq = partial_step(c, voice, random, note, s.pitch[k + 1], s.level[k + 1], k + 1);
         // Both sounding: one pass. A partial silent all block (none now, none
         // targeted) would add exactly zero, so only its phase moves on, as the
         // loop would move it.
-        const bool sound_p = (p.amplitude | sp.target) != 0, sound_q = (q.amplitude | sq.target) != 0;
-        const i32 dp = (sp.target - p.amplitude) >> 6, dq = (sq.target - q.amplitude) >> 6;
+        const bool sound_p = (amplitude[0] | sp.target) != 0, sound_q = (amplitude[1] | sq.target) != 0;
+        const i32 dp = (sp.target - amplitude[0]) >> 6, dq = (sq.target - amplitude[1]) >> 6;
         if (sound_p && sound_q) {
-            if (written) sound_two<false>(mix, p.phase, sp.increment, p.amplitude, dp, q.phase, sq.increment, q.amplitude, dq);
-            else sound_two<true>(mix, p.phase, sp.increment, p.amplitude, dp, q.phase, sq.increment, q.amplitude, dq);
+            if (written) sound_two<false>(mix, phase[0], sp.increment, amplitude[0], dp, phase[1], sq.increment, amplitude[1], dq);
+            else sound_two<true>(mix, phase[0], sp.increment, amplitude[0], dp, phase[1], sq.increment, amplitude[1], dq);
             written = true;
         } else {
-            Partial* const both[2] = {&p, &q};
             const Step* const steps[2] = {&sp, &sq};
             const i32 ramps[2] = {dp, dq};
             for (u32 j = 0; j < 2; ++j) {
-                Partial& r = *both[j];
                 const Step& t = *steps[j];
-                if (!(r.amplitude | t.target)) {
-                    r.phase += t.increment * opxy::block_frames;
+                if (!(amplitude[j] | t.target)) {
+                    phase[j] += t.increment * opxy::block_frames;
                     continue;
                 }
-                r.phase = written ? sound(mix, r.phase, t.increment, r.amplitude, ramps[j])
-                                  : sound_first(mix, r.phase, t.increment, r.amplitude, ramps[j]);
+                phase[j] = written ? sound(mix, phase[j], t.increment, amplitude[j], ramps[j])
+                                   : sound_first(mix, phase[j], t.increment, amplitude[j], ramps[j]);
                 written = true;
             }
         }
-        p.amplitude = sp.target;
-        q.amplitude = sq.target;
+        amplitude[0] = sp.target;
+        amplitude[1] = sq.target;
     }
     if (!written) for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
     voice.random = random;
