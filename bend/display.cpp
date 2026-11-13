@@ -27,8 +27,7 @@ const u32 samples = 64, crossings = 15, outline = 32;
 // Exponential eases as the share left after dt (Q10 s): Q16 octaves a Q10
 // second for a time constant tau, 92.33 / tau.
 const u32 tau_35 = 2638, tau_30 = 3078;
-const i32 dots_step = 1024;   // the dots follow bend's contour in 1/32 steps
-const u32 slices = 8;         // the beam crosses the scope in eight frames: 0.13 s
+const u32 budget = 26;        // the most dots a frame redraws: a whole new trace crosses in nine frames
 const u32 dial_turns = 4;     // a dial is drawn every fourth frame, a quarter of them a frame
 const i32 apart = unit / 8;   // the closest two neighbouring points of an outline may be
 const i32 lean_floor = 18;    // a wrap leans where the map's turn is within 3.2 degrees of straight back (1/tan)
@@ -473,17 +472,18 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
     // Right: the two lines as dots over two of line 1's cycles, line 2 becoming
     // the ring product as ring rises. lofi holds and steps the dots as its DAC
     // would; noise jitters their phases by its depth. Each dot sits on a whole
-    // pixel. A beam redraws them, an eighth of the way across a frame, from the
-    // controls as they are: whatever moved them, a frame changes at most the dots
-    // under the beam, and the sweep is all the easing a turn needs. On a reset
-    // and with reduced motion every dot is drawn at once.
+    // pixel. Every frame each dot is aimed at the trace as the controls and the
+    // newest note's contour have it now, and a dot is redrawn only when that
+    // moves it, so a held note's breath moves the few dots it shifts by a pixel
+    // and they follow at the frame rate. A frame redraws at most `budget` dots,
+    // walking both lines left to right from where the last frame stopped: a big
+    // change (a turn, a new wave, the noise's roll) crosses the scope as a beam
+    // in about nine frames, and the sweep is all the easing a turn needs. On a
+    // reset and with reduced motion every dot is drawn at once.
     {
         const i32 ring = pd::q15(slot[RING]), lofi = pd::q15(slot[LOFI]);
-        const i32 aimed = pd::bent(pd::q15(slot[BEND]), contours[state.newest]);
-        if (snap || state.value[BEND] != pd::q15(slot[BEND]) || aimed - state.dots_bend >= dots_step || state.dots_bend - aimed >= dots_step)
-            state.dots_bend = aimed;
         pd::Line one;
-        pd::shape(one, wave, state.dots_bend, pd::q15(slot[WARP]));
+        pd::shape(one, wave, pd::bent(pd::q15(slot[BEND]), contours[state.newest]), pd::q15(slot[WARP]));
         const i32 shake = pd::noise_depth(pd::q15(slot[NOISE]) << 16);   // +-the noise's rms, Q16 cycles
         const bool coarse = lofi > 327;
         const u32 rate = pd::lofi_rate_tens(lofi << 16);               // tens of Hz: rate / 22 samples an A3 cycle
@@ -494,28 +494,34 @@ inline void display(DisplayState& state, const opxy::draw::Input& input, Frame& 
         const u32 twin_ratio = whole >= 0 ? ratio << whole : ratio >> -whole;
         const u32 offset = (static_cast<u32>(pd::q15(slot[DETUNE])) * 3932u) << 1;   // 0.06 of a cycle at full detune, Q32
         const u32 ink2 = ring > 16384 ? shade::twin_ring : shade::twin;
-        const u32 slice = state.turn % slices;
-        for (u32 line = 0; line < 2; ++line) {
-            const bool first = line == 0;
+        // Line 2's dots fall among line 1's in proportion across the screen, so
+        // the walk crosses both lines together: dot `at` of the 229 is line 2's
+        // when the share of line 2's dots before it steps up there.
+        const u32 all = node::dots + node::twins;
+        u32 spent = 0, at = snap ? 0 : state.cursor % all;
+        for (u32 seen = 0; seen < all; ++seen, at = at + 1 < all ? at + 1 : 0) {
+            const u32 before = at * node::twins / all;
+            const bool first = (at + 1) * node::twins / all == before;
+            const u32 k = first ? at - before : before;
             const u32 count = first ? node::dots : node::twins;
-            const u32 from = snap ? 0 : slice * count / slices, to = snap ? count : (slice + 1) * count / slices;
-            for (u32 k = from; k < to; ++k) {
-                u32 c = k * 131072u / (count - 1);   // Q16 cycles of line 1
-                if (coarse) c = (c * (rate >> 2) / (22u * 16384u)) * 22u * 65536u / rate;
-                const u32 shake1 = static_cast<u32>((shake * jitter(k * 13 + (first ? 7 : 11), state.roll)) >> 15) << 16;
-                i32 v = pd::output(one, wave, static_cast<i32>(c & 0xffffu), shake1);
-                if (!first) {
-                    const u32 phase = c * twin_ratio + beat + offset;
-                    const u32 shake2 = static_cast<u32>((shake * jitter(k * 29 + 3, state.roll ^ 0x5bd1e995u)) >> 15) << 16;
-                    const i32 o2 = pd::output(one, wave, static_cast<i32>(phase >> 16), shake2);
-                    v = o2 + (((((o2 * v) >> 15) - o2) * ring) >> 15);
-                }
-                if (coarse) v = ((v + ((1 << bits) >> 1)) >> bits) << bits;
-                // Authored on the zero line at its place across: only its height moves, in whole pixels.
-                const i32 rise = (v * scope_half + 16384) >> 15;
-                if (first) place(frame, node::dot + k, 0, -rise * unit, unit, shade::dot, fill_and_stroke);
-                else place(frame, node::twin + k, 0, -rise * unit, unit, ink2, fill_and_stroke);
+            u32 c = k * 131072u / (count - 1);   // Q16 cycles of line 1
+            if (coarse) c = (c * (rate >> 2) / (22u * 16384u)) * 22u * 65536u / rate;
+            const u32 shake1 = static_cast<u32>((shake * jitter(k * 13 + (first ? 7 : 11), state.roll)) >> 15) << 16;
+            i32 v = pd::output(one, wave, static_cast<i32>(c & 0xffffu), shake1);
+            if (!first) {
+                const u32 phase = c * twin_ratio + beat + offset;
+                const u32 shake2 = static_cast<u32>((shake * jitter(k * 29 + 3, state.roll ^ 0x5bd1e995u)) >> 15) << 16;
+                const i32 o2 = pd::output(one, wave, static_cast<i32>(phase >> 16), shake2);
+                v = o2 + (((((o2 * v) >> 15) - o2) * ring) >> 15);
             }
+            if (coarse) v = ((v + ((1 << bits) >> 1)) >> bits) << bits;
+            // Authored on the zero line at its place across: only its height moves, in whole pixels.
+            const i32 y = -((v * scope_half + 16384) >> 15) * unit;
+            const u32 n = first ? node::dot + k : node::twin + k, ink = first ? shade::dot : ink2;
+            if (!snap && frame.nodes[n].y == y && frame.nodes[n].shade == ink) continue;   // nothing else of a dot changes
+            if (!snap && spent == budget) { state.cursor = at; break; }   // the next frame starts here
+            place(frame, n, 0, y, unit, ink, fill_and_stroke);
+            ++spent;
         }
     }
 

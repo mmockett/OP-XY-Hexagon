@@ -3,6 +3,14 @@
 #include "modes.h"
 
 namespace hollow {
+// The modes sound at half the sample rate (every mode sits below 6.5 kHz,
+// kTopIncrement), 32 samples a block, exactly every other sample of the
+// full-rate sum; a half-band filter of kHalfTaps coefficient pairs fills in
+// the samples between, kLag samples (0.23 ms) later.
+const u32 kHalfTaps = 5;
+const u32 kHalfFrames = opxy::block_frames / 2;
+const u32 kHalfHistory = 2 * kHalfTaps - 1;  // half-rate samples the filter reads from the last block
+const u32 kLag = 2 * kHalfTaps;              // full-rate samples of delay
 // Notes the shared registry holds: one per voice (definition.json voiceCapacity).
 const u32 kNotes = 8;
 // Sympathetic resonators per voice: the first other held notes to arrive keep
@@ -30,7 +38,9 @@ struct Echo { u32 owner, increment; i32 swell; Mode mode; };
 
 // A mode's plan for a block, a pure function of the smoothed controls and the
 // note's increment: kept while they hold still, so a held note recomputes nothing.
-struct Planned { u32 at; i32 level, decay, bow, noise; };
+// ratio: the mode's frequency over the note's (body_mode), so its frequency
+// follows the pitch every block; power: its share of the modes' steady power.
+struct Planned { u32 at; i32 level, decay, bow, noise; u32 ratio, power; };
 struct Voice {
     Mode modes[kModes];
     Echo echoes[kEchoes];
@@ -43,10 +53,11 @@ struct Voice {
     u32 age;           // blocks rendered: the clock of Spread's sway
     u32 sway;          // this voice's sway: its phases and how much faster it runs
     Planned planned[kModes];
-    i32 planned_for[6];  // breath, body, bright, ring, vowel, increment the plans were made for
-    u32 planned_power;   // the modes' steady power they sum to
-    i32 planned_fundamental;
+    i32 planned_for[6];  // breath, body, bright, ring, vowel, increment the plans are for
     u32 planned_valid;
+    u32 stale;           // bit k: mode k's plan is still for an older planned_for
+    u32 next;            // the mode the next block's replanning starts from
+    i32 low[kHalfHistory];  // the half-rate output's last samples, for the filter
 };
 
 // Every held note's pitch, so each voice can ring at the others'.

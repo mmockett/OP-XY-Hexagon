@@ -319,10 +319,10 @@ struct Spectrum {
 
 // Shape's gain on partial k (0-based), Q16: the even partials fade toward a
 // square, then a pulse of the (wandered) width notches every 1/width partials.
-inline u32 shape_gain(const Controls& c, u32 pulse, u32 k) {
+// width: pulse_width of the wandered pulse, worked out once for every partial.
+inline u32 shape_gain(const Controls& c, u32 width, u32 k) {
     if (!c.pulse) return k & 1 ? c.even_keep : 65536u;
-    const u32 width = pulse_width(pulse);   // Q16 of a period: |sin(pi (k + 1) width)|
-    return static_cast<u32>(abs_sine((k + 1) * width >> 1)) << 1;
+    return static_cast<u32>(abs_sine((k + 1) * width >> 1)) << 1;   // |sin(pi (k + 1) width)|
 }
 
 // The note's spectrum at note time t: each partial's pitch and level.
@@ -335,6 +335,7 @@ inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const 
     if (c.vowel_depth) formants(w.vowel, f1, f2);
     // The weather leans the whole tilt by up to a quarter of breath's depth per octave.
     const i32 slope = c.slope + ((c.breath >> 2) * gust >> 15);
+    const u32 width = c.pulse ? pulse_width(w.pulse) : 0u;   // Q16 of a period
     i32 log_level[partial_count];
     u32 gain[partial_count];
     i32 loudest = -0x40000000;
@@ -347,7 +348,7 @@ inline void shape(const Controls& c, u32 seed, u32 t, i32 gust, i32 note, const 
         level += (c.breath >> 2) * drift[k] >> 13;
         const i32 frequency = note + pitch;
         if (c.vowel_depth) level += vowel_boost(f1, f2, c.vowel_depth, frequency);
-        u32 g = shape_gain(c, w.pulse, k);
+        u32 g = shape_gain(c, width, k);
         // A vowel keeps them all, for the formants they reach on a low note.
         if (capped && !c.vowel_depth) {
             if (k >= sounding_most) g = 0;
