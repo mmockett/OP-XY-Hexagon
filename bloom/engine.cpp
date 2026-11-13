@@ -35,6 +35,34 @@ inline u32 sound_first(i32* mix, u32 phase, u32 increment, i32 amplitude, i32 st
     }
     return phase;
 }
+// Both partials of a pair in one pass, so mix is read and written once a
+// sample for the two. Each table address is worked out a sample ahead, so it
+// is ready when read. Out of line, so the loop has the registers to itself:
+// inlined, the adding pass spilled two values to the stack each sample. The
+// sum is the two single passes' to the bit: the partials' products add in
+// another order, and nothing nears overflow.
+namespace {
+template <bool First>
+__attribute__((noinline)) void sound_two(i32* mix, u32& phase_a, u32 increment_a, i32 amplitude_a, i32 step_a,
+                                         u32& phase_b, u32 increment_b, i32 amplitude_b, i32 step_b) {
+    u32 a = phase_a, b = phase_b;
+    const opxy::i16* at_a = sine_table + (a >> 22);
+    const opxy::i16* at_b = sine_table + (b >> 22);
+    for (i32* out = mix; out != mix + opxy::block_frames; ++out) {
+        const i32 sine_a = *at_a, sine_b = *at_b;
+        a += increment_a;
+        b += increment_b;
+        at_a = sine_table + (a >> 22);
+        at_b = sine_table + (b >> 22);
+        const i32 both = sine_a * top_half(amplitude_a) + sine_b * top_half(amplitude_b);
+        *out = First ? both : *out + both;
+        amplitude_a += step_a;
+        amplitude_b += step_b;
+    }
+    phase_a = a;
+    phase_b = b;
+}
+}  // namespace
 
 inline void start(Voice& voice, Shared& shared, u32) {
     voice.seed = note_seed(shared.notes++);
@@ -152,23 +180,33 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
         if (!(p.amplitude | q.amplitude | s.level[k] | s.level[k + 1])) continue;
         const Step sp = partial_step(c, p, random, note, s.pitch[k], s.level[k], k);
         const Step sq = partial_step(c, q, random, note, s.pitch[k + 1], s.level[k + 1], k + 1);
-        Partial* const both[2] = {&p, &q};
-        const Step* const steps[2] = {&sp, &sq};
-        for (u32 j = 0; j < 2; ++j) {
-            Partial& r = *both[j];
-            const Step& t = *steps[j];
-            // Silent all block (none now, none targeted): it would add exactly
-            // zero, so only its phase moves on, as the loop would move it.
-            if (!(r.amplitude | t.target)) {
-                r.phase += t.increment * opxy::block_frames;
-                continue;
-            }
-            const i32 d = (t.target - r.amplitude) >> 6;
-            r.phase = written ? sound(mix, r.phase, t.increment, r.amplitude, d)
-                              : sound_first(mix, r.phase, t.increment, r.amplitude, d);
+        // Both sounding: one pass. A partial silent all block (none now, none
+        // targeted) would add exactly zero, so only its phase moves on, as the
+        // loop would move it.
+        const bool sound_p = (p.amplitude | sp.target) != 0, sound_q = (q.amplitude | sq.target) != 0;
+        const i32 dp = (sp.target - p.amplitude) >> 6, dq = (sq.target - q.amplitude) >> 6;
+        if (sound_p && sound_q) {
+            if (written) sound_two<false>(mix, p.phase, sp.increment, p.amplitude, dp, q.phase, sq.increment, q.amplitude, dq);
+            else sound_two<true>(mix, p.phase, sp.increment, p.amplitude, dp, q.phase, sq.increment, q.amplitude, dq);
             written = true;
-            r.amplitude = t.target;
+        } else {
+            Partial* const both[2] = {&p, &q};
+            const Step* const steps[2] = {&sp, &sq};
+            const i32 ramps[2] = {dp, dq};
+            for (u32 j = 0; j < 2; ++j) {
+                Partial& r = *both[j];
+                const Step& t = *steps[j];
+                if (!(r.amplitude | t.target)) {
+                    r.phase += t.increment * opxy::block_frames;
+                    continue;
+                }
+                r.phase = written ? sound(mix, r.phase, t.increment, r.amplitude, ramps[j])
+                                  : sound_first(mix, r.phase, t.increment, r.amplitude, ramps[j]);
+                written = true;
+            }
         }
+        p.amplitude = sp.target;
+        q.amplitude = sq.target;
     }
     if (!written) for (u32 i = 0; i < opxy::block_frames; ++i) mix[i] = 0;
     voice.random = random;
