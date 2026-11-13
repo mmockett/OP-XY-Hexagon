@@ -176,12 +176,18 @@ __attribute__((noinline)) void oscillate(i32* out, u32& phase_state, u32& increm
     phase_state = phase;
     increment_state = target;
 }
+// A part at level zero adds exactly zero, so the pass leaves it out: Shape
+// 0% is the sine alone, the triangle's peak (25%) the triangle alone.
 template <bool First>
 inline void oscillate(i32* out, u32& phase, u32& increment, u32 target, const Shape& m) {
     if (m.pulse) oscillate<false, false, true, true, First>(out, phase, increment, target, m);
-    else if (m.sine) oscillate<true, true, false, false, First>(out, phase, increment, target, m);
-    else if (m.triangle) oscillate<false, true, true, false, First>(out, phase, increment, target, m);
-    else oscillate<false, false, true, false, First>(out, phase, increment, target, m);
+    else if (m.sine) {
+        if (m.triangle) oscillate<true, true, false, false, First>(out, phase, increment, target, m);
+        else oscillate<true, false, false, false, First>(out, phase, increment, target, m);
+    } else if (m.triangle) {
+        if (m.saw) oscillate<false, true, true, false, First>(out, phase, increment, target, m);
+        else oscillate<false, true, false, false, First>(out, phase, increment, target, m);
+    } else oscillate<false, false, true, false, First>(out, phase, increment, target, m);
 }
 
 // The voice's passes over a block, after the oscillators. Kept out of line so
