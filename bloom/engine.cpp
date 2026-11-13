@@ -151,6 +151,15 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
 
     const u32 base = pitch[0];
     const i32 note = log2_of(base);
+    // Silent: no pitch, or a fundamental at or above the cutoff (so every
+    // partial is, and shape would give every one level zero), with nothing
+    // still fading. Then nothing would sound, no phase would move and only
+    // the note's time goes on, so the spectrum is not worked out.
+    if (!voice.sounding && (!base || note >= log2_cutoff)) {
+        voice.time += c.step;
+        for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = 0;
+        return;
+    }
     Spectrum s;
     i32 drift[partial_count];
     voice_drifts(c, voice, drift);
@@ -170,6 +179,10 @@ inline void render(Voice& voice, Shared& shared, u32, opxy::Output output,
     u32 n = s.sounding > voice.sounding ? s.sounding : voice.sounding;
     voice.sounding = s.sounding;
     n = (n + 1) & ~1u;   // in pairs
+    if (!n) {   // every partial culled, and none fading: silence
+        for (u32 i = 0; i < opxy::block_frames; ++i) output[i] = 0;
+        return;
+    }
 
     i32 mix[opxy::block_frames];
     bool written = false;
